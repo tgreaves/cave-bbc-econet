@@ -1,0 +1,42 @@
+   10 REM Check Program
+   20 REM This program checks
+   30 REM to see whether the program
+   40 REM has been loaded properly.
+   50 REM (C)1985 XOB partners.
+   60 
+   70 REM By W.T.-Pedoe
+   80 
+   85 PRINT"Loading..."
+   90 checksum%=&D8
+  100 PROCcompile
+  110 REPEAT
+  120 PRINT "Checking ..."
+  130 OSCLI"LOAD CAVE "+STR$~E%
+  140 CALL check
+  150 IF ?&70<>checksum% THEN PRINT "DIVFailed... OFF";~?&70:PRINT"Re-trying ..."
+  160 UNTIL ?&70=checksum%
+  170 *KEY0 RUN|M
+  175 *FX 15 255
+  180 *FX 138 0 128
+  190 PAGE=E%:END
+  200 
+  210 DEFPROCcompile
+  220 FOR PASS=0 TO 2 STEP 2
+  230 P%=&900
+  240 [OPT PASS
+  250 .check
+  260 LDA#0 : STA &70
+  270 LDA#&00 : STA &72
+  280 LDA#E% DIV 256 : STA &73
+  290 .loop
+  300 LDA &73 : CMP#(E%+17000)DIV 256: BEQ end
+  310 LDY#0
+  320 LDA(&72),Y
+  330 CLC
+  340 ADC &70 : STA &70
+  350 INC &72 : BNE loop
+  360 INC &73 : BNE loop
+  370 .end
+  380 RTS
+  390 ]NEXT
+  400 ENDPROC
