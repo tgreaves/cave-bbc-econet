@@ -4,6 +4,7 @@ from os import listdir, getcwd
 from os.path import isfile, join
 from sys import exit
 from collections import OrderedDict
+from itertools import groupby
 import yaml
 
 def setup_yaml():
@@ -60,6 +61,17 @@ for room in rooms:
     room_dict['id'] = room
     room_dict['title'] = 'Undefined'
     room_dict['description'] = room_string
+
+    parsed_room_list = ["".join(x) for _, x in groupby(exit_string, key=str.isdigit)]
+
+    print parsed_room_list
+
+    parsed_room_list = iter(parsed_room_list)
+
+    for x, y in zip(parsed_room_list, parsed_room_list):
+        print x, y
+
+    room_dict['exits'] = exit_string
 
     room_list.append(room_dict)
 
