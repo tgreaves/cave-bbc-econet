@@ -2,10 +2,19 @@
 
 from os import listdir, getcwd
 from os.path import isfile, join
-from sys import exit
+from sys import exit, version
 from collections import OrderedDict
 from itertools import groupby
 import yaml
+
+directions = {
+    'N':    'north',
+    'E':    'east',
+    'S':    'south',
+    'W':    'west',
+    'U':    'up',
+    'D':    'down' 
+}
 
 def setup_yaml():
   """ https://stackoverflow.com/a/8661021 """
@@ -45,14 +54,18 @@ for room in rooms:
 
     while (1):
         character = bytes_read[string_idx]
-        #print str(string_idx) + " - next: " + character + "  q  " + str(ord(character))
+        print str(string_idx) + " - next: " + character + "  q  " + str(ord(character))
 
         if ord(character) == 13:
             break
+        
+        # Replace BBC colour control characters with spaces.
+        if ord(character) >= 129:
+            character = ' '
 
         if not (ord(character) == 32 and ord( bytes_read[string_idx-1]) == 32):
             room_string = room_string + character
-        
+
         string_idx=string_idx +1
 
     print "Room " + room + " string: " + room_string
@@ -64,18 +77,24 @@ for room in rooms:
 
     parsed_room_list = ["".join(x) for _, x in groupby(exit_string, key=str.isdigit)]
 
-    print parsed_room_list
-
     parsed_room_list = iter(parsed_room_list)
+    
+    room_exists_list = list()
 
     for x, y in zip(parsed_room_list, parsed_room_list):
         print x, y
 
-    room_dict['exits'] = exit_string
+        if x == 'Q':
+            continue
+
+        room_exists_dict = OrderedDict()
+        room_exists_dict['roomId'] = 'cave:' + y
+        room_exists_dict['direction'] = directions[x]
+        room_exists_list.append(room_exists_dict)
+
+    room_dict['exits'] = room_exists_list
 
     room_list.append(room_dict)
 
-print yaml.dump(room_list, default_flow_style=False)
-        
-
-
+with open('rooms.yml', 'w') as outfile:
+    yaml.dump(room_list, outfile, default_flow_style=False)
