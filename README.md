@@ -12,4 +12,4 @@ The original BBC BASIC files have been detokenised, thanks to ```BBCBasicToText.
 
 # The remake
 
-You don't need the original hardware (including Econet!) to enjoy Cave.  I put together a remodelling using the Ranvier MUD system: https://github.com/tgreaves/cave-bbc-econet
+You don't need the original hardware (including Econet!) to enjoy Cave.  I put together a remodelling using the Ranvier MUD system: https://github.com/tgreaves/ranviermud-cave
