@@ -1,0 +1,18 @@
+   10 REM 16
+   20 space%=FALSE
+   30 MODE 7
+   40 VDU 23,0,10,255,0;0;0;0;0
+   50 *LOAD CAVM7 7C00
+   60 S$="            CAVE-PLUS (C) G.J. Leach & XOB 1987/88 with contributions from S.A.Hewick ... T.Durrheim ... I.Morrow     Press the SPACE BAR to enter the cave!"
+   70 REPEAT
+   80 FOR A%=1 TO LEN(S$)
+   90 T=TIME:REPEAT UNTIL TIME-T>20
+  100 *FX 19
+  110 ?(&7C00+16*40)=ASC"MOD"
+  120 $(&7C00+16*40+1)=LEFT$(S$,38)
+  130 S$=RIGHT$(S$,LEN(S$)-1)+LEFT$(S$,1)
+  140 IF INKEY(0)=32 THEN space%=TRUE:A%=LEN(S$)
+  150 NEXT
+  160 UNTIL space%
+  170 CLS
+  180 CHAIN"MC"

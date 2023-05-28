@@ -1,0 +1,38 @@
+   10 REM CHECK W.T-PEDOE XOB
+   12 HIMEM=&78FF
+   14 PRINT"Checking your caving gear."
+   85 FOR I%=&A00 TO &AFF STEP 4:!I%=0:NEXT
+   90 A%=&A1
+  100 PROCcompile
+  110 REPEAT
+  130 OSCLI"LOAD CAVE 1200"
+  132 PRINT"MODDon't try to BREAK out of CAVE"
+  133PRINT"EORAlways use theSTEPQUIT command"
+  134 a=INKEY(200)
+  140 CALL check
+  150 IF ?&70<>A% PRINT "DIVFailed... OFF";~?&70:PRINT"Re-trying ..."
+  160 UNTIL ?&70=A%
+  170 *KEY0 RUN|M
+  175 *FX 15 255
+  180 *FX 138 0 128
+  190VDU21:PAGE=&1200:END
+  210 DEFPROCcompile
+  220 FOR PASS=0 TO 2 STEP 2
+  230 P%=&900
+  240 [OPT PASS
+  250 .check
+  260 LDA#0 : STA &70
+  270 LDA#&00 : STA &72
+  280 LDA#&1200 DIV 256 : STA &73
+  290 .loop
+  300 LDA &73 : CMP#(&1200+&4466)DIV 256: BEQ end
+  310 LDY#0
+  320 LDA(&72),Y
+  330 CLC
+  340 ADC &70 : STA &70
+  350 INC &72 : BNE loop
+  360 INC &73 : BNE loop
+  370 .end
+  380 RTS
+  390 ]NEXT
+  400 ENDPROC

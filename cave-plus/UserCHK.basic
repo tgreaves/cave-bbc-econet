@@ -1,0 +1,61 @@
+   10 REM Program to handle
+   20 REM CAVE users.
+   30 REM (C)1987 W.Tunstall-Pedoe
+   40 
+   45 MODE 7:PRINT'"MODCave User File Management : (C) XOB"''
+   50 DIM osgbpbblk 12
+   60 DIM osdatabuf 29
+   70 DIM specuser$(200)
+   80 su%=0
+   90 INPUT "Condition : "condition$
+  100 IF condition$="" THEN condition$="TRUE"
+  110 INPUT "Command   : "command$
+  120 osgbpbblk!9=0
+  130 ?osgbpbblk=0
+  140 file%=0
+  150 sum%=0
+  160 REPEAT
+  170 name$=""
+  180 left%=TRUE
+  190 osgbpbblk!5=1
+  200 osgbpbblk!1=osdatabuf
+  210 oldnum%=osgbpbblk!5
+  220 X%=osgbpbblk MOD 256
+  230 Y%=osgbpbblk DIV 256
+  240 A%=8
+  250 CALL &FFD1 : REM osgbpb
+  260 left%= oldnum%<>osgbpbblk!5
+  270 IF left% THEN file%=file%+1:FOR A%=1 TO ?osdatabuf:name$=name$+CHR$(osdatabuf?A%):NEXT
+  280 PROCedit(name$)
+  290 UNTIL NOT left%
+  300 n_fil%=file%
+  310 IF command$="" OR su%=0 THEN END
+  320 PRINT "[Confirm with RETURN]";
+  330 REPEAT UNTIL GET=13:PRINT
+  340 PROCdo_commands
+  350 END
+  360 
+  370 DEFPROCedit(name$)
+  380 IF name$="" THEN ENDPROC
+  390 XX=OPENIN(name$)
+  400 INPUT#XX,NAME$,SCORE,PR,WIZARD,PW$
+  410 INPUT#XX,checksum
+  420 CLOSE#XX
+  430 CHEAT=(checksum<>FNcheck(NAME$+STR$(SCORE)+STR$(PR)+STR$(WIZARD)+PW$))
+  440 IF EVAL(condition$) THEN PRINT name$;"(";NAME$;")";TAB(25);SCORE," ":su%=su%+1:specuser$(su%)=name$
+  450 ENDPROC
+  460 
+  470 DEFPROCdo_commands
+  480 IF command$="" THEN ENDPROC
+  490 FOR A%=1 TO su%
+  500 oscli$=command$+" "+specuser$(A%)
+  510 PRINT oscli$
+  520 OSCLI(oscli$)
+  530 NEXT
+  540 ENDPROC
+  550 
+  560 DEFFNcheck(A$)
+  570 LOCAL C,L
+  580 FORL=1TOLEN(A$):C=C+ASC(MID$(A$,L,1)):NEXT
+  590 FORL=1TOLEN(A$):C=C EOR ASC(MID$(A$,L,1))+1:NEXT
+  600 =C
