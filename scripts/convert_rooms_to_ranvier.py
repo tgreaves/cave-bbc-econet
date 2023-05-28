@@ -1,4 +1,10 @@
 #!/usr/bin/python
+#
+# convert_rooms_to_ranvier.py
+#
+# Generates Ranvier JSON room output based on CAVE room files.
+#
+# Run inside the 'R' directory of the BBC BASIC files.
 
 from os import listdir, getcwd
 from os.path import isfile, join
@@ -18,19 +24,19 @@ directions = {
 
 def setup_yaml():
   """ https://stackoverflow.com/a/8661021 """
-  represent_dict_order = lambda self, data:  self.represent_mapping('tag:yaml.org,2002:map', data.items())
+  represent_dict_order = lambda self, data:  self.represent_mapping('tag:yaml.org,2002:map', list(data.items()))
   yaml.add_representer(OrderedDict, represent_dict_order)   
 
 setup_yaml()
 
 room_list = list()
 
-room_path = "../bbc/R"
+room_path = "."
 only_files = [f for f in listdir(room_path) if isfile(join(room_path, f))]
 rooms = sorted(only_files, key=int) 
 
 for room in rooms:
-    #print "Room: " + room
+    print ("Room: " + str(room))
     bytes_read = open(room_path + "/" + room, 'rb').read()
     
     # Process exits.
@@ -40,35 +46,37 @@ for room in rooms:
 
     while (1):
         character = bytes_read[string_idx]
-        #print "next: " + character + "  q  " + str(ord(character))
+        #print ("character: " + str(character))
 
-        if ord(character) == 13:
+        if character == 13:
             break
 
-        exit_string = exit_string + character
+        #print ("next: " + str(character) + "  q  " + chr(character))
+
+        exit_string = exit_string + chr(character)
         string_idx=string_idx+1
 
-    #print "Exit String: " + exit_string
+    #print("Exit String: " + exit_string)
 
     string_idx = 64
 
     while (1):
         character = bytes_read[string_idx]
-        print str(string_idx) + " - next: " + character + "  q  " + str(ord(character))
+        #print(str(string_idx) + " - next: " + character + "  q  " + str(ord(character)))
 
-        if ord(character) == 13:
+        if character == 13:
             break
         
         # Replace BBC colour control characters with spaces.
-        if ord(character) >= 129:
-            character = ' '
+        if character >= 129:
+            character = 32
 
-        if not (ord(character) == 32 and ord( bytes_read[string_idx-1]) == 32):
-            room_string = room_string + character
+        if not (character == 32 and bytes_read[string_idx-1] == 32):
+            room_string = room_string + chr(character)
 
         string_idx=string_idx +1
 
-    print "Room " + room + " string: " + room_string
+    #print("Room " + room + " string: " + room_string)
 
     room_dict = OrderedDict()
     room_dict['id'] = room
@@ -82,9 +90,12 @@ for room in rooms:
     room_exists_list = list()
 
     for x, y in zip(parsed_room_list, parsed_room_list):
-        print x, y
+        #print(x, y)
 
         if x == 'Q':
+            continue
+
+        if x == 'H':
             continue
 
         room_exists_dict = OrderedDict()

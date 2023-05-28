@@ -1,0 +1,1415 @@
+- id: '1'
+  title: Undefined
+  description: This is the Main Entrance. The cave extends down to the south. The
+    hall of knowledge is to the east. A small stone,with the name MERLIN on it, glows.
+  exits:
+  - roomId: cave:2
+    direction: down
+  - roomId: cave:2
+    direction: south
+  - roomId: cave:72
+    direction: east
+- id: '2'
+  title: Undefined
+  description: There is a way up to the north which leads out into sunlight and a
+    west/east tunnel.
+  exits:
+  - roomId: cave:1
+    direction: up
+  - roomId: cave:1
+    direction: north
+  - roomId: cave:3
+    direction: east
+  - roomId: cave:4
+    direction: west
+- id: '3'
+  title: Undefined
+  description: You are in a smooth narrow tunnel. A shaft of light is to the west
+    and more tunnel to the east.
+  exits:
+  - roomId: cave:2
+    direction: west
+  - roomId: cave:6
+    direction: east
+- id: '4'
+  title: Undefined
+  description: You are in a smooth walled tunnel. Thereis some light to the east and
+    a small room to the north.
+  exits:
+  - roomId: cave:2
+    direction: east
+  - roomId: cave:5
+    direction: north
+  - roomId: cave:49
+    direction: west
+- id: '5'
+  title: Undefined
+  description: You are in a small room.
+  exits:
+  - roomId: cave:4
+    direction: south
+  - roomId: cave:92
+    direction: north
+- id: '6'
+  title: Undefined
+  description: 'The tunnel leads east/west. A message isscrawled on the wall :- ''If
+    you are confused seek the hall of knowledge near the main entrance.'' '
+  exits:
+  - roomId: cave:3
+    direction: west
+  - roomId: cave:7
+    direction: east
+- id: '7'
+  title: Undefined
+  description: There are exits in all directions
+  exits:
+  - roomId: cave:6
+    direction: west
+  - roomId: cave:8
+    direction: east
+  - roomId: cave:9
+    direction: north
+  - roomId: cave:10
+    direction: south
+- id: '8'
+  title: Undefined
+  description: This is an east/west passage
+  exits:
+  - roomId: cave:7
+    direction: west
+  - roomId: cave:21
+    direction: east
+- id: '9'
+  title: Undefined
+  description: There are coloured rooms in all directions except south
+  exits:
+  - roomId: cave:7
+    direction: south
+  - roomId: cave:11
+    direction: west
+  - roomId: cave:12
+    direction: north
+  - roomId: cave:13
+    direction: east
+- id: '10'
+  title: Undefined
+  description: A maze of twisting passages all alike...There are exits in all directions!
+  exits:
+  - roomId: cave:14
+    direction: west
+  - roomId: cave:14
+    direction: east
+  - roomId: cave:7
+    direction: north
+  - roomId: cave:14
+    direction: south
+  - roomId: cave:14
+    direction: down
+  - roomId: cave:14
+    direction: up
+- id: '11'
+  title: Undefined
+  description: You are in the Red room
+  exits:
+  - roomId: cave:9
+    direction: east
+- id: '12'
+  title: Undefined
+  description: You are in the Green room. There is a switch at the entrance labelled
+    LIGHTS
+  exits:
+  - roomId: cave:9
+    direction: south
+- id: '13'
+  title: Undefined
+  description: You are in the Blue room
+  exits:
+  - roomId: cave:9
+    direction: west
+- id: '14'
+  title: Undefined
+  description: A maze of twisting passages all alike...There are exits in all directions!
+  exits:
+  - roomId: cave:15
+    direction: up
+  - roomId: cave:14
+    direction: west
+  - roomId: cave:14
+    direction: east
+  - roomId: cave:14
+    direction: north
+  - roomId: cave:14
+    direction: south
+  - roomId: cave:14
+    direction: down
+- id: '15'
+  title: Undefined
+  description: A maze of twisting passages all alike...There are exits in all directions!
+  exits:
+  - roomId: cave:14
+    direction: up
+  - roomId: cave:10
+    direction: west
+  - roomId: cave:14
+    direction: east
+  - roomId: cave:14
+    direction: north
+  - roomId: cave:14
+    direction: south
+  - roomId: cave:14
+    direction: down
+- id: '16'
+  title: Undefined
+  description: Wizard's Room
+  exits:
+  - roomId: cave:17
+    direction: up
+  - roomId: cave:18
+    direction: down
+  - roomId: cave:19
+    direction: west
+  - roomId: cave:20
+    direction: east
+- id: '17'
+  title: Undefined
+  description: You are in limbo - There is no natural way out.
+  exits:
+  - roomId: cave:17
+    direction: up
+  - roomId: cave:17
+    direction: down
+  - roomId: cave:17
+    direction: east
+  - roomId: cave:17
+    direction: west
+  - roomId: cave:17
+    direction: north
+  - roomId: cave:17
+    direction: south
+- id: '18'
+  title: Undefined
+  description: You are in the Wizard's Dungeon - There are no exits!
+  exits: []
+- id: '19'
+  title: Undefined
+  description: This is the Mortuary
+  exits:
+  - roomId: cave:16
+    direction: east
+- id: '20'
+  title: Undefined
+  description: Armoury
+  exits:
+  - roomId: cave:16
+    direction: west
+- id: '21'
+  title: Undefined
+  description: An east/west passage
+  exits:
+  - roomId: cave:8
+    direction: west
+  - roomId: cave:22
+    direction: east
+  - roomId: cave:53
+    direction: down
+- id: '22'
+  title: Undefined
+  description: An east/west passage
+  exits:
+  - roomId: cave:21
+    direction: west
+  - roomId: cave:23
+    direction: east
+- id: '23'
+  title: Undefined
+  description: An east/west passage
+  exits:
+  - roomId: cave:22
+    direction: west
+  - roomId: cave:24
+    direction: east
+- id: '24'
+  title: Undefined
+  description: A crossroads - the doctor's surgery is to the north,with DANGER to
+    the South and East
+  exits:
+  - roomId: cave:25
+    direction: north
+  - roomId: cave:26
+    direction: south
+  - roomId: cave:27
+    direction: east
+  - roomId: cave:23
+    direction: west
+- id: '25'
+  title: Undefined
+  description: You are in a sparsely-decorated doctor'ssurgery
+  exits:
+  - roomId: cave:24
+    direction: south
+- id: '26'
+  title: Undefined
+  description: A venomous snake-pit looms out of the fog...
+  exits:
+  - roomId: cave:24
+    direction: north
+- id: '27'
+  title: Undefined
+  description: A foul stench pervades the air,its source a small passage to the South
+  exits:
+  - roomId: cave:24
+    direction: west
+  - roomId: cave:28
+    direction: south
+  - roomId: cave:29
+    direction: east
+- id: '28'
+  title: Undefined
+  description: A dark North/South passage
+  exits:
+  - roomId: cave:27
+    direction: north
+  - roomId: cave:31
+    direction: south
+- id: '29'
+  title: Undefined
+  description: A portcullis lies to the East. There is a strange smell to the West.
+    A Rope hangs down from a hole in the roof.
+  exits:
+  - roomId: cave:30
+    direction: east
+  - roomId: cave:27
+    direction: west
+- id: '30'
+  title: Undefined
+  description: This is the demon's room. The only exitsare via a portcullis to the
+    West or through a hole to the east to the caves of torture and madness. A rope
+    hangs down from a hole in the roof.
+  exits:
+  - roomId: cave:29
+    direction: west
+  - roomId: cave:77
+    direction: east
+- id: '31'
+  title: Undefined
+  description: A well-lit bar is off to the East. From here there are exits North
+    and South.
+  exits:
+  - roomId: cave:32
+    direction: east
+  - roomId: cave:28
+    direction: north
+  - roomId: cave:33
+    direction: south
+- id: '32'
+  title: Undefined
+  description: A sign on the wall says "Beware the one who has the Ruby for he has
+    Superior Magical Power." There is a unbelievable stench in here.
+  exits:
+  - roomId: cave:31
+    direction: west
+- id: '33'
+  title: Undefined
+  description: A foul odour comes from the north of this North/South corridor
+  exits:
+  - roomId: cave:31
+    direction: north
+  - roomId: cave:34
+    direction: south
+- id: '34'
+  title: Undefined
+  description: A T-junction. Exits to the North, West and East
+  exits:
+  - roomId: cave:33
+    direction: north
+  - roomId: cave:35
+    direction: west
+  - roomId: cave:36
+    direction: east
+- id: '35'
+  title: Undefined
+  description: Another East/West passageway. A glow comes from the West.
+  exits:
+  - roomId: cave:40
+    direction: west
+  - roomId: cave:34
+    direction: east
+- id: '36'
+  title: Undefined
+  description: There are small caves to the North and South.
+  exits:
+  - roomId: cave:37
+    direction: north
+  - roomId: cave:38
+    direction: south
+  - roomId: cave:34
+    direction: west
+- id: '37'
+  title: Undefined
+  description: This is Merlin's room (Merlin is locked up somewhere outside the CAVE).
+    Charts and weird symbols adorn the jagged walls
+  exits:
+  - roomId: cave:36
+    direction: south
+  - roomId: cave:39
+    direction: up
+- id: '38'
+  title: Undefined
+  description: The Dragon's Lair
+  exits:
+  - roomId: cave:36
+    direction: north
+- id: '39'
+  title: Undefined
+  description: You have climbed up onto a narrow ledge and Merlin's room is visible
+    down below
+  exits:
+  - roomId: cave:37
+    direction: down
+- id: '40'
+  title: Undefined
+  description: This is the East end of the Large CAVERNThe walls glow with a strange
+    green phosphoresence. A bottomless chasm stopspassage to the west.
+  exits:
+  - roomId: cave:41
+    direction: north
+  - roomId: cave:47
+    direction: south
+  - roomId: cave:35
+    direction: east
+- id: '41'
+  title: Undefined
+  description: The North-East corner of the Large Cavern.
+  exits:
+  - roomId: cave:40
+    direction: south
+  - roomId: cave:42
+    direction: west
+- id: '42'
+  title: Undefined
+  description: This is the North Edge of the Grand Cavern
+  exits:
+  - roomId: cave:43
+    direction: west
+  - roomId: cave:41
+    direction: east
+- id: '43'
+  title: Undefined
+  description: The North-West corner of the Large Cavern.
+  exits:
+  - roomId: cave:44
+    direction: south
+  - roomId: cave:42
+    direction: east
+- id: '44'
+  title: Undefined
+  description: The West end of the big Cavern. There is a bottomless chasm to the
+    East
+  exits:
+  - roomId: cave:43
+    direction: north
+  - roomId: cave:45
+    direction: south
+  - roomId: cave:48
+    direction: west
+- id: '45'
+  title: Undefined
+  description: The South-West corner of the Large Cavern.
+  exits:
+  - roomId: cave:44
+    direction: north
+  - roomId: cave:46
+    direction: east
+- id: '46'
+  title: Undefined
+  description: The South side of the glowing Cavern.
+  exits:
+  - roomId: cave:45
+    direction: west
+  - roomId: cave:47
+    direction: east
+- id: '47'
+  title: Undefined
+  description: The South-East corner of the Large Cavern.
+  exits:
+  - roomId: cave:40
+    direction: north
+  - roomId: cave:46
+    direction: west
+- id: '48'
+  title: Undefined
+  description: The 48th. Room. A greenish glow comes from the East. A one-way exit
+    to the West.
+  exits:
+  - roomId: cave:54
+    direction: west
+  - roomId: cave:44
+    direction: east
+- id: '49'
+  title: Undefined
+  description: You are in the cyan room,with exits to the east and south
+  exits:
+  - roomId: cave:4
+    direction: east
+  - roomId: cave:50
+    direction: south
+- id: '50'
+  title: Undefined
+  description: You are in the yellow room,with exits tothe east and north_a magic
+    cubicle lies to the south
+  exits:
+  - roomId: cave:51
+    direction: east
+  - roomId: cave:49
+    direction: north
+  - roomId: cave:52
+    direction: south
+- id: '51'
+  title: Undefined
+  description: You are in the magenta room,with exits to the west and north
+  exits:
+  - roomId: cave:50
+    direction: west
+  - roomId: cave:4
+    direction: north
+- id: '52'
+  title: Undefined
+  description: You are caught in a spell-go North to safety or down to be transported
+    away............
+  exits:
+  - roomId: cave:51
+    direction: north
+  - roomId: cave:9
+    direction: down
+- id: '53'
+  title: Undefined
+  description: You tumble into a dark cellar_there is only one way out...
+  exits:
+  - roomId: cave:15
+    direction: west
+- id: '54'
+  title: Undefined
+  description: You are carried aloft on a sulphurous updraft
+  exits:
+  - roomId: cave:55
+    direction: up
+- id: '55'
+  title: Undefined
+  description: A Crystal Tower which overlooks the verdant plain of Zantreen
+  exits:
+  - roomId: cave:56
+    direction: up
+  - roomId: cave:57
+    direction: west
+  - roomId: cave:57
+    direction: east
+- id: '56'
+  title: Undefined
+  description: Above your head a crystal spire This is the top - you go no higher.
+    A sign says 'DEPOSIT' treasre here.
+  exits:
+  - roomId: cave:55
+    direction: down
+- id: '57'
+  title: Undefined
+  description: The walls are cystal, clear as glass not even wizards through them
+    pass.
+  exits:
+  - roomId: cave:58
+    direction: down
+  - roomId: cave:55
+    direction: south
+  - roomId: cave:56
+    direction: up
+- id: '58'
+  title: Undefined
+  description: Leaving the Tower for darker places down below is where your fate is
+  exits:
+  - roomId: cave:60
+    direction: down
+- id: '59'
+  title: Undefined
+  description: The stench of sulphur proves too strong.Back you are forced with plaintive
+    song.
+  exits:
+  - roomId: cave:55
+    direction: up
+- id: '60'
+  title: Undefined
+  description: A current of air blows from the west
+  exits:
+  - roomId: cave:54
+    direction: east
+  - roomId: cave:62
+    direction: west
+  - roomId: cave:61
+    direction: south
+- id: '61'
+  title: Undefined
+  description: The sound of rushing water is heard to the south
+  exits:
+  - roomId: cave:63
+    direction: south
+  - roomId: cave:60
+    direction: north
+- id: '62'
+  title: Undefined
+  description: You are faced with an impenetrable wall of rock
+  exits:
+  - roomId: cave:60
+    direction: west
+- id: '63'
+  title: Undefined
+  description: You are borne southwards on an underground torrent
+  exits:
+  - roomId: cave:63
+    direction: south
+  - roomId: cave:64
+    direction: north
+  - roomId: cave:65
+    direction: east
+  - roomId: cave:66
+    direction: west
+- id: '64'
+  title: Undefined
+  description: Then current proves too strong
+  exits:
+  - roomId: cave:63
+    direction: north
+  - roomId: cave:63
+    direction: south
+  - roomId: cave:63
+    direction: east
+  - roomId: cave:63
+    direction: west
+  - roomId: cave:63
+    direction: down
+  - roomId: cave:63
+    direction: up
+- id: '65'
+  title: Undefined
+  description: The eastern shore looms through the gloom
+  exits:
+  - roomId: cave:14
+    direction: east
+  - roomId: cave:63
+    direction: west
+- id: '66'
+  title: Undefined
+  description: The western shore invites you
+  exits:
+  - roomId: cave:67
+    direction: west
+  - roomId: cave:63
+    direction: east
+- id: '67'
+  title: Undefined
+  description: An electric blue glow shimmers from the North
+  exits:
+  - roomId: cave:66
+    direction: east
+  - roomId: cave:68
+    direction: north
+- id: '68'
+  title: Undefined
+  description: Your feeling langourous - oh so langourous
+  exits:
+  - roomId: cave:69
+    direction: north
+  - roomId: cave:67
+    direction: south
+- id: '69'
+  title: Undefined
+  description: What is small and green with 5 horns ? The answer lies above.
+  exits:
+  - roomId: cave:70
+    direction: up
+  - roomId: cave:68
+    direction: south
+- id: '70'
+  title: Undefined
+  description: I don't know but it has just bitten you
+  exits:
+  - roomId: cave:71
+    direction: up
+  - roomId: cave:69
+    direction: down
+- id: '71'
+  title: Undefined
+  description: A faint glow from above
+  exits:
+  - roomId: cave:39
+    direction: up
+  - roomId: cave:70
+    direction: down
+- id: '72'
+  title: Undefined
+  description: You now stand in the hallowed hall of knowledge. All around you are
+    rooms of instruction. There is an exit to the west.
+  exits:
+  - roomId: cave:1
+    direction: west
+  - roomId: cave:73
+    direction: north
+  - roomId: cave:74
+    direction: east
+  - roomId: cave:75
+    direction: south
+- id: '73'
+  title: Undefined
+  description: Here you are instructed in the art of movement. To move in a direction
+    type the initial letter of each direction i.e. N,E,S,W,U,D.
+  exits:
+  - roomId: cave:72
+    direction: south
+- id: '74'
+  title: Undefined
+  description: Manipulating objects is instructed in this room. To pick up an object
+    use the command 'GET' and to put one down use 'DROP'.
+  exits:
+  - roomId: cave:72
+    direction: west
+- id: '75'
+  title: Undefined
+  description: The arts of war are described here. You can 'HIT' cavers but there
+    are other ways. A weapon will help but you could try to talk someone into leaving
+    you alone using the 'SAY' command.
+  exits:
+  - roomId: cave:72
+    direction: north
+- id: '76'
+  title: Undefined
+  description: This room is  Hewick's Hollow,   probably the most pointless room in
+    the whole of existence. The only exit is down through a black hole.
+  exits:
+  - roomId: cave:15
+    direction: down
+- id: '77'
+  title: Undefined
+  description: You are standing at a T-junction where apassage from the west joins
+    a North/South passage.
+  exits:
+  - roomId: cave:78
+    direction: north
+  - roomId: cave:88
+    direction: south
+  - roomId: cave:30
+    direction: west
+- id: '78'
+  title: Undefined
+  description: Your are at a T-junction where a passagefrom the east joins a North/South
+    passage.
+  exits:
+  - roomId: cave:89
+    direction: east
+  - roomId: cave:79
+    direction: north
+  - roomId: cave:77
+    direction: south
+- id: '79'
+  title: Undefined
+  description: You are standing at the most northerly North/South corridor. An arrow
+    drawn in blood on the ground points east.
+  exits:
+  - roomId: cave:80
+    direction: east
+  - roomId: cave:78
+    direction: south
+- id: '80'
+  title: Undefined
+  description: You are an east/west corridor which is sloping gently to the east.
+  exits:
+  - roomId: cave:79
+    direction: west
+  - roomId: cave:81
+    direction: east
+- id: '81'
+  title: Undefined
+  description: You are standing in an east/west passagefeeling cold. The ground slopes
+    quite steeply down to the east.
+  exits:
+  - roomId: cave:82
+    direction: east
+  - roomId: cave:80
+    direction: west
+- id: '82'
+  title: Undefined
+  description: You are standing at a corner in the passageway. To the east is a staircase,
+    to the west is a passage,and to the south a room
+  exits:
+  - roomId: cave:91
+    direction: east
+  - roomId: cave:81
+    direction: west
+  - roomId: cave:83
+    direction: south
+- id: '83'
+  title: Undefined
+  description: You are standing in a torture room you can see a rack, where a long
+    dead dwarf lies dead, his face contorted in agony. You feel very sick! Exits are
+    north and south.
+  exits:
+  - roomId: cave:82
+    direction: north
+  - roomId: cave:84
+    direction: south
+- id: '84'
+  title: Undefined
+  description: You are standing in a small room with benches carved into the rock,
+    and a notice above the exit to the north saying, 'Queue this side'. There is an
+    exit west.
+  exits:
+  - roomId: cave:83
+    direction: north
+  - roomId: cave:85
+    direction: west
+- id: '85'
+  title: Undefined
+  description: You are in a small cavern, where there are a few bones lying about
+    on the floor. Exits are south, and east.
+  exits:
+  - roomId: cave:84
+    direction: east
+  - roomId: cave:86
+    direction: south
+- id: '86'
+  title: Undefined
+  description: You are at the easterly end of an east/west corridor, which slopes
+    steeplyto the north. Exits are north, and west
+  exits:
+  - roomId: cave:85
+    direction: north
+  - roomId: cave:87
+    direction: west
+- id: '87'
+  title: Undefined
+  description: You are in an east/west corridor, which slopes gently down to the east.
+  exits:
+  - roomId: cave:86
+    direction: east
+  - roomId: cave:88
+    direction: west
+- id: '88'
+  title: Undefined
+  description: You are at the most westerly end of an east/west corridor. A dark passage
+    leadsnorth.
+  exits:
+  - roomId: cave:77
+    direction: north
+  - roomId: cave:87
+    direction: east
+- id: '89'
+  title: Undefined
+  description: You are in a dank musty room, with a large bookcase set into the most
+    easterly wall.
+  exits:
+  - roomId: cave:78
+    direction: west
+  - roomId: cave:90
+    direction: east
+- id: '90'
+  title: Undefined
+  description: When you touch the bookcase, suprise suprise you hear a click, and
+    it swings round, and you find yourself in a room with a oneway exit north.
+  exits:
+  - roomId: cave:81
+    direction: north
+- id: '91'
+  title: Undefined
+  description: You are a certain distance down a staircase. You can see stairs upwards,
+    and downwards.
+  exits:
+  - roomId: cave:91
+    direction: up
+  - roomId: cave:91
+    direction: down
+  - roomId: cave:82
+    direction: west
+- id: '92'
+  title: Undefined
+  description: You are in a dimly lit tunnel. A network of stalactites & stalagmites
+    blocks the way East and West.
+  exits:
+  - roomId: cave:5
+    direction: south
+  - roomId: cave:93
+    direction: north
+- id: '93'
+  title: Undefined
+  description: You are in a dimly lit tunnel. Narrow openings can be seen to the North,
+    South and West.
+  exits:
+  - roomId: cave:92
+    direction: south
+  - roomId: cave:140
+    direction: north
+  - roomId: cave:94
+    direction: west
+- id: '94'
+  title: Undefined
+  description: You are in a narrow corridor hewn out of the living rock. A light glows
+    faintly in the West and a gloomy tunnel can be seen in the East.
+  exits:
+  - roomId: cave:93
+    direction: east
+  - roomId: cave:95
+    direction: west
+- id: '95'
+  title: Undefined
+  description: You are in a narrow corridor hewn out of the living rock. A light glows
+    brightly in the West. The way East is sombre with shadows.
+  exits:
+  - roomId: cave:94
+    direction: east
+  - roomId: cave:96
+    direction: west
+- id: '96'
+  title: Undefined
+  description: You are in a strange room which glows with a green light. Doorways
+    lead South, East and West.
+  exits:
+  - roomId: cave:95
+    direction: east
+  - roomId: cave:99
+    direction: west
+  - roomId: cave:97
+    direction: south
+- id: '97'
+  title: Undefined
+  description: To the North, you see a faint green light. There is a gap in the rock
+    wall leading West.
+  exits:
+  - roomId: cave:98
+    direction: west
+  - roomId: cave:96
+    direction: north
+- id: '98'
+  title: Undefined
+  description: You are inside a crevice. Around you is evidence that a large carnivore
+    has been living there. You bang your toes on a human skull. OUCH!
+  exits:
+  - roomId: cave:97
+    direction: east
+- id: '99'
+  title: Undefined
+  description: You are in a dark room, dimly lit by a green glow coming from the East.
+    Warm air wafts gently through an opening to the West and a dark doorway looms
+    to the North.
+  exits:
+  - roomId: cave:96
+    direction: east
+  - roomId: cave:100
+    direction: west
+  - roomId: cave:145
+    direction: north
+- id: '100'
+  title: Undefined
+  description: You are at the East End of a large cavern. A pillar of fire blocks
+    your way West and fills the cavern with hot air.
+  exits:
+  - roomId: cave:105
+    direction: north
+  - roomId: cave:101
+    direction: south
+  - roomId: cave:99
+    direction: east
+- id: '101'
+  title: Undefined
+  description: You are at the South/East End of a large cavern.
+  exits:
+  - roomId: cave:100
+    direction: north
+  - roomId: cave:102
+    direction: west
+- id: '102'
+  title: Undefined
+  description: You are at the South/West End of a large cavern.
+  exits:
+  - roomId: cave:103
+    direction: north
+  - roomId: cave:101
+    direction: east
+- id: '103'
+  title: Undefined
+  description: You are at the West End of a large cavern. A pillar of fire blocks
+    your way East and fills the cavern with hot air.
+  exits:
+  - roomId: cave:104
+    direction: north
+  - roomId: cave:102
+    direction: south
+- id: '104'
+  title: Undefined
+  description: You are at the North/West End of a large cavern.
+  exits:
+  - roomId: cave:103
+    direction: south
+  - roomId: cave:105
+    direction: east
+- id: '105'
+  title: Undefined
+  description: You are at the North/East End of a large cavern. You feel a cool breeze
+    coming from the North.
+  exits:
+  - roomId: cave:106
+    direction: north
+  - roomId: cave:100
+    direction: south
+  - roomId: cave:104
+    direction: west
+- id: '106'
+  title: Undefined
+  description: Warm air gusts through an opening to the South. There are also exits
+    North and West. An enticing aroma beckons from the West.
+  exits:
+  - roomId: cave:105
+    direction: south
+  - roomId: cave:107
+    direction: west
+  - roomId: cave:108
+    direction: north
+- id: '107'
+  title: Undefined
+  description: You are in a strange room. The floor is covered with rush mats and
+    home-made candles smoulder, spilling their wax. An exotic smell pervades the air.
+    The door is now shut and locked.
+  exits:
+  - roomId: cave:146
+    direction: up
+- id: '108'
+  title: Undefined
+  description: You are at bend in a corridor which stretches Eastwards in one direction
+    and South in the other.
+  exits:
+  - roomId: cave:106
+    direction: south
+  - roomId: cave:109
+    direction: east
+- id: '109'
+  title: Undefined
+  description: You are in an East/West corridor. There is a gap in the North wall.
+  exits:
+  - roomId: cave:116
+    direction: north
+  - roomId: cave:110
+    direction: east
+  - roomId: cave:108
+    direction: west
+- id: '110'
+  title: Undefined
+  description: The cave widens at this point. There are exits South, East and West.
+  exits:
+  - roomId: cave:111
+    direction: south
+  - roomId: cave:115
+    direction: east
+  - roomId: cave:109
+    direction: west
+- id: '111'
+  title: Undefined
+  description: You are in a narrow corridor which twists Eastwards in one direction
+    and to the North in the other.
+  exits:
+  - roomId: cave:110
+    direction: north
+  - roomId: cave:112
+    direction: east
+- id: '112'
+  title: Undefined
+  description: You are in an East/West corridor
+  exits:
+  - roomId: cave:113
+    direction: east
+  - roomId: cave:111
+    direction: west
+- id: '113'
+  title: Undefined
+  description: You are in a narrow corridor which twists Westwards in one direction
+    and to the North in the other.
+  exits:
+  - roomId: cave:114
+    direction: north
+  - roomId: cave:112
+    direction: west
+- id: '114'
+  title: Undefined
+  description: You are in a narrow corridor which twists Westwards in one direction
+    and to the South in the other.
+  exits:
+  - roomId: cave:113
+    direction: south
+  - roomId: cave:115
+    direction: west
+- id: '115'
+  title: Undefined
+  description: You are in an East/West corridor
+  exits:
+  - roomId: cave:114
+    direction: east
+  - roomId: cave:110
+    direction: west
+- id: '116'
+  title: Undefined
+  description: You are in a North/South corridor
+  exits:
+  - roomId: cave:117
+    direction: north
+  - roomId: cave:109
+    direction: south
+- id: '117'
+  title: Undefined
+  description: 'You are in a cavern where a spiral staircase leads upwards. A sign
+    reads: ''Go Up not Down to win the crown; North, South, East or West may still
+    prove best!'
+  exits:
+  - roomId: cave:157
+    direction: up
+  - roomId: cave:125
+    direction: north
+  - roomId: cave:116
+    direction: south
+  - roomId: cave:119
+    direction: east
+  - roomId: cave:118
+    direction: west
+- id: '118'
+  title: Undefined
+  description: You are in a small room with an exit East.
+  exits:
+  - roomId: cave:117
+    direction: east
+- id: '119'
+  title: Undefined
+  description: You are in an East/West corridor
+  exits:
+  - roomId: cave:120
+    direction: east
+  - roomId: cave:117
+    direction: west
+- id: '120'
+  title: Undefined
+  description: You are at a bend in the corridor. You can go North or West.
+  exits:
+  - roomId: cave:121
+    direction: north
+  - roomId: cave:119
+    direction: west
+- id: '121'
+  title: Undefined
+  description: You are at a junction in a maze of corridors. You can go South, East
+    or West.
+  exits:
+  - roomId: cave:120
+    direction: south
+  - roomId: cave:130
+    direction: east
+  - roomId: cave:122
+    direction: west
+- id: '122'
+  title: Undefined
+  description: You are at a bend in the corridor. You can go North or East.
+  exits:
+  - roomId: cave:123
+    direction: north
+  - roomId: cave:121
+    direction: east
+- id: '123'
+  title: Undefined
+  description: You are at a junction in a maze of corridors. You can go South, East
+    or West.
+  exits:
+  - roomId: cave:122
+    direction: south
+  - roomId: cave:128
+    direction: east
+  - roomId: cave:124
+    direction: west
+- id: '124'
+  title: Undefined
+  description: Four ways meet here. To the North and West are rooms. There are dark
+    openings South and East.
+  exits:
+  - roomId: cave:127
+    direction: north
+  - roomId: cave:125
+    direction: south
+  - roomId: cave:123
+    direction: east
+  - roomId: cave:126
+    direction: west
+- id: '125'
+  title: Undefined
+  description: You are in a North/South corridor
+  exits:
+  - roomId: cave:124
+    direction: north
+  - roomId: cave:117
+    direction: south
+- id: '126'
+  title: Undefined
+  description: You are in a small room carved into the rock. It is lit by a bright
+    light and there is a table fixed to the floor. A door slammed shut when you entered.
+    There is no visible way out!
+  exits: []
+- id: '127'
+  title: Undefined
+  description: You are in a large chamber adorned with silk screens and cushions.
+    Perfume fills the air and faint singing can be heard. Large men with high voices
+    block all exits but the South door.
+  exits:
+  - roomId: cave:124
+    direction: south
+- id: '128'
+  title: Undefined
+  description: In an East/West corridor
+  exits:
+  - roomId: cave:129
+    direction: east
+  - roomId: cave:123
+    direction: west
+- id: '129'
+  title: Undefined
+  description: You are at a T-juntion. Corridors run South, East and West.
+  exits:
+  - roomId: cave:130
+    direction: south
+  - roomId: cave:139
+    direction: east
+  - roomId: cave:128
+    direction: west
+- id: '130'
+  title: Undefined
+  description: You are at a T-juntion. Corridors run South, North and West.
+  exits:
+  - roomId: cave:131
+    direction: south
+  - roomId: cave:129
+    direction: north
+  - roomId: cave:121
+    direction: west
+- id: '131'
+  title: Undefined
+  description: You are in a North/South corridor.
+  exits:
+  - roomId: cave:130
+    direction: north
+  - roomId: cave:132
+    direction: south
+- id: '132'
+  title: Undefined
+  description: You are in a cavern with a ladder fixed against one wall. You can go
+    Up, North, East or West.
+  exits:
+  - roomId: cave:54
+    direction: up
+  - roomId: cave:131
+    direction: north
+  - roomId: cave:135
+    direction: east
+  - roomId: cave:133
+    direction: west
+- id: '133'
+  title: Undefined
+  description: You are in an East/West corridor
+  exits:
+  - roomId: cave:132
+    direction: east
+  - roomId: cave:134
+    direction: west
+- id: '134'
+  title: Undefined
+  description: You are in a fairly horrible place. Why did you bother coming here?
+    You can only go East.
+  exits:
+  - roomId: cave:133
+    direction: east
+- id: '135'
+  title: Undefined
+  description: You are at a junction in a maze of corridors. You can go North, South
+    or West.
+  exits:
+  - roomId: cave:137
+    direction: north
+  - roomId: cave:136
+    direction: south
+  - roomId: cave:132
+    direction: west
+- id: '136'
+  title: Undefined
+  description: You are at the South end of a long corridor.
+  exits:
+  - roomId: cave:135
+    direction: north
+- id: '137'
+  title: Undefined
+  description: You are in a North/South corridor.
+  exits:
+  - roomId: cave:138
+    direction: north
+  - roomId: cave:135
+    direction: south
+- id: '138'
+  title: Undefined
+  description: You are in a North/South corridor.
+  exits:
+  - roomId: cave:139
+    direction: north
+  - roomId: cave:137
+    direction: south
+- id: '139'
+  title: Undefined
+  description: You are at a bend in the corrdor. You may go South or West.
+  exits:
+  - roomId: cave:138
+    direction: south
+  - roomId: cave:129
+    direction: west
+- id: '140'
+  title: Undefined
+  description: You are in a dimly-lit tunnel. A light comes from the North and there
+    are also exits South and West.
+  exits:
+  - roomId: cave:141
+    direction: north
+  - roomId: cave:93
+    direction: south
+  - roomId: cave:142
+    direction: west
+- id: '141'
+  title: Undefined
+  description: ' You are in a small room lit by a strobe-light. There is an exit South.'
+  exits:
+  - roomId: cave:140
+    direction: south
+- id: '142'
+  title: Undefined
+  description: You are in an East/West corridor
+  exits:
+  - roomId: cave:140
+    direction: east
+  - roomId: cave:143
+    direction: west
+- id: '143'
+  title: Undefined
+  description: You are in an East/West corridor
+  exits:
+  - roomId: cave:142
+    direction: east
+  - roomId: cave:144
+    direction: west
+- id: '144'
+  title: Undefined
+  description: You are in an East/West corridor
+  exits:
+  - roomId: cave:143
+    direction: east
+  - roomId: cave:145
+    direction: west
+- id: '145'
+  title: Undefined
+  description: You are at the East end of an East/West corridor. There is a gap in
+    the tunnel wall to the South.
+  exits:
+  - roomId: cave:144
+    direction: east
+  - roomId: cave:99
+    direction: south
+- id: '146'
+  title: Undefined
+  description: You are in the maze of Rassalas. There is a hole in the floor and a
+    dark tunnel is visible East.
+  exits:
+  - roomId: cave:107
+    direction: down
+  - roomId: cave:147
+    direction: east
+- id: '147'
+  title: Undefined
+  description: You are in the maze of Rassalas. You may go North, East or West.
+  exits:
+  - roomId: cave:149
+    direction: north
+  - roomId: cave:148
+    direction: east
+  - roomId: cave:146
+    direction: west
+- id: '148'
+  title: Undefined
+  description: You are in the maze of Rassalas. A dark tunnel stretches into the West.
+  exits:
+  - roomId: cave:147
+    direction: west
+- id: '149'
+  title: Undefined
+  description: You are in the maze of Rassalas. Exits are seen in all directions!
+  exits:
+  - roomId: cave:152
+    direction: north
+  - roomId: cave:148
+    direction: south
+  - roomId: cave:150
+    direction: east
+  - roomId: cave:151
+    direction: west
+- id: '150'
+  title: Undefined
+  description: You are in the maze of Rassalas. A dark tunnel stretches into the West.
+  exits:
+  - roomId: cave:149
+    direction: west
+- id: '151'
+  title: Undefined
+  description: You are in the maze of Rassalas. A dark tunnel stretches into the East.
+  exits:
+  - roomId: cave:149
+    direction: east
+- id: '152'
+  title: Undefined
+  description: You are in the maze of Rassalas. This is the tricky bit!
+  exits:
+  - roomId: cave:149
+    direction: south
+  - roomId: cave:154
+    direction: east
+  - roomId: cave:152
+    direction: west
+- id: '153'
+  title: Undefined
+  description: You are in the maze of Rassalas. This is the tricky bit!
+  exits:
+  - roomId: cave:152
+    direction: west
+- id: '154'
+  title: Undefined
+  description: You are in the maze of Rassalas. This is the tricky bit!
+  exits:
+  - roomId: cave:155
+    direction: north
+  - roomId: cave:153
+    direction: east
+- id: '155'
+  title: Undefined
+  description: You are outside the maze of Rassalas. The maze lies to the South and
+    a tunnel stretches to the East.
+  exits:
+  - roomId: cave:154
+    direction: south
+  - roomId: cave:156
+    direction: east
+- id: '156'
+  title: Undefined
+  description: You are in an East/West tunnel.
+  exits:
+  - roomId: cave:157
+    direction: east
+  - roomId: cave:155
+    direction: west
+- id: '157'
+  title: Undefined
+  description: You are at the East end of an East/West tunnel. There is a trap door
+    in the ground.
+  exits:
+  - roomId: cave:156
+    direction: west
+  - roomId: cave:117
+    direction: down
