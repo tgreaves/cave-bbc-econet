@@ -13,3 +13,15 @@ The original BBC BASIC files have been detokenised, thanks to ```BBCBasicToText.
 # The remake
 
 You don't need the original hardware (including Econet!) to enjoy Cave.  I put together a remodelling using the Ranvier MUD system: https://github.com/tgreaves/ranviermud-cave
+
+# Code notes
+
+## Cave initialisation / locations
+
+When the first player enters the Cave, OBJINIT is loaded which sets object locations.
+
+In Cave-Plus, items are placed in random locations, but not areas 16-20 (Wizard's Room and surrounding areas).
+
+```DEFPROCU:FORN=(k+1)TOZ:REPEATT=RND(b):UNTILT>20ORT<16:!(&A00+(N*4))=T:NEXT:ENDPROC```
+
+Note that in both versions, mobs are placed in pre-determined initial locations as defined in the DATA file.
