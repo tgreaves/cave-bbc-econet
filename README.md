@@ -20,7 +20,7 @@ You don't need the original hardware (including Econet!) to enjoy Cave.  I put t
 
 When the first player enters the Cave, OBJINIT is loaded which sets object locations.
 
-In Cave-Plus, items are placed in random locations, but not areas 16-20 (Wizard's Room and surrounding areas).
+In Cave-Plus, certain magic items items (Shield, Crystal, Staff, Amulet and Treasure) are then placed in random locations, but not areas 16-20 (Wizard's Room and surrounding areas).
 
 ```DEFPROCU:FORN=(k+1)TOZ:REPEATT=RND(b):UNTILT>20ORT<16:!(&A00+(N*4))=T:NEXT:ENDPROC```
 
