@@ -10,38 +10,13 @@
     <div class="container">
         <!-- Login Screen -->
         <div id="login-screen" class="screen active">
-            <div class="login-box">
-                <pre class="title-art">
-CAVE-PLUS (C) 2026
+            <div class="login-container">
+                <pre class="login-text" id="login-display"><span style="color: #ffff00;">CAVE-PLUS</span> <span style="color: #ffffff;">(C) 2026</span>
 
-From CAVE (C) GJL WOTWECP 1985
-                </pre>
-                
-                <form id="login-form">
-                    <div class="login-prompt">
-                        <label for="player-name">Please enter your name :</label>
-                        <input 
-                            type="text" 
-                            id="player-name" 
-                            maxlength="20"
-                            autocomplete="off"
-                            required
-                        >
-                    </div>
-                    
-                    <div class="login-prompt">
-                        <label for="player-password">Enter your password :</label>
-                        <input 
-                            type="password" 
-                            id="player-password" 
-                            minlength="4"
-                            autocomplete="off"
-                            required
-                        >
-                    </div>
-                    
-                    <button type="submit">Enter CAVE</button>
-                </form>
+<span style="color: #ffff00;">From CAVE</span> <span style="color: #ffffff;">(C)</span> <span style="color: #00ffff;">GJL WOTWECP</span> <span style="color: #ffffff;">1985</span>
+
+
+<span style="color: #ffffff;">Please enter your name : <span id="name-input" class="cursor">_</span></span></pre>
             </div>
         </div>
 
@@ -60,7 +35,7 @@ From CAVE (C) GJL WOTWECP 1985
 
                 <!-- Command Input: Row 24 -->
                 <div class="command-area">
-                    <span class="prompt">&gt;</span>
+                    <span class="prompt" id="command-prompt">*</span>
                     <input 
                         type="text" 
                         id="command-input" 

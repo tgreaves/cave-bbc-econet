@@ -6,19 +6,24 @@
     box-sizing: border-box;
 }
 
-/* Import authentic MODE 7 font */
-@import url(https://db.onlinewebfonts.com/c/a0cb693c715aaf804e67963c4d0d4d90?family=ModeSeven);
+/* Import authentic BBC Micro Bedstead font */
+@font-face {
+    font-family: 'Bedstead';
+    src: url('../fonts/bedstead.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
 
 :root {
-    --char-width: 16px;
-    --char-height: 20px;
+    --char-width: 20px;
+    --char-height: 25px;
     --cols: 40;
     --rows: 25;
 }
 
 body {
-    font-family: 'ModeSeven', 'Courier New', monospace;
-    background: #000;
+    font-family: 'Bedstead', 'Courier New', monospace;
+    background: #1a1a1a;
     color: #fff;
     overflow: hidden;
     margin: 0;
@@ -32,15 +37,89 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #000;
+    background: radial-gradient(ellipse at center, #2a2a2a 0%, #0a0a0a 100%);
+    position: relative;
+}
+
+/* CRT Monitor Bezel */
+.container::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(var(--char-width) * var(--cols) + 120px);
+    height: calc(var(--char-height) * var(--rows) + 120px);
+    background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%);
+    border-radius: 20px;
+    box-shadow: 
+        inset 0 0 20px rgba(0,0,0,0.8),
+        inset 0 0 40px rgba(0,0,0,0.5),
+        0 10px 50px rgba(0,0,0,0.9),
+        0 0 100px rgba(0,0,0,0.5);
+    z-index: 0;
+}
+
+/* Inner bezel shadow */
+.container::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(var(--char-width) * var(--cols) + 40px);
+    height: calc(var(--char-height) * var(--rows) + 40px);
+    border-radius: 8px;
+    box-shadow: 
+        inset 0 0 30px rgba(0,0,0,0.9),
+        inset 0 0 10px rgba(0,0,0,0.7);
+    pointer-events: none;
+    z-index: 2;
 }
 
 .screen {
     display: none;
     width: calc(var(--char-width) * var(--cols));
-    max-width: 90vw;
     background: #000;
     color: #fff;
+    position: relative;
+    z-index: 1;
+    border-radius: 4px;
+    box-shadow: 
+        0 0 20px rgba(0, 255, 0, 0.1),
+        inset 0 0 100px rgba(0, 0, 0, 0.3);
+}
+
+/* CRT scanline effect */
+.screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* CRT glow effect */
+.screen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.2) 100%);
+    pointer-events: none;
+    z-index: 999;
 }
 
 .screen.active {
@@ -48,68 +127,30 @@ body {
 }
 
 /* Login screen */
-.login-box {
-    padding: 40px 20px;
-    max-width: calc(var(--char-width) * var(--cols));
-    margin: 0 auto;
-}
-
-.title-art {
-    color: #ffff00;
-    text-align: center;
-    margin-bottom: 40px;
-    font-size: 16px;
-    line-height: var(--char-height);
-    white-space: pre;
-}
-
-#login-form {
-    margin: 20px 0;
-}
-
-.login-prompt {
-    margin-bottom: 20px;
-}
-
-.login-prompt label {
-    display: block;
-    color: #ffff00;
-    margin-bottom: 5px;
-    font-size: 16px;
-}
-
-#player-name, #player-password {
-    width: 100%;
-    max-width: 300px;
-    padding: 4px 8px;
-    font-family: 'ModeSeven', 'Courier New', monospace;
-    font-size: 16px;
+.login-container {
+    width: calc(var(--char-width) * var(--cols));
+    height: calc(var(--char-height) * var(--rows));
     background: #000;
-    border: 1px solid #ffff00;
-    color: #ffff00;
-    outline: none;
+    position: relative;
+    z-index: 10;
+    padding: 20px;
 }
 
-#player-name:focus, #player-password:focus {
-    border-color: #00ffff;
-    color: #00ffff;
+.login-text {
+    font-family: 'Bedstead', 'Courier New', monospace;
+    font-size: 20px;
+    line-height: 25px;
+    white-space: pre-wrap;
+    text-align: left;
 }
 
-button {
-    width: auto;
-    padding: 8px 20px;
-    margin-top: 10px;
-    font-family: 'ModeSeven', 'Courier New', monospace;
-    font-size: 16px;
-    background: #000;
-    border: 1px solid #00ff00;
-    color: #00ff00;
-    cursor: pointer;
+.cursor {
+    animation: blink 1s step-end infinite;
 }
 
-button:hover {
-    background: #00ff00;
-    color: #000;
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
 }
 
 /* Game screen - MODE 7 layout */
@@ -120,8 +161,21 @@ button:hover {
     color: #fff;
     display: flex;
     flex-direction: column;
-    font-size: 16px;
+    font-size: 20px;
     line-height: var(--char-height);
+    position: relative;
+    z-index: 10;
+}
+
+/* Subtle CRT flicker animation */
+@keyframes flicker {
+    0% { opacity: 1; }
+    50% { opacity: 0.98; }
+    100% { opacity: 1; }
+}
+
+.game-container {
+    animation: flicker 0.15s infinite;
 }
 
 /* Status area - rows 0-5 (6 rows) */
@@ -139,7 +193,7 @@ button:hover {
     overflow-y: auto;
     overflow-x: hidden;
     color: #ffff00;
-    font-size: 16px;
+    font-size: 20px;
     line-height: var(--char-height);
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -172,7 +226,7 @@ button:hover {
     overflow-x: hidden;
     background: #000;
     color: #fff;
-    font-size: 16px;
+    font-size: 20px;
     line-height: var(--char-height);
 }
 
@@ -240,8 +294,8 @@ button:hover {
     background: #000;
     border: none;
     color: #ffff00;
-    font-family: 'ModeSeven', 'Courier New', monospace;
-    font-size: 16px;
+    font-family: 'Bedstead', 'Courier New', monospace;
+    font-size: 20px;
     outline: none;
     padding: 0;
     line-height: var(--char-height);
@@ -260,7 +314,7 @@ button:hover {
     justify-content: space-between;
     padding: 0 4px;
     align-items: center;
-    font-size: 14px;
+    font-size: 18px;
 }
 
 .stat-item {

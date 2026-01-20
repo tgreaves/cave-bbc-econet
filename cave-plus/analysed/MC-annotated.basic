@@ -1,0 +1,321 @@
+REM ============================================================================
+REM MC.BASIC - CAVE MULTIPLAYER COORDINATOR
+REM ============================================================================
+REM This program manages the Econet multiplayer functionality for CAVE
+REM It handles network communication between multiple BBC Micros playing CAVE
+REM 
+REM Key Functions:
+REM - Checks for other players on the network
+REM - Manages player station IDs
+REM - Handles network data exchange (PEEK/POKE operations)
+REM - Chains to CHECK program for validation
+REM - Falls back to single-player if network unavailable
+REM
+REM Memory Map:
+REM &7800-&7BFF: Network data buffer (cleared at startup)
+REM &7900:       Machine code routines start
+REM &D22:        Station ID (MyStat)
+REM &D63:        Network status flag
+REM &900-&AFF:   Player data area
+REM &7700:       Message buffer
+REM ============================================================================
+
+    5 MODE7                          : REM Set MODE 7 (Teletext display)
+
+REM ----------------------------------------------------------------------------
+REM WARNING MESSAGES
+REM ----------------------------------------------------------------------------
+   10 REM DO NOT ALTER THIS PROGRAM!!!!
+   20 REM DO NOT ALTER THIS PROGRAM!!!!
+   22 REM for William Harding Technology Centre
+
+REM ----------------------------------------------------------------------------
+REM INITIALIZATION
+REM ----------------------------------------------------------------------------
+   25 *FX15                          : REM Flush all buffers
+   30 *FX 5 0                        : REM Set printer destination to screen
+
+REM Configure function key 0 for recovery
+   90 *KEY 0 OLD|MRUN|M
+
+REM Display startup message
+   91 PRINT'''"ERRORCheck your gear before descending."'''
+
+REM Clear network data buffer (&7800-&7BFF)
+   92 FOR I%=&7800 TO &7BFF:!I%=0:NEXT
+
+REM ----------------------------------------------------------------------------
+REM MAIN PROGRAM
+REM ----------------------------------------------------------------------------
+  100 PRINT "Standby";:VDU 21       : REM VDU 21 = disable VDU output
+  100 PROCCODE                       : REM Assemble machine code routines
+  100 VDU 6                          : REM VDU 6 = enable VDU output
+  110 PRINT". . . ."
+
+REM Set up error handler and chain to CHECK program
+  120 E%=PAGE                        : REM Save current PAGE value
+  130 ON ERROR PAGE=E%:GOTO 160      : REM Error handler
+  140 PAGE=&7000                     : REM Move PAGE to &7000
+  140 CHAIN"CHECK"                   : REM Load and run CHECK program
+  150 END
+
+REM ----------------------------------------------------------------------------
+REM ERROR HANDLER - CHECK program not found
+REM ----------------------------------------------------------------------------
+  160 PRINT "ERRORUnable to check your cave gear !"
+  170 TX=TIME:REPEATUNTILTIME>TX+50  : REM Wait 1 second
+  180 PRINT"Hope this works OK ... don't blame me ifyouMODDIE!!"
+
+REM Reconfigure function key and start CAVE anyway
+  190 *KEY 0 LOAD "CAVE"|MRUN|M
+  200 VDU 21                         : REM Disable VDU
+  210 *FX 138 0 128                  : REM Enter supervisor mode
+  220 *NET                           : REM Start network
+  230 END
+
+REM Fatal error handler
+  240 PRINT "Fatal CAVE 57B Check error. Report to   WIZARD / System Supervisor"
+  250 TX=TIME:REPEATUNTILTIME>TX+500 : REM Wait 10 seconds
+  260 *GOING                         : REM Exit to menu
+  270 REM DO NOT ALTER THIS PROGRAM!!!!
+
+REM ============================================================================
+REM PROCEDURE: ASSEMBLE MACHINE CODE (PROCCODE)
+REM ============================================================================
+REM Assembles 6502 machine code routines for Econet network operations
+REM These routines handle:
+REM - Poke: Write data to another station's memory
+REM - Peek: Read data from another station's memory  
+REM - Find: Search for other CAVE players on network
+REM ============================================================================
+  280 DEFPROCCODE
+  290 FOR P = 0 TO 3 STEP 3          : REM Two-pass assembly
+  300 P%=&7900                       : REM Code starts at &7900
+  310 [
+  320 OPT P
+
+REM ----------------------------------------------------------------------------
+REM ROUTINE: Poke - Write to other stations
+REM Scans through player table (&900-&9FF) and sends data to each active player
+REM ----------------------------------------------------------------------------
+  330 .Poke
+  340 LDA#1                          : REM Start with station 1
+  350 STA Stat                       : REM Store in Stat variable
+  360 LDA#&0                         : REM Low byte of &900
+  370 STA &70                        : REM Zero page pointer low
+  380 LDA#&9                         : REM High byte of &900
+  390 STA &71                        : REM Zero page pointer high
+
+REM Loop through player table
+  400 .PokeLP
+  410 LDA &70                        : REM Get pointer low byte
+  420 CLC                            : REM Clear carry
+  430 ADC#&10                        : REM Add 16 (next player record)
+  440 STA &70                        : REM Store back
+  450 BCS PokeOut                    : REM If overflow, exit
+  460 LDX#0
+  470 LDA (&70,X)                    : REM Get first byte of record
+  480 CMP#0                          : REM Check if empty
+  490 BEQ PokeLP                     : REM If empty, skip to next
+  500 LDY#8                          : REM Offset 8 = station ID
+  510 LDA (&70),Y                    : REM Get station ID
+  520 STA PokeStat                   : REM Store in PokeStat
+  530 CMP MyStat                     : REM Compare with our station
+  540 BEQ PokeLP                     : REM If same, skip (don't poke self)
+
+REM Send data to remote station
+  550 .PokeTryAgain
+  560 LDA#&82                        : REM Econet operation &82 (POKE)
+  570 STA PokeBLK                    : REM Store in control block
+  580 LDA#&10                        : REM Port number
+  590 LDX#PokeBLK MOD 256            : REM Control block address low
+  600 LDY#PokeBLK DIV 256            : REM Control block address high
+  610 JSR &FFF1                      : REM Call OSGBPB (Econet transmit)
+
+REM Wait for transmission to complete
+  620 .PokeF
+  630 LDA#&32                        : REM OSBYTE &32 (poll transmit)
+  640 JSR &FFF4                      : REM Call OSBYTE
+  650 TXA                            : REM Get status in X
+  660 AND#&80                        : REM Check bit 7 (busy)
+  670 BNE PokeF                      : REM If busy, keep waiting
+  680 TXA
+  690 AND#&40                        : REM Check bit 6 (error)
+  700 BNE PokeTryAgain               : REM If error, retry
+  710 JMP PokeLP                     : REM Continue to next player
+
+  720 .PokeOut
+  730 RTS                            : REM Return
+
+REM Control block for POKE operation
+  740 .PokeBLK
+  750 EQUB &82                       : REM Operation code
+  760 EQUB 0                         : REM Reply port
+  770 .PokeStat
+  780 EQUW 0                         : REM Station number
+  790 EQUD 0                         : REM Send address
+  800 EQUD 0                         : REM Send end address
+  810 EQUD 0                         : REM Receive address
+
+REM ----------------------------------------------------------------------------
+REM ROUTINE: PokeS - Send single block
+REM Sends data from SBLK area to another station
+REM ----------------------------------------------------------------------------
+  820 .PokeS
+  830 LDA PS+2                       : REM Get target station
+  840 CMP MyStat                     : REM Compare with our station
+  850 BEQ OUT                        : REM If same, exit (don't send to self)
+  860 LDA#&82                        : REM Econet POKE operation
+  870 STA PS                         : REM Store in control block
+  880 LDA#&10                        : REM Port number
+  890 LDX#PS MOD 256                 : REM Control block address
+  900 LDY#PS DIV 256
+  910 JSR &FFF1                      : REM Call OSGBPB
+
+REM Wait for completion
+  920 .PokeSLP
+  930 LDA#&32                        : REM Poll transmit
+  940 JSR &FFF4                      : REM OSBYTE
+  950 TXA
+  960 AND#&80                        : REM Check busy flag
+  970 BNE PokeSLP                    : REM Wait if busy
+  980 TXA
+  990 AND#&40                        : REM Check error flag
+ 1000 BNE PokeS                      : REM Retry if error
+ 1010 RTS
+
+REM Control block for PokeS
+ 1020 .PS
+ 1030 EQUB &82                       : REM Operation code
+ 1040 EQUB 0                         : REM Reply port
+ 1050 EQUW 0                         : REM Station number
+ 1060 EQUD SBLK                      : REM Send start address
+ 1070 EQUD SBLK+&F0                  : REM Send end address
+ 1080 EQUD &7700                     : REM Receive address
+
+REM ----------------------------------------------------------------------------
+REM ROUTINE: Find - Search for other CAVE players
+REM Scans all stations (1-254) looking for active CAVE games
+REM Identifies CAVE by checking for "CAV" signature in memory
+REM ----------------------------------------------------------------------------
+ 1090 .Find
+ 1100 INC Stat                       : REM Increment station counter
+ 1110 LDA Stat                       : REM Get current station
+ 1120 CMP MyStat                     : REM Compare with our station
+ 1130 BEQ Find                       : REM If same, skip to next
+ 1140 CMP#&FE                        : REM Check if reached 254
+ 1150 BNE FindOK                     : REM If not, continue
+ 1160 LDA#0                          : REM Wrap around to 0
+ 1170 STA Stat
+ 1180 .OUT
+ 1190 RTS                            : REM Return (no more stations)
+
+ 1200 .FindOK
+ 1210 LDA#&81                        : REM Econet operation &81 (PEEK)
+ 1220 STA FindBLK                    : REM Store in control block
+ 1230 STA FindC                      : REM Also in FindC
+ 1240 LDA#&10                        : REM Port number
+ 1250 LDX#FindBLK MOD 256            : REM Control block address
+ 1260 LDY#FindBLK DIV 256
+ 1270 JSR &FFF1                      : REM Call OSGBPB (Econet receive)
+
+REM Wait for data
+ 1280 .FindF
+ 1290 LDA#&32                        : REM Poll receive
+ 1300 JSR &FFF4                      : REM OSBYTE
+ 1310 TXA
+ 1320 AND#&80                        : REM Check busy flag
+ 1330 CMP#0
+ 1340 BNE FindF                      : REM Wait if busy
+ 1350 TXA
+ 1360 AND#&40                        : REM Check error flag
+ 1370 CMP#0
+ 1380 BNE Find                       : REM Try next station if error
+
+REM Check for "CAV" signature
+ 1390 LDA FindC                      : REM Get first character
+ 1400 CMP#&43                        : REM Compare with 'C' (ASCII &43)
+ 1410 BNE Find                       : REM Not CAVE, try next
+ 1420 LDA FindC+1                    : REM Get second character
+ 1430 CMP#&41                        : REM Compare with 'A' (ASCII &41)
+ 1440 BNE Find                       : REM Not CAVE, try next
+ 1450 LDA FindC+2                    : REM Get third character
+ 1460 CMP#ASC"V"                     : REM Compare with 'V'
+ 1470 BNE Find                       : REM Not CAVE, try next
+ 1480 RTS                            : REM Found CAVE player! Return
+
+REM Control block for Find
+ 1490 .FindBLK
+ 1500 EQUB &81                       : REM Operation code (PEEK)
+ 1510 EQUB 0                         : REM Reply port
+ 1520 .Stat
+ 1530 EQUW 0                         : REM Station number (incremented)
+ 1540 EQUD FindC                     : REM Receive start address
+ 1550 EQUD FindC+4                   : REM Receive end address
+ 1560 EQUD &900                      : REM Remote address to read from
+
+REM Buffer for received data
+ 1570 .FindC
+ 1580 EQUD 0                         : REM 4 bytes for "CAV" + extra
+ 1590 EQUD 0
+
+REM ----------------------------------------------------------------------------
+REM ROUTINE: Peek - Read from other stations
+REM Reads player data from all active CAVE players on network
+REM ----------------------------------------------------------------------------
+ 1600 .Peek
+ 1610 LDA#0                          : REM Clear network status
+ 1620 STA &D63                       : REM Store at &D63
+ 1630 LDA#1                          : REM Start with station 1
+ 1640 STA Stat
+ 1650 JSR Find                       : REM Find first CAVE player
+ 1660 CMP#1                          : REM Check if found
+ 1670 BEQ PeekOut                    : REM If not found, exit
+ 1680 LDA Stat                       : REM Get station number
+ 1690 STA PeekStat                   : REM Store in control block
+ 1700 LDA#&81                        : REM Econet PEEK operation
+ 1710 STA PeekBLK                    : REM Store in control block
+ 1720 LDA#&10                        : REM Port number
+ 1730 LDX#PeekBLK MOD 256            : REM Control block address
+ 1740 LDY#PeekBLK DIV 256
+ 1750 JSR &FFF1                      : REM Call OSGBPB
+
+REM Wait for data
+ 1760 .PeekF
+ 1770 LDA#&32                        : REM Poll receive
+ 1780 JSR &FFF4                      : REM OSBYTE
+ 1790 TXA
+ 1800 AND#&80                        : REM Check busy flag
+ 1810 BNE PeekF                      : REM Wait if busy
+
+ 1820 .PeekOut
+ 1830 RTS                            : REM Return
+
+REM Control block for Peek
+ 1840 .PeekBLK
+ 1850 EQUB &81                       : REM Operation code (PEEK)
+ 1860 EQUB 0                         : REM Reply port
+ 1870 .PeekStat
+ 1880 EQUW 0                         : REM Station number
+ 1890 EQUD &908                      : REM Receive start address (local)
+ 1900 EQUD &AFF                      : REM Receive end address (local)
+ 1910 EQUD &908                      : REM Remote address to read from
+
+REM ----------------------------------------------------------------------------
+REM VARIABLES
+REM ----------------------------------------------------------------------------
+ 1920 .MyStat
+ 1930 EQUB ?&D22                     : REM Our station ID (from &D22)
+
+ 1940 .SBLK
+ 1950 ]                              : REM End of assembly
+ 1960 NEXT                           : REM Next pass
+ 1970 ENDPROC
+
+REM ============================================================================
+REM END OF MC.BASIC
+REM ============================================================================
+REM This program is the foundation of CAVE's multiplayer functionality
+REM It uses Econet PEEK/POKE operations to share player data between stations
+REM Each BBC Micro running CAVE can see and interact with other players
+REM ============================================================================

@@ -30,7 +30,7 @@ class GameState:
     async def load_rooms(self):
         """Load room data from YAML"""
         try:
-            with open("rooms-parsed.yml", "r") as f:
+            with open("../rooms-parsed.yml", "r") as f:
                 data = yaml.safe_load(f)
                 
             rooms_data = data.get("rooms", {})
@@ -69,7 +69,7 @@ class GameState:
         
         # Initial object placement (from OBJINIT analysis)
         initial_placement = {
-            1: ["Dragon", "Staff of Merlin", "Amulet", "Treasure"],
+            1: ["Staff of Merlin", "Amulet", "Treasure"],
             2: ["Vodka"],
             5: ["Poison", "Dagger"],
             11: ["Medicine"],
@@ -85,8 +85,13 @@ class GameState:
             if room_id in self.objects:
                 self.objects[room_id].extend(objects)
     
-    async def load_creatures(self):
+    async def load_creatures(self, clear_existing: bool = False):
         """Load and spawn initial creatures"""
+        # Clear existing creatures if regenerating
+        if clear_existing:
+            self.creatures.clear()
+            self.creatures_by_room.clear()
+        
         creature_id_counter = 1000  # Start creature instances at 1000
         
         for room_id, creature_list in INITIAL_CREATURE_PLACEMENT.items():
@@ -169,8 +174,10 @@ class GameState:
             del self.players[player.name]
     
     def get_player(self, name: str) -> Optional[Player]:
-        """Get a player by name"""
-        return self.players.get(name)
+        """Get a player by name (case-insensitive, uppercase match)"""
+        # Apply BBC Micro FNB function: uppercase, letters only
+        normalized_name = ''.join(c.upper() for c in name if c.isalpha())
+        return self.players.get(normalized_name)
     
     def get_room(self, room_id: int) -> Optional[dict]:
         """Get room data"""
@@ -212,7 +219,13 @@ class GameState:
     def get_creatures_in_room(self, room_id: int) -> List[Creature]:
         """Get all creatures in a specific room"""
         creature_ids = self.creatures_by_room.get(room_id, [])
-        return [self.creatures[cid] for cid in creature_ids if cid in self.creatures and not self.creatures[cid].is_dead]
+        
+        # In mortuary (room 19), show dead creatures
+        # In other rooms, only show living creatures
+        if room_id == 19:
+            return [self.creatures[cid] for cid in creature_ids if cid in self.creatures]
+        else:
+            return [self.creatures[cid] for cid in creature_ids if cid in self.creatures and not self.creatures[cid].is_dead]
     
     def reset_creatures_targeting_player(self, player_name: str):
         """
@@ -299,6 +312,29 @@ class GameState:
             "creature_name": creature.name
         }
     
+    async def move_creature(self, creature: Creature, target_room: int):
+        """Move creature to a specific room (for SUMMON command)"""
+        old_room = creature.room_id
+        
+        # Remove from current room
+        if creature.room_id in self.creatures_by_room:
+            if creature.obj_id in self.creatures_by_room[creature.room_id]:
+                self.creatures_by_room[creature.room_id].remove(creature.obj_id)
+        
+        # Move to target room
+        creature.room_id = target_room
+        
+        # Add to new room
+        if target_room not in self.creatures_by_room:
+            self.creatures_by_room[target_room] = []
+        self.creatures_by_room[target_room].append(creature.obj_id)
+        
+        return {
+            "old_room": old_room,
+            "new_room": target_room,
+            "creature_name": creature.name
+        }
+    
     async def creature_attack(self, creature: Creature):
         """Creature attacks a player in the same room"""
         players = self.get_players_in_room(creature.room_id)
@@ -369,10 +405,16 @@ class GameState:
             player.score += points
             player.kills += 1
             
-            # Remove from room
+            # Move creature to mortuary (room 19) - matching BBC Micro behavior
             if creature.room_id in self.creatures_by_room:
                 if creature.obj_id in self.creatures_by_room[creature.room_id]:
                     self.creatures_by_room[creature.room_id].remove(creature.obj_id)
+            
+            # Add to mortuary
+            creature.room_id = 19
+            if 19 not in self.creatures_by_room:
+                self.creatures_by_room[19] = []
+            self.creatures_by_room[19].append(creature.obj_id)
         
         return {
             "damage": total_damage,

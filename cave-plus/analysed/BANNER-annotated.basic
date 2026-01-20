@@ -1,0 +1,159 @@
+REM ============================================================================
+REM BANNER.BASIC - CAVE SPLASH SCREEN / TITLE DISPLAY
+REM ============================================================================
+REM This program displays an animated ASCII art banner for CAVE
+REM Uses MODE 7 (Teletext) graphics to create a decorative title screen
+REM 
+REM Key Features:
+REM - MODE 7 teletext graphics for retro aesthetic
+REM - Animated border using control codes
+REM - Error handler with sound effects
+REM - Chains to CHEADER program after display
+REM
+REM Control Codes Used:
+REM - MOD (CHR$157): Double height text
+REM - ABS (CHR$129): Red text
+REM - EVAL (CHR$136): Cyan text
+REM - TRACE (CHR$159): White text
+REM - PLOT (CHR$145): Magenta text
+REM - OSCLI (CHR$156): Cyan background
+REM
+REM Memory Usage:
+REM - Uses shadow screen mode if available (line 13)
+REM - Minimal memory footprint for quick loading
+REM ============================================================================
+
+REM ----------------------------------------------------------------------------
+REM INITIALIZATION AND ERROR HANDLING
+REM ----------------------------------------------------------------------------
+   10 REM *FX 200 3                   : REM (Commented out) Set escape action
+
+   12 ON ERROR GOTO 15               : REM Set error handler for shadow mode
+   13 *SHADOW 1                      : REM Enable shadow screen (if available)
+   15 :                              : REM Empty line (error handler target)
+
+REM ----------------------------------------------------------------------------
+REM MAIN ERROR HANDLER
+REM If any error occurs during execution, display angry message with sound
+REM ----------------------------------------------------------------------------
+   20 ON ERROR OSCLI("BYE")          : REM Exit to system on error
+   20 REPEAT                         : REM Start infinite loop
+   20 A%=INKEY(160)                  : REM Wait 16 seconds
+   20 PRINT"MODThe Cave Monsters are angry"  : REM Double-height warning
+   20 SOUND 1,-15,190,200            : REM Play warning sound
+   20 UNTIL FALSE                    : REM Loop forever
+   20 END
+
+REM ----------------------------------------------------------------------------
+REM MAIN PROGRAM - BANNER DISPLAY
+REM ----------------------------------------------------------------------------
+   30 MODE 7                         : REM Set MODE 7 (Teletext)
+   30 nextprog$="cheader"            : REM Next program to chain to
+
+REM Set title text (credits to StarDot forum)
+   40 title$="MODStarDot Forum : stardot.org.uk"
+
+REM ----------------------------------------------------------------------------
+REM LINE 50: TOP BORDER
+REM Creates decorative top border using MODE 7 control codes
+REM Pattern uses ABS (red), OSCLI (cyan bg), FALSE, TRACE (white), etc.
+REM ----------------------------------------------------------------------------
+   50 PRINT"ABSOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIFALSEFALSEFALSEFALSEFALSEOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIOSCLIABSTRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACEMODCLEARPTRRIGHT$(ABSTRACETRACETRACETRACETRACETRACETRACEABSTRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACEPLOTPLOTPLOTPLOTPLOTTRACETRACETRACETRACETRACETRACETRACEABSOSCLIEVALEVALMOD   EVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALABSEVALOSCLI";
+   50 t$="print"                     : REM Store command for later
+
+REM ----------------------------------------------------------------------------
+REM LINE 60-70: TITLE DISPLAY
+REM Centers the title text on screen
+REM ----------------------------------------------------------------------------
+   60 sp=18-INT((LEN(title$)/2)+.5) : REM Calculate centering spaces
+   70 PRINT"ABSOSCLI";SPC(sp);title$;TAB(38,VPOS);"ABSOSCLI";
+   70 :                              : REM Display centered title with borders
+
+   80 GOTO 110                       : REM Skip to main banner display
+
+REM ----------------------------------------------------------------------------
+REM LINES 90-100: CLEANUP AND EXIT
+REM Executes a file and ends program
+REM ----------------------------------------------------------------------------
+   90 VDU21                          : REM Disable VDU output
+   90 OSCLI("EXEC "+t$)              : REM Execute file named in t$
+  100 END                            : REM End program
+
+REM ----------------------------------------------------------------------------
+REM LINE 110: MAIN BANNER BODY (TOP SECTION)
+REM Creates decorative ASCII art using MODE 7 control codes
+REM The pattern creates a visual border/frame effect
+REM Control codes: ABS, OSCLI, EVAL, MODE, DIV, LET, READ, PLOT, MOVE, etc.
+REM ----------------------------------------------------------------------------
+  110 PRINT"ABSOSCLIEVALEVALEVALEVALMODEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALABSOSCLIABSOSCLIMODEVALEVALEVALDIVLETREADEVALPLOTMOVEGOTOENDPROCREADGOTOGOSUBEVALREM����������䠠�����������������������������������������������������������������������������������������������렵�꠷�������렵����꠷������";
+  110 :                              : REM (Contains special characters for graphics)
+
+REM ----------------------------------------------------------------------------
+REM LINE 120: MAIN BANNER BODY (MIDDLE SECTION)
+REM Continues the decorative pattern with more control codes
+REM Uses: HIMEM, CHR$, NOT, ON, SINE, LOCAL, OPENOUT, OPENUP, SGN, PI, etc.
+REM Creates a complex visual pattern in MODE 7
+REM ----------------------------------------------------------------------------
+  120 PRINT"ABSOSCLIHIMEMEVALOSCLIEVALEVALEVALCHR$NOTONEVALSINEVALLOCALEVALCHR$NOTFNNOTNOTEVALCHR$NOTOPENOUTEVALSINEVALEVALSINEVALLOCALEVALOPENUPNOTSGNEVALABSEVALOSCLIABSOSCLIHIMEMEVALPIPLOTPLOTEVALSINEVALLOCALEVALREPEATPLOTUSREVALREPEATPLOTPOINT(EVALEVALEVALSINEVALEVALEVALREPEATPLOTEVALREPEATPLOTSTOPEVALPLOTPLOTSINEVALABSEVALOSCLIABSOSCLIEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALOSCLIABSOSCLIPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTPLOTOSCLIABSOSCLIEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALABSOSCLI";
+
+REM ----------------------------------------------------------------------------
+REM LINE 130: MAIN BANNER BODY (LOWER SECTION)
+REM More decorative patterns using control codes
+REM Uses: LINE, BPUT, READ, GOTO, PROC, ENDPROC, FOR, REM, etc.
+REM Contains special graphics characters (shown as ���� in listing)
+REM ----------------------------------------------------------------------------
+  130 PRINT"ABSOSCLIEVALLINEBPUTREADGOTOPROCREADEVALENDPROCPROCGOTOEVALPROCGOTOREADPLOTGOTOFORREM�������������䠠����������������������������������󠠔���������������������������������󠔠������������������������������젠��������������� ������������������������";
+
+REM ----------------------------------------------------------------------------
+REM LINE 140: BOTTOM BORDER
+REM Creates decorative bottom border to match top
+REM Uses EVAL and TRACE control codes for consistent styling
+REM ----------------------------------------------------------------------------
+  140 PRINT"ABSOSCLIEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALEVALOSCLIABSOSCLITRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACETRACEOSCLI"
+
+REM ----------------------------------------------------------------------------
+REM TIMING AND CHAIN
+REM ----------------------------------------------------------------------------
+  150 A%=INKEY(500)                  : REM Wait 50 seconds (500 centiseconds)
+  150 GOTO 90                        : REM Jump to cleanup and exit
+
+  160 END                            : REM End of program
+
+REM ============================================================================
+REM NOTES ON MODE 7 CONTROL CODES
+REM ============================================================================
+REM MODE 7 (Teletext) uses special control characters for colors and effects:
+REM 
+REM Color Codes (Text):
+REM   129 (ABS)   = Red text
+REM   130         = Green text  
+REM   131         = Yellow text
+REM   132         = Blue text
+REM   133         = Magenta text
+REM   134         = Cyan text
+REM   135         = White text
+REM
+REM Color Codes (Background):
+REM   145 (PLOT)  = Red background
+REM   156 (OSCLI) = Cyan background
+REM
+REM Effects:
+REM   157 (MOD)   = Double height
+REM   136 (EVAL)  = Flash
+REM   159 (TRACE) = White text
+REM
+REM The "words" like EVAL, OSCLI, TRACE, etc. are actually the ASCII 
+REM representations of control codes that MODE 7 interprets as graphics
+REM commands. This creates the decorative border effect.
+REM
+REM This technique was commonly used in BBC Micro programs to create
+REM impressive visual effects with minimal code and memory usage.
+REM ============================================================================
+
+REM ============================================================================
+REM END OF BANNER.BASIC
+REM ============================================================================
+REM This splash screen displays before the main CAVE game loads
+REM It provides visual polish and credits to the StarDot community
+REM After the delay, it chains to CHEADER for the next stage of loading
+REM ============================================================================

@@ -135,6 +135,11 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
     """WebSocket endpoint for player connections"""
     await websocket.accept()
     
+    # Apply BBC Micro name processing (FNB function):
+    # 1. Convert to uppercase
+    # 2. Keep only letters (remove spaces, numbers, special chars)
+    player_name = ''.join(c.upper() for c in player_name if c.isalpha())
+    
     # Validate player name
     if not player_name or len(player_name) < 2 or len(player_name) > 20:
         await websocket.send_json({
@@ -221,9 +226,43 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
     else:
         welcome_msg = "Welcome new caver"
     
+    # Check if there are other players (matching BBC Micro behavior)
+    other_players = [p for p in game_state.players.values() if p.name != player_name]
+    
+    if len(other_players) == 0:
+        # You are alone
+        player_list_msg = "You are the only caver here."
+    else:
+        # Show player list (matching WHO command format exactly)
+        player_list_msg = "These people are in CAVE\n"
+        
+        is_wizard = (player.rank == "Wizard")
+        
+        for p in other_players:
+            # Print player name
+            player_list_msg += p.name
+            
+            # Wizards see extra info (stamina and station number)
+            if is_wizard:
+                # TAB(8) = column 8, TAB(22) = column 22
+                # Pad to column 8, show stamina, pad to column 22, show station
+                padding1 = max(1, 8 - len(p.name))
+                player_list_msg += " " * padding1
+                stamina_text = f"stamina {int(p.stamina)}"
+                player_list_msg += stamina_text
+                
+                # Calculate padding to reach column 22
+                current_pos = len(p.name) + padding1 + len(stamina_text)
+                padding2 = max(1, 22 - current_pos)
+                player_list_msg += " " * padding2
+                player_list_msg += f"stn {p.room_id}"
+            
+            player_list_msg += "\n"
+    
     await send_to_player(player, {
         "type": "welcome",
         "message": welcome_msg,
+        "player_list": player_list_msg,
         "player": player.to_dict(),
         "new_player": is_new_player
     })
@@ -235,7 +274,7 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
     await broadcast_to_room(player.room_id, {
         "type": "message",
         "text": f"{player_name} has entered the cave.",
-        "style": "system"
+        "style": "action"  # Changed to action so it goes to status area
     }, exclude=player_name)
     
     try:
@@ -253,7 +292,7 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
         await broadcast_to_room(player.room_id, {
             "type": "message",
             "text": f"{player_name} has left the cave.",
-            "style": "system"
+            "style": "action"  # Changed to action so it goes to status area
         })
         
     except Exception as e:
@@ -293,10 +332,16 @@ async def handle_command(player: Player, data: dict):
     
     # Send result to player
     if result.get("message"):
+        # Determine style - check for combat flag or explicit style
+        if result.get("combat"):
+            style = "combat"
+        else:
+            style = result.get("style", "normal")
+        
         await send_to_player(player, {
             "type": "message",
             "text": result["message"],
-            "style": result.get("style", "normal")
+            "style": style
         })
     
     # Update room if player moved
@@ -329,7 +374,7 @@ async def handle_command(player: Player, data: dict):
         await broadcast_to_room(player.room_id, {
             "type": "message",
             "text": broadcast_text,
-            "style": "chat"
+            "style": "action"  # Changed to action so it goes to status area
         }, exclude=player.name)
     
     # Update inventory
@@ -346,9 +391,26 @@ async def handle_command(player: Player, data: dict):
         if target_name:
             target_player = game_state.get_player(target_name)
             if target_player:
+                # BBC Micro line 1610: 
+                # Victim receives: PROCB(H$(RND(3))+" by "+attacker) - status bar
+                # Attacker receives: PROCC sends back "victim IS HIT! stamina down to X"
+                
+                import random
+                hit_messages = ["I am hit", "I am struck", "I am thumped"]
+                hit_message = random.choice(hit_messages)
+                
+                # Message for victim: Status bar message
                 await send_to_player(target_player, {
                     "type": "message",
-                    "text": f"{player.name} attacks you!",
+                    "text": f"{hit_message} by {player.name}",
+                    "style": "combat"
+                })
+                
+                # Message for attacker: Stamina feedback (status bar)
+                # Line 1580: PROCB(?&7702) - received PROCC message displayed via PROCB
+                await send_to_player(player, {
+                    "type": "message",
+                    "text": f"{target_player.name} IS HIT! stamina down to {target_player.stamina}",
                     "style": "combat"
                 })
                 
@@ -366,13 +428,6 @@ async def handle_command(player: Player, data: dict):
                         "style": "death"
                     })
                     await send_room_update(target_player)
-        
-        # Broadcast to room (excluding attacker and target)
-        await broadcast_to_room(player.room_id, {
-            "type": "message",
-            "text": f"{player.name} attacks {target_name}!",
-            "style": "combat"
-        }, exclude=player.name)
 
 async def send_room_update(player: Player):
     """Send complete room state to player"""
@@ -436,13 +491,13 @@ async def broadcast_to_all(message: dict):
             print(f"Error broadcasting to {player_name}: {e}")
 
 # Serve static files
-app.mount("/graphics", StaticFiles(directory="../analysed/graphics"), name="graphics")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/graphics", StaticFiles(directory="../../analysed/graphics"), name="graphics")
+app.mount("/static", StaticFiles(directory="../static"), name="static")
 
 @app.get("/")
 async def root():
     """Serve the main game page"""
-    return FileResponse("static/index.html")
+    return FileResponse("../static/index.html")
 
 @app.get("/health")
 async def health():

@@ -1,12 +1,17 @@
-// Cave-Plus Web Client
+// Cave-Plus Web Client v1.1
 class CaveGame {
     constructor() {
         this.ws = null;
         this.playerName = '';
+        this.password = '';
         this.commandHistory = [];
         this.historyIndex = -1;
         this.statusMessages = []; // Array to hold status messages
         this.maxStatusMessages = 6; // Max 6 lines in status area
+        
+        // Login state
+        this.loginState = 'name'; // 'name' or 'password'
+        this.currentInput = '';
         
         this.initElements();
         this.initEventListeners();
@@ -18,13 +23,14 @@ class CaveGame {
         this.gameScreen = document.getElementById('game-screen');
         
         // Login
-        this.loginForm = document.getElementById('login-form');
-        this.playerNameInput = document.getElementById('player-name');
+        this.loginDisplay = document.getElementById('login-display');
+        this.nameInputSpan = document.getElementById('name-input');
         
         // Game UI
         this.messageLog = document.getElementById('message-log');
         this.commandInput = document.getElementById('command-input');
         this.statusMessagesElement = document.getElementById('status-messages');
+        this.commandPrompt = document.getElementById('command-prompt');
         
         // Player state (tracked internally)
         this.playerData = {
@@ -38,10 +44,11 @@ class CaveGame {
     }
     
     initEventListeners() {
-        // Login form
-        this.loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.login();
+        // Keyboard input for login
+        document.addEventListener('keydown', (e) => {
+            if (this.loginScreen.classList.contains('active')) {
+                this.handleLoginKey(e);
+            }
         });
         
         // Command input
@@ -54,39 +61,106 @@ class CaveGame {
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
                 this.navigateHistory(1);
+            } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                // BBC Micro behavior: convert to uppercase immediately as typed
+                e.preventDefault();
+                const char = e.key.toUpperCase();
+                // Insert at cursor position
+                const start = this.commandInput.selectionStart;
+                const end = this.commandInput.selectionEnd;
+                const value = this.commandInput.value;
+                this.commandInput.value = value.substring(0, start) + char + value.substring(end);
+                this.commandInput.selectionStart = this.commandInput.selectionEnd = start + 1;
             }
         });
     }
     
-    login() {
-        this.playerName = this.playerNameInput.value.trim();
-        const password = document.getElementById('player-password').value.trim();
-        
-        if (!this.playerName || this.playerName.length < 2) {
-            alert('Please enter a name (at least 2 characters)');
-            return;
+    handleLoginKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (this.loginState === 'name') {
+                if (this.currentInput.length >= 2) {
+                    // Apply BBC Micro FNB function: uppercase, letters only
+                    this.playerName = this.currentInput.toUpperCase().replace(/[^A-Z]/g, '');
+                    if (this.playerName.length < 2) {
+                        // After filtering, name is too short
+                        this.currentInput = '';
+                        this.updateLoginDisplay();
+                        return;
+                    }
+                    this.currentInput = '';
+                    this.loginState = 'password';
+                    this.updateLoginDisplay();
+                }
+            } else if (this.loginState === 'password') {
+                if (this.currentInput.length >= 4) {
+                    this.password = this.currentInput;
+                    this.connect();
+                } else {
+                    this.showLoginError('That is too short !');
+                }
+            }
+        } else if (e.key === 'Backspace') {
+            e.preventDefault();
+            this.currentInput = this.currentInput.slice(0, -1);
+            this.updateLoginDisplay();
+        } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            e.preventDefault();
+            if (this.loginState === 'name' && this.currentInput.length < 20) {
+                this.currentInput += e.key;
+            } else if (this.loginState === 'password' && this.currentInput.length < 20) {
+                this.currentInput += e.key;
+            }
+            this.updateLoginDisplay();
         }
-        
-        if (!password || password.length < 4) {
-            alert('Password must be at least 4 characters');
-            return;
+    }
+    
+    updateLoginDisplay() {
+        if (this.loginState === 'name') {
+            this.loginDisplay.innerHTML = `<span style="color: #ffff00;">CAVE-PLUS</span> <span style="color: #ffffff;">(C) 2026</span>
+
+<span style="color: #ffff00;">From CAVE</span> <span style="color: #ffffff;">(C)</span> <span style="color: #00ffff;">GJL WOTWECP</span> <span style="color: #ffffff;">1985</span>
+
+
+<span style="color: #ffffff;">Please enter your name : ${this.currentInput}<span class="cursor">_</span></span>`;
+        } else if (this.loginState === 'password') {
+            // Password is NOT shown (VDU21 disabled output in original)
+            this.loginDisplay.innerHTML = `<span style="color: #ffff00;">CAVE-PLUS</span> <span style="color: #ffffff;">(C) 2026</span>
+
+<span style="color: #ffff00;">From CAVE</span> <span style="color: #ffffff;">(C)</span> <span style="color: #00ffff;">GJL WOTWECP</span> <span style="color: #ffffff;">1985</span>
+
+
+<span style="color: #ffffff;">Please enter your name : ${this.playerName}</span>
+
+<span style="color: #ffffff;">Enter your password ${this.playerName} : <span class="cursor">_</span></span>`;
         }
-        
-        this.password = password;
-        this.connect();
+    }
+    
+    showLoginError(message) {
+        this.loginDisplay.innerHTML = `<span style="color: #ffff00;">CAVE-PLUS</span> <span style="color: #ffffff;">(C) 2026</span>
+
+<span style="color: #ffff00;">From CAVE</span> <span style="color: #ffffff;">(C)</span> <span style="color: #00ffff;">GJL WOTWECP</span> <span style="color: #ffffff;">1985</span>
+
+
+<span style="color: #ffffff;">Please enter your name : ${this.playerName}</span>
+
+<span style="color: #ffffff;">Enter your password ${this.playerName} : </span>
+
+<span style="color: #ffffff;">${message}</span>
+
+<span style="color: #ffffff;">Enter your password ${this.playerName} : <span class="cursor">_</span></span>`;
+        this.currentInput = '';
     }
     
     connect() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/${encodeURIComponent(this.playerName)}`;
         
-        this.addMessage('Connecting to server...', 'system');
-        
+        // Don't show any messages - just connect silently like BBC Micro
         this.ws = new WebSocket(wsUrl);
         
         this.ws.onopen = () => {
-            this.addMessage('Connected! Authenticating...', 'system');
-            // Send password for authentication
+            // Send password for authentication (silently)
             this.ws.send(JSON.stringify({
                 password: this.password
             }));
@@ -98,23 +172,55 @@ class CaveGame {
         };
         
         this.ws.onerror = (error) => {
-            this.addMessage('Connection error!', 'error');
             console.error('WebSocket error:', error);
         };
         
         this.ws.onclose = () => {
-            this.addMessage('Disconnected from server.', 'system');
+            // Silently reset to login on disconnect
             setTimeout(() => {
                 this.showLogin();
-            }, 2000);
+            }, 1000);
         };
     }
     
     handleMessage(data) {
         switch (data.type) {
+            case 'error':
+                // If still on login screen, show error there
+                if (this.loginScreen.classList.contains('active')) {
+                    this.loginDisplay.innerHTML = `<span style="color: #ffff00;">CAVE-PLUS</span> <span style="color: #ffffff;">(C) 2026</span>
+
+<span style="color: #ffff00;">From CAVE</span> <span style="color: #ffffff;">(C)</span> <span style="color: #00ffff;">GJL WOTWECP</span> <span style="color: #ffffff;">1985</span>
+
+
+<span style="color: #ff0000;">${data.message}</span>
+
+<span style="color: #ffffff;">Press any key to try again...</span>`;
+                    
+                    // Reset login state
+                    this.loginState = 'name';
+                    this.currentInput = '';
+                    this.playerName = '';
+                    this.password = '';
+                    
+                    // Wait for keypress then reset
+                    const resetLogin = (e) => {
+                        document.removeEventListener('keydown', resetLogin);
+                        this.updateLoginDisplay();
+                    };
+                    document.addEventListener('keydown', resetLogin);
+                } else {
+                    this.addMessage(data.message, 'error');
+                }
+                break;
+                
             case 'welcome':
                 this.showGame();
                 this.addMessage(data.message, 'system');
+                // Show player list or "only caver" message
+                if (data.player_list) {
+                    this.addMessage(data.player_list, 'system');
+                }
                 this.updatePlayer(data.player);
                 break;
                 
@@ -146,10 +252,6 @@ class CaveGame {
                 if (this.playerData) {
                     this.playerData.inventory = data.items || [];
                 }
-                break;
-                
-            case 'error':
-                this.addMessage(data.message, 'error');
                 break;
         }
     }
@@ -204,6 +306,13 @@ class CaveGame {
             inventory: player.inventory
         };
         
+        // Update prompt based on rank (matching BBC Micro original)
+        if (player.rank === 'Wizard') {
+            this.commandPrompt.textContent = '____*';
+        } else {
+            this.commandPrompt.textContent = '*';
+        }
+        
         // Don't display stats in status area - it's for messages only
     }
     
@@ -233,11 +342,15 @@ class CaveGame {
     }
     
     sendCommand() {
-        const command = this.commandInput.value.trim();
+        let command = this.commandInput.value.trim();
         
         if (!command) {
             return;
         }
+        
+        // BBC Micro behavior: ensure command is uppercase
+        command = command.toUpperCase();
+        console.log('Sending command:', command); // Debug log
         
         // Add to history
         this.commandHistory.push(command);

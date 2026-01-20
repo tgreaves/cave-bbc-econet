@@ -36,11 +36,13 @@ System:
 
 Wizard-Only Commands:
   WIZ             - Teleport to room 16 (Wizard's domain)
+  SUMMON <target> - Summon object or creature to your location
+  DEPLOY <target> - Resurrect creature from mortuary to your room
+  REGEN           - Reset all objects and creatures to initial state
 
 NOT YET IMPLEMENTED:
 ====================
 Basic Commands:
-  SUMMON          - Summon an object or creature to you
   EXORCISE        - Exorcise an object to the armoury
   DRINK           - Drink vodka, poison, or medicine
   POISON          - Poison another player
@@ -109,13 +111,14 @@ class CommandParser:
     
     async def parse(self, player: Player, command: str) -> Dict:
         """Parse and execute a command"""
-        command = command.lower().strip()
+        command = command.strip()
         parts = command.split(maxsplit=1)
         
         if not parts:
             return {"message": ""}
         
-        cmd = parts[0]
+        # Lowercase only the command word, keep args as-is (uppercase from client)
+        cmd = parts[0].lower()
         args = parts[1] if len(parts) > 1 else ""
         
         # Movement commands
@@ -181,6 +184,18 @@ class CommandParser:
         # Teleport command
         if cmd in ['teleport', 'tele']:
             return await self.teleport(player, args)
+        
+        # Summon command (Wizard ability)
+        if cmd in ['summon']:
+            return await self.summon(player, args)
+        
+        # Deploy command (Wizard ability)
+        if cmd in ['deploy']:
+            return await self.deploy(player, args)
+        
+        # Regen command (Wizard ability)
+        if cmd in ['regen']:
+            return await self.regen(player)
         
         # Charge command (Staff of Merlin at altar)
         if cmd in ['charge']:
@@ -352,19 +367,39 @@ class CommandParser:
         }
     
     async def who(self, player: Player) -> Dict:
-        """List all players"""
+        """List all players (matching BBC Micro format)"""
         players = list(self.game_state.players.values())
         
         if not players:
             return {"message": "No players online."}
         
-        player_list = []
-        for p in players:
-            room = self.game_state.get_room(p.room_id)
-            room_name = room.get("name", f"Room {p.room_id}") if room else "Unknown"
-            player_list.append(f"{p.name} ({p.rank}) - {room_name}")
+        # BBC Micro format: "These people are in CAVE"
+        message = "These people are in CAVE\n"
         
-        return {"message": "Players online:\n" + "\n".join(player_list)}
+        is_wizard = (player.rank == "Wizard")
+        
+        for p in players:
+            # Print player name
+            message += p.name
+            
+            # Wizards see extra info (stamina and station number)
+            if is_wizard:
+                # TAB(8) = column 8, TAB(22) = column 22
+                # Pad to column 8, show stamina, pad to column 22, show station
+                padding1 = max(1, 8 - len(p.name))
+                message += " " * padding1
+                stamina_text = f"stamina {int(p.stamina)}"
+                message += stamina_text
+                
+                # Calculate padding to reach column 22
+                current_pos = len(p.name) + padding1 + len(stamina_text)
+                padding2 = max(1, 22 - current_pos)
+                message += " " * padding2
+                message += f"stn {p.room_id}"
+            
+            message += "\n"
+        
+        return {"message": message}
     
     async def score(self, player: Player) -> Dict:
         """Show player score and stats"""
@@ -415,23 +450,19 @@ Examples:
         # Check for players first (PvP)
         target_player = self.game_state.get_player(target_name)
         if target_player and target_player.room_id == player.room_id:
-            return await self.hit_player(player, target_player)
+            return await self.attack_player(player, target_player)
         
         # Otherwise attack creature
         return await self.attack_creature(player, target_name)
     
     async def attack_player(self, attacker: Player, target: Player) -> Dict:
-        """Player vs Player combat"""
+        """Player vs Player combat (matching BBC Micro behavior)"""
         if attacker.name == target.name:
             return {"message": "You can't attack yourself!"}
         
-        # Determine weapon (check inventory for best weapon)
-        weapon = None
-        weapon_bonus = 0
-        
-        if any("stick" in item.lower() for item in attacker.inventory):
-            weapon = "Stick"
-            weapon_bonus = 3
+        # Determine weapon (check inventory for Stick)
+        has_stick = any("stick" in item.lower() for item in attacker.inventory)
+        weapon_bonus = 3 if has_stick else 0
         
         # Calculate damage (1-3 base + weapon bonus)
         base_damage = random.randint(1, 3)
@@ -440,12 +471,11 @@ Examples:
         # Apply damage
         target_died = target.take_damage(total_damage)
         
-        # Build message
-        weapon_text = f" with your {weapon}" if weapon else ""
-        message = f"You hit {target.name}{weapon_text} for {total_damage} damage!"
+        # BBC Micro: PROCG uses PRINT (main window), not PROCB (status bar)
+        # Attacker sees "Hitting [target]" in main window
+        message = f"Hitting {target.name}"
         
         if target_died:
-            message += f"\n\n{target.name} has been defeated!"
             attacker.kills += 1
             attacker.score += 50  # PvP kill bonus
             target.deaths += 1
@@ -456,12 +486,10 @@ Examples:
             
             # Make all creatures forget about the dead player
             self.game_state.reset_creatures_targeting_player(target.name)
-        else:
-            message += f"\n{target.name} has {target.stamina}/{target.max_stamina} stamina remaining."
         
         return {
             "message": message,
-            "combat": True,
+            # No "combat" flag - goes to main window, not status bar
             "pvp": True,
             "target_player": target.name,
             "target_died": target_died
@@ -502,16 +530,14 @@ Examples:
         # Perform attack
         result = await self.game_state.player_attack_creature(player, target_creature, weapon)
         
-        # Build message
-        weapon_text = f" with your {weapon}" if weapon else ""
-        message = f"You hit the {result['creature_name']}{weapon_text} for {result['damage']} damage."
+        # Build message (matching BBC Micro format)
+        message = f"The {result['creature_name']} is HIT! stamina now {target_creature.stamina}"
         
         if result['creature_died']:
-            message += f"\n\nThe {result['creature_name']} is dead! You gain {result['points_awarded']} points."
-        else:
-            message += f"\nThe {result['creature_name']} has {target_creature.stamina}/{target_creature.max_stamina} stamina remaining."
-            if not target_creature.is_aggressive:
-                message += f"\nThe {result['creature_name']} becomes aggressive!"
+            message = f"The {result['creature_name']} is dead! You gain {result['points_awarded']} points."
+        elif not target_creature.is_aggressive:
+            # Creature becomes aggressive after first hit
+            pass  # Aggression is handled in game_state
         
         return {
             "message": message,
@@ -563,13 +589,12 @@ Examples:
         # Zap attack (Wizard zap does 50-75 damage)
         result = await self.game_state.player_attack_creature(player, target_creature, "Staff")
         
-        message = f"!ZAPPING!\nYou ZAP the {result['creature_name']} for {result['damage']} damage!"
+        # BBC Micro format: "The [creature] is !ZAPPED! stamina now [X]"
+        message = f"The {result['creature_name']} is !ZAPPED! stamina now {target_creature.stamina}"
         message += f"\n(Staff charges remaining: {player.staff_charges})"
         
         if result['creature_died']:
-            message += f"\n\nThe {result['creature_name']} is obliterated! You gain {result['points_awarded']} points."
-        else:
-            message += f"\nThe {result['creature_name']} has {target_creature.stamina}/{target_creature.max_stamina} stamina remaining."
+            message = f"The {result['creature_name']} is obliterated! You gain {result['points_awarded']} points.\n(Staff charges remaining: {player.staff_charges})"
         
         return {
             "message": message,
@@ -615,12 +640,11 @@ Examples:
         # Stab attack (6-9 damage)
         result = await self.game_state.player_attack_creature(player, target_creature, weapon)
         
-        message = f"You STAB the {result['creature_name']} with your {weapon} for {result['damage']} damage!"
+        # BBC Micro format: "The [creature]'s Stamina=[X]"
+        message = f"The {result['creature_name']}'s Stamina={target_creature.stamina}"
         
         if result['creature_died']:
-            message += f"\n\nThe {result['creature_name']} is dead! You gain {result['points_awarded']} points."
-        else:
-            message += f"\nThe {result['creature_name']} has {target_creature.stamina}/{target_creature.max_stamina} stamina remaining."
+            message = f"The {result['creature_name']} is dead! You gain {result['points_awarded']} points."
         
         return {
             "message": message,
@@ -663,12 +687,11 @@ Examples:
         # Burn attack (50-75 damage)
         result = await self.game_state.player_attack_creature(player, target_creature, "Flamethrower")
         
-        message = f"You BURN the {result['creature_name']} with your Flamethrower for {result['damage']} damage!"
+        # BBC Micro format
+        message = f"The {result['creature_name']}'s Stamina={target_creature.stamina}"
         
         if result['creature_died']:
-            message += f"\n\nThe {result['creature_name']} is incinerated! You gain {result['points_awarded']} points."
-        else:
-            message += f"\nThe {result['creature_name']} has {target_creature.stamina}/{target_creature.max_stamina} stamina remaining."
+            message = f"The {result['creature_name']} is incinerated! You gain {result['points_awarded']} points."
         
         return {
             "message": message,
@@ -767,13 +790,11 @@ Examples:
             if arrow_item not in room.objects:
                 room.objects.append(arrow_item)
         
-        message = f"You SHOOT the {result['creature_name']} with your Arrow for {result['damage']} damage!"
-        message += "\nYour arrow falls to the ground."
+        # BBC Micro format: "The [creature] is SHOT stamina now [X]"
+        message = f"The {result['creature_name']} is SHOT stamina now {target_creature.stamina}"
         
         if result['creature_died']:
-            message += f"\n\nThe {result['creature_name']} is dead! You gain {result['points_awarded']} points."
-        else:
-            message += f"\nThe {result['creature_name']} has {target_creature.stamina}/{target_creature.max_stamina} stamina remaining."
+            message = f"The {result['creature_name']} is dead! You gain {result['points_awarded']} points."
         
         return {
             "message": message,
@@ -863,6 +884,166 @@ Examples:
             "message": f"You concentrate... and suddenly find yourself elsewhere!\n\n{look_result['message']}",
             "room_changed": True,
             "teleport": True
+        }
+    
+    async def summon(self, player: Player, target_name: str) -> Dict:
+        """
+        Summon an object or creature to player's location
+        Based on PROCZ from original game (line 2100)
+        Wizards always succeed, others have chance based on level and Amulet
+        """
+        import random
+        
+        if not target_name:
+            return {"message": "Summon what?"}
+        
+        target_name_lower = target_name.lower()
+        is_wizard = (player.rank == "Wizard")
+        
+        # Check if player has the Amulet (increases success chance)
+        has_amulet = any("amulet" in item.lower() for item in player.inventory)
+        
+        # Find the target (creature or object)
+        target_creature = None
+        target_object = None
+        target_room = None
+        
+        # Search for creatures first
+        for creature in self.game_state.creatures.values():
+            if target_name_lower in creature.name.lower() and not creature.is_dead:
+                target_creature = creature
+                target_room = creature.room_id
+                break
+        
+        # If not a creature, search for objects
+        if not target_creature:
+            for room_id, objects in self.game_state.objects.items():
+                for obj in objects:
+                    if target_name_lower in obj.lower():
+                        target_object = obj
+                        target_room = room_id
+                        break
+                if target_object:
+                    break
+        
+        # Check if target exists
+        if not target_creature and not target_object:
+            return {"message": f"Sorry...wasted effort...{target_name} is not in CAVE"}
+        
+        # Non-wizards have a chance to fail
+        if not is_wizard:
+            # Calculate success chance: RND(20/z) > 1-3*(has_amulet)
+            # z = player level (1 or 2), assume 1 for now
+            player_level = 2 if player.score >= 500 else 1
+            success_threshold = 1 - (3 if has_amulet else 0)
+            
+            if random.random() * (20 / player_level) > success_threshold:
+                return {"message": "Nothing Happens"}
+        
+        # Summon creature
+        if target_creature:
+            # Don't summon from mortuary (room 19)
+            if target_creature.room_id == 19:
+                return {"message": "Nothing Happens"}
+            
+            # Move creature to player's room
+            old_room = target_creature.room_id
+            await self.game_state.move_creature(target_creature, player.room_id)
+            
+            # BBC Micro format: "The [creature] is here." in status area
+            return {
+                "message": f"The {target_creature.name} is here.",
+                "combat": True,  # Send to status area
+                "summoned": True
+            }
+        
+        # Summon object
+        if target_object:
+            # Remove from old room
+            if target_room in self.game_state.objects:
+                if target_object in self.game_state.objects[target_room]:
+                    self.game_state.objects[target_room].remove(target_object)
+            
+            # Add to player's room
+            if player.room_id not in self.game_state.objects:
+                self.game_state.objects[player.room_id] = []
+            self.game_state.objects[player.room_id].append(target_object)
+            
+            return {
+                "message": f"The {target_object} appears!",
+                "summoned": True
+            }
+    
+    async def deploy(self, player: Player, target_name: str) -> Dict:
+        """
+        Deploy (resurrect) a creature from the mortuary
+        Based on PROCb from original game (line 3190)
+        Wizard-only command
+        """
+        import random
+        
+        # Must be a wizard
+        if player.rank != "Wizard":
+            return {"message": "Only wizards can deploy creatures!"}
+        
+        if not target_name:
+            return {"message": "DEPLOY What?"}
+        
+        target_name_lower = target_name.lower()
+        
+        # Search for creature in mortuary (room 19)
+        mortuary_creatures = self.game_state.get_creatures_in_room(19)
+        
+        target_creature = None
+        for creature in mortuary_creatures:
+            if target_name_lower in creature.name.lower():
+                target_creature = creature
+                break
+        
+        if not target_creature:
+            return {"message": "CCM must be in mortuary"}
+        
+        # Resurrect creature with random health (50-100% of max)
+        new_health = target_creature.max_stamina + random.randint(0, target_creature.max_stamina // 2)
+        target_creature.stamina = new_health
+        target_creature.is_dead = False
+        target_creature.is_aggressive = False
+        target_creature.target_player = None
+        
+        # Move from mortuary to player's room
+        if 19 in self.game_state.creatures_by_room:
+            if target_creature.obj_id in self.game_state.creatures_by_room[19]:
+                self.game_state.creatures_by_room[19].remove(target_creature.obj_id)
+        
+        target_creature.room_id = player.room_id
+        if player.room_id not in self.game_state.creatures_by_room:
+            self.game_state.creatures_by_room[player.room_id] = []
+        self.game_state.creatures_by_room[player.room_id].append(target_creature.obj_id)
+        
+        return {
+            "message": "Deployed.",
+            "deployed": True
+        }
+    
+    async def regen(self, player: Player) -> Dict:
+        """
+        Regenerate all objects and creatures to initial state
+        Based on REGEN command from original game (line 2580)
+        Wizard-only command - resets the entire game world
+        """
+        # Must be a wizard
+        if player.rank != "Wizard":
+            return {"message": "Only wizards can regenerate!"}
+        
+        # Reload creatures (this will reset all creatures to initial positions)
+        await self.game_state.load_creatures(clear_existing=True)
+        
+        # Reload objects (reset to initial positions)
+        await self.game_state.load_initial_objects()
+        
+        return {
+            "message": "Objects and creatures regenerated.",
+            "regen": True
         }
     
     async def charge_staff(self, player: Player) -> Dict:
