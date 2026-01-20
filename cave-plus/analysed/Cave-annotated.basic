@@ -1,0 +1,1312 @@
+REM ============================================================================
+REM CAVE-PLUS - Multiplayer ECONET Adventure Game
+REM Original: (C) GJL WOTWECP 1985
+REM Cave-Plus: (C) XOB 1988 Version 1.00
+REM ============================================================================
+REM This is an annotated version for study and documentation purposes
+REM ============================================================================
+
+   10 GOTO30:IA:EA FA
+   
+REM ----------------------------------------------------------------------------
+REM INITIALIZATION AND NETWORK SETUP
+REM ----------------------------------------------------------------------------
+   30 VDU6:*NET
+   35 *FX 200 1                    : REM Set escape key action
+   36 O%=0                          : REM Offset for data reading
+   
+REM Memory map and key variables:
+REM A=&70      - Player record pointer
+REM I=&7A38    - Station ID storage
+REM a=&7A39    - Message buffer pointer
+REM DA=&7A28   - Data area
+REM p=&7900    - Procedure pointer
+REM K=&794B    - Key buffer
+REM BA=&794D   - Base address
+REM y=&795B    - Y coordinate
+REM q=&7981    - Queue pointer
+REM r=&7991    - Room pointer
+REM e=&79E2    - Error handler
+REM CA=&79F8   - Cave address
+   40 A=&70:I=&7A38:a=&7A39:DA=&7A28:p=&7900:K=&794B:BA=&794D:y=&795B:q=&7981:r=&7991:e=&79E2:CA=&79F8:VDU6
+   40 Hh$="CrystalAmuletStaffShieldGuardian"  : REM Magic items (one allowed at a time)
+   
+   60 *FX 18                        : REM Reset function keys
+   70 *FX 11                        : REM Set keyboard auto-repeat delay
+   71 *FX4,1                        : REM Set cursor key mode
+   80 ONERRORGOTO100                : REM Error handler
+   90 GOTO140
+   
+REM ----------------------------------------------------------------------------
+REM DATA READING FUNCTION
+REM ----------------------------------------------------------------------------
+   91 DEFFNget
+   92 get$=$(&7200+O%):O%=O%+LENget$+1
+   93 =get$
+
+REM ----------------------------------------------------------------------------
+REM ERROR HANDLER
+REM ----------------------------------------------------------------------------
+  100 VDU6:CLOSE#0:REPORT:PRINT" at line ";ERL:VDU7
+  100 IFERL>970PROCF                : REM If error after game start, cleanup
+  105 IF ERL=1520 THEN PRINT"Killed by an act of God":a=INKEY300:*GOING
+  110 PRINT"Please note this Error and Line number"
+  110 ?&900=0:tx=TIME:REPEAT UNTILTIME>tx+1000:*GOING
+
+REM ----------------------------------------------------------------------------
+REM TITLE SCREEN AND STARTUP
+REM ----------------------------------------------------------------------------
+  140 MODE7
+  140 PRINTTAB(14,10);CHR$141;"EORCAVE-PLUS!";TAB(14,11);CHR$141;"EORCAVE-PLUS!"''
+  140 *FX15
+  145 PRINT"Never press BREAK while running CAVE."
+  145 PRINT'"Use the QUIT command"
+  145 PRINT''"Please wait.";:Y=INKEY(200)
+  
+REM Check if CAVE is open (DATA file exists)
+  180 Y=OPENIN"DATA":IFY=0PRINT"CAVE IS NOT OPEN":*GOING
+  190 CLOSE#Y
+  
+REM ----------------------------------------------------------------------------
+REM LOAD GAME DATA
+REM ----------------------------------------------------------------------------
+  191 HIMEM=&7200                   : REM Set high memory
+  195 *L.DATA 7200                  : REM Load data file at &7200
+  
+REM Initialize arrays for game text
+REM G$() - Generic messages
+REM H$() - Hit messages  
+REM C$() - Disappear messages
+REM F$() - Appear messages
+REM E$() - Error messages
+  200 DIMG$(3),H$(3),C$(3),F$(3),E$(3)
+  200 FORT=1TO3:G$(T)=FNget:H$(T)=FNget:C$(T)=FNget:F$(T)=FNget:E$(T)=FNget:NEXT
+  200 PRINT" ."
+  
+REM Game state variables:
+REM O$ - "into thin air" string
+REM R - Starting room (70)
+REM b - Total rooms
+REM F - Total objects (42)
+REM Z - Number of creatures (15)
+REM k - Base creature count (10)
+REM c - Creature pointer
+REM V - Vodka level (1=sober)
+REM j - Fast mode flag
+REM z - Player level (1 or 2)
+REM M - Poisoned flag
+  200 O$=" into thin air":R=70:b=R:F=42:Z=15:k=10:c=&A04+F*4:V=1:j=FALSE:z=1:M=FALSE
+  
+REM D$() - Direction names
+REM A$() - Object names
+REM B$() - Object properties
+  200 DIMD$(6),A$(F+1),B$(F+1)
+  210 FORT=1TO6:D$(T)=FNget:NEXT
+  
+  270 FORT=1TOF:A$(T)=FNget:B$(T)=FNget:NEXT
+  270 SOUND1,-15,200,8:SOUND1,-15,100,8  : REM Startup sound
+  270 B=RND(3):f=0:n=0                   : REM B=current room, f=previous room, n=?
+  271 HIMEM=&7700
+
+REM ----------------------------------------------------------------------------
+REM PLAYER LOGIN
+REM ----------------------------------------------------------------------------
+  320 CLS
+  320 PRINT"DIVCAVE-PLUSOFF(C)EORXOB 1988DIVVersion 1.00"
+  320 PRINT'"DIVFrom CAVEOFF(C)EORGJL WOTWECP 1985"
+  
+  340 INPUT'"Please enter your name : "E$
+  340 E$=FNB(E$)                    : REM Convert to uppercase
+  340 IFE$=""ORE$="ALL"THEN340
+  
+  370 IFE$="QUIT"THEN*GOING
+  
+REM Check if name already in use
+  380 R$=E$:U=0:h=FALSE
+  380 FORT=1TOF:IFFNB(A$(T))=E$PRINT"Try Again":GOTO340ELSENEXT
+  
+REM Handle spaces in name
+  390 IFINSTR(E$," ")E$=LEFT$(E$,INSTR(E$," ")-1):AA=TRUEELSEAA=FALSE
+  400 IFLENE$>7PRINT"Please call yourself something smaller!":GOTO340
+  410 IFAAPRINT"I'll call you ";E$
+  
+REM ----------------------------------------------------------------------------
+REM PASSWORD ENTRY
+REM ----------------------------------------------------------------------------
+  420 PRINT"Enter your password ";E$;" : ";:VDU21:INPUTG$:VDU6:PRINT:*FX 15
+  440 L$=E$
+  440 IFLENG$<4PRINT'"That is too short !":VDU7:GOTO420
+  
+  460 G$=FNB(LEFT$(G$,4))           : REM Use first 4 chars of password
+  460 Y=OPENIN("C."+E$)             : REM Try to open character file
+  460 IFY<>0THEN570                 : REM Existing player
+
+REM ----------------------------------------------------------------------------
+REM NEW PLAYER CREATION
+REM ----------------------------------------------------------------------------
+  490 X=OPENOUT("C."+E$):IFX=0PRINT"Fail(F)":*GOING
+  510 G=FALSE:H=0                   : REM G=wizard flag, H=score
+  510 PRINT#X,E$,H,B,G,G$
+  510 PRINT#X,FNF(E$+STR$(H)+STR$(B)+STR$(G)+G$)  : REM Checksum
+  510 CLOSE#X
+  510 PRINTTAB(0,15);"DIVRememberMODyourEORpassword"
+  510 A$=INKEY$200:GOTO630
+
+REM ----------------------------------------------------------------------------
+REM EXISTING PLAYER LOGIN
+REM ----------------------------------------------------------------------------
+  570 INPUT#Y,E$,H,B,G,P$           : REM Read player data
+  570 IFEOF#YANDNOTGTHEN600
+  
+REM Verify checksum
+  590 INPUT#Y,CC
+  590 IFCC<>FNF(E$+STR$(H)+STR$(B)+STR$(G)+P$)PRINT"Abort":CLOSE#0:*GOING
+  
+REM Check password
+  600 IFP$<>G$PRINT"Sorry; I know someone called"'L$;" and that is not the"'"password."'"Try again"
+  600 IFP$<>G$CLOSE#0:PROCi:GOTO320
+  
+REM Check for excessive score (anti-cheat)
+  610 CLOSE#Y
+  610 IFH>4000OSCLI("DELETE "+L$+CHR$13):Y=OPENOUT"!!Trog":PRINT#Y,L$:CLOSE#0:*GOING
+
+REM ----------------------------------------------------------------------------
+REM WELCOME SCREEN
+REM ----------------------------------------------------------------------------
+  630 CLS:PRINTTAB(0,6);STRING$(39,"*");:PROCB("")
+  630 PRINTTAB(0,23):PRINT"Welcome ";
+  630 IFGPRINT"Powerful Wizard":GOTO670
+  660 IFY<>0PRINT"again to CAVE"ELSEPRINT"new caver"
+  
+REM ----------------------------------------------------------------------------
+REM MULTIPLAYER LOCK SYSTEM
+REM Wait for lock file to be available
+REM ----------------------------------------------------------------------------
+  670 QQ=OPENIN"LOCK":*FX15
+  680 IFQQ<>0CLOSE#QQ:PRINT".";:A$=INKEY$100:GOTO670
+  
+REM Create lock file
+  690 *SA."LOCK"0 0
+  
+REM Initialize player table (&900-&AFC)
+  700 FORT=&900TO&AFCSTEP4:!T=0:NEXT
+  700 ?e=0:CALLr                    : REM Call network routine
+  700 IF?e=0PRINT"You are the only caver here."
+  700 IF?e=0OSCLI("LO.OBJINIT"+CHR$13):PROCU  : REM Initialize objects
+
+
+REM Check for other players
+  720 IF?e<>0PROCs                  : REM Get player list
+  
+REM Check if player already logged in (prevent duplicates)
+  730 T=&900
+  730 REPEATT=T+&10
+  730 IF$T=E$OR(?T<>0AND?(T+8)=?I)OSCLI("DELETE LOCK"+CHR$13)
+  730 IF$T=E$OR(?T<>0AND?(T+8)=?I)PRINT"Internal Error?"
+  730 IF$T=E$OR(?T<>0AND?(T+8)=?I)PRINT'"Sorry - According to my records you are already in the CAVE!!!"
+  730 IF$T=E$OR(?T<>0AND?(T+8)=?I)VDU7:s=TIME:REPEATUNTILTIME>s+500:*GOING
+  
+REM Find empty slot in player table
+  770 IF?T=0 $T=E$
+  780 UNTILT>&9F0 OR $T=E$
+  780 *DELETE LOCK
+  
+  800 IFT>&9F0PRINT"CAVE FULL":T=INKEY(100):*GOING
+  810 A=T:VDU21:PROCj:VDU6:*FX 200 1
+
+REM ----------------------------------------------------------------------------
+REM CALCULATE PLAYER STATS
+REM ----------------------------------------------------------------------------
+REM J = Maximum stamina
+REM _ = Carrying capacity
+REM z = Player level (1 or 2)
+  840 J=50+H/5                      : REM Base stamina + score bonus
+  840 IFJ>=250ANDG=FALSEPRINT"You have been given the rank of WIZARD":G=TRUE
+  
+  860 _=2                           : REM Default carrying capacity
+  860 IFG J=J+250:_=5               : REM Wizards get bonus stamina and capacity
+  
+  870 IFH>=500ANDNOTG _=4:J=J+50:z=2:PRINT"Master Caver"
+  880 IFH>150ANDH<500PRINT"Warrior":J=J+25:_=3
+  
+REM D = Current stamina (randomized start)
+  890 D=J/2+RND(J/2)
+  890 ?&7900="CAVE":?&7700=0
+  890 !(A+8)=B*&100+?I              : REM Store room and station ID
+  890 !(A+12)=D                     : REM Store stamina
+  890 PROCA(A,A+15)                 : REM Broadcast player data
+  890 CLOSE#QQ
+  890 PROCH                         : REM Show other players
+  890 i=TIME
+  890 PRINT"Your stamina is ";INTD
+  890 IFG J$="____*"ELSEJ$="*"      : REM Prompt character
+
+REM ----------------------------------------------------------------------------
+REM MAIN GAME LOOP
+REM ----------------------------------------------------------------------------
+  970 PROCK                         : REM Display room
+  980 PROCS:PROCT(C$,D$)            : REM Get command and process
+  980 IFf<>B THEN 970 ELSE 980      : REM Loop
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: INITIALIZE OBJECTS (PROCU)
+REM Randomly place creatures in rooms
+REM ----------------------------------------------------------------------------
+ 1001 DEFPROCU
+ 1001 FORN=(k+1)TOZ
+ 1001 REPEATT=RND(b):UNTILT>20ORT<16  : REM Find valid room
+ 1001 !(&A00+(N*4))=T                  : REM Place creature
+ 1001 NEXT:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: DISPLAY ROOM (PROCK)
+REM Shows room description, objects, and other players
+REM ----------------------------------------------------------------------------
+ 1010 DEFPROCK
+ 1010 IFf<>B !(A+8)=B*&100+?I:!(A+12)=D:PROCA(A,A+15)  : REM Update position
+ 1030 s=TIME
+ 1030 IFn<>BOSCLI("LO.R."+STR$(B)+CHR$13)  : REM Load room description
+ 1050 IFj=FALSEREPEATUNTILTIME>s+100+20*V  : REM Delay (affected by vodka)
+ 1060 F$=?&7800                      : REM Get room description
+ 1060 IF(?&A02AND1)=0OR!(&A00+4*12)=A*&100PRINT?&7840  : REM Check lighting
+ 1060 IF(?&A02AND1)<>0AND!(&A00+4*12)<>A*&100PRINT"It is too dark to see":ENDPROC
+ 1080 PROCX(B)                       : REM Special room features (portcullis)
+ 1080 PROCL(B,TRUE)                  : REM List other players
+ 1080 f=B:JA=TRUE
+ 1080 PROCN(B)                       : REM List objects/creatures
+ 1080 IFjORn=B n=B:ENDPROC           : REM Skip picture in fast mode
+ 1170 n=B
+ 1170 Y=OPENIN("P."+STR$(B)):IFY=0ENDPROC  : REM Check for picture file
+ 1190 CLOSE#Y:OSCLI("LO.P."+STR$(B)+CHR$13):ENDPROC  : REM Load picture
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: DESCRIBE OBJECT (PROCV)
+REM Adds "A" or "An" before object name
+REM ----------------------------------------------------------------------------
+ 1220 DEFPROCV(T)
+ 1220 N$=A$((T-&A00)/4)
+ 1220 PRINT"A";
+ 1220 V$="AEIOU"
+ 1220 FORT1=1TO5:IFINSTR(N$,MID$(V$,T1,1))PRINT"n";  : REM Add 'n' if vowel
+ 1250 NEXT:PRINT" ";N$;:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: PORTCULLIS STATUS (PROCX)
+REM Shows portcullis state in rooms 29 and 30
+REM ----------------------------------------------------------------------------
+ 1280 DEFPROCX(O)
+ 1280 IFO<>29ANDO<>30ENDPROC
+ 1300 PRINT"The Portcullis is ";
+ 1300 IF?&A03=1PRINT"UP"ELSEPRINT"DOWN"
+ 1315 F$=$(&7803-3*?&A03)           : REM Update room description
+ 1315 ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: LIST PLAYERS (PROCL)
+REM Shows other players in current room
+REM t = TRUE to announce arrivals/departures
+REM ----------------------------------------------------------------------------
+ 1330 DEFPROCL(O,t)
+ 1330 FORT=&910TO&9F0STEP16
+ 1330 IF!(T+8) DIV&100=O AND ?T<>0 AND $T<>E$ PRINT$T;" is here";
+ 1350 IF?T<>0ANDGAND(!(T+8)DIV&100)=OAND$T<>E$PRINT" stamina ";!(T+12);
+ 1360 IF(!(T+8)DIV&100)=OAND?T<>0AND$T<>E$PRINT
+ 1365 IFNOTtGOTO1370                : REM Skip announcements if t=FALSE
+ 1366 IF!(T+8)DIV&100=BAND?T<>0AND$T<>E$ANDB<>fPROCC(1,?(T+8),E$+" has arrived.")
+ 1367 IF!(T+8)DIV&100=fANDB<>fAND?T<>0AND$T<>E$PROCC(1,?(T+8),E$+" has just left.")
+ 1370 NEXT:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: LIST OBJECTS (PROCN)
+REM Shows objects and creatures in room
+REM ----------------------------------------------------------------------------
+ 1380 DEFPROCN(O)
+ 1380 FORT=&A04TOcSTEP4
+ 1380 IF?T=OPROCV(T):PRINT" is here."
+ 1400 NEXT:ENDPROC
+
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: GET INPUT (FNG)
+REM Handles keyboard input and random events
+REM ----------------------------------------------------------------------------
+ 1410 DEFFNG
+ 1420 A$=INKEY$0
+ 1420 IF?&A01<>0GOSUB1630            : REM Check for points awarded
+ 1440 IFV>1ANDRND(25)-1<V A$=CHR$(64+RND(26))  : REM Drunk typing
+ 1450 IFV>1ANDRND(25)-1<V A$=""     : REM Drunk missing keys
+ 1460 IFV>1 V=V-.001                : REM Sobering up
+ 1470 IF?A=0PRINT"You have been EXORCISEd...Sorry":*GOING
+ 1480 OH=D
+ 1480 IFM D=D-0.05                  : REM Poison damage
+ 1500 IFMANDINTD<INTOHPROCB("I am poisoned")
+ 1510 IFD<5ANDRND(20)=1PROCB("You are almost dead"):SOUND1,-10,0,1
+ 1520 IFD<=0PRINT'"Life is slipping away...You are going";:PROCF
+ 1520 IFD<=0!(q+12)=&A01:!(q+8)=a+1:PROCC(10+RND(H/20),g,"NOSENT"):PRINT"..":*GOING
+ 1530 PROCEA                         : REM Process creature actions
+ 1530 IF?&7700<1 OR ?&7700>13 THEN 1560
+ 1550 ON?&7700GOSUB1580,1610,1620,1630,1640,1650,1660,1670,1680,1690,1700,1710,1760
+ 1560 ?&7700=0:IFA$<>"" THEN=A$
+ 1570 GOTO1420
+
+REM Event handlers (called from line 1550):
+ 1580 PROCB(?&7702):VDU7             : REM Event 1: Message
+ 1580 IFB=29ORB=30 F$=$(&7803-3*?&A03)
+ 1600 RETURN
+ 1610 g=?&7701                       : REM Event 2: Hit by creature
+ 1610 PROCB(H$(RND(3))+" by "+?&7703)
+ 1610 D=D-(?&7702*(G*-1+1))          : REM Damage (less for wizards)
+ 1610 PROCC(1,?&7701,E$+" IS HIT! stamina down to "+STR$(INTD)+CHR$13)
+ 1610 VDU7,7:RETURN
+ 1620 PRINT"Cave collapses":PROCF:*GOING  : REM Event 3: Cave collapse
+ 1630 PROCB("You are credited with "+STR$(?&A01)+" points")  : REM Event 4: Points
+ 1630 VDU7:H=H+?&A01:?&A01=0:RETURN
+ 1640 M=TRUE:g=?&7701:RETURN         : REM Event 5: Poisoned
+ 1650 g=?&7701                       : REM Event 6: Stabbed
+ 1650 PROCB("You are STABbed by "+?&7703):VDU7
+ 1650 D=D-(?&7702*(G*-1+1))
+ 1650 PROCC(1,g,E$+" is STABbed. Stamina="+STR$(INTD)):RETURN
+ 1660 !(A+8)=B*&100+?I:!(A+12)=D:PROCA(A,A+15):RETURN  : REM Event 7: Update
+ 1670 PROCY(?&7702):PRINTJ$;C$;:RETURN  : REM Event 8: Teleport
+ 1680 g=?&7701:U$=C$:?&7700=0        : REM Event 9: Forced command
+ 1680 PRINT''"You are being FORCEd by "+?&7702:VDU7,7
+ 1680 PROCk(?&7740,?&7780):PROCT(?&7740,?&7780)
+ 1680 PRINT"You regain control..."''J$;C$;:C$=U$:RETURN
+ 1690 g=?&7701                       : REM Event 10: Bitten
+ 1690 PROCB("You are BITEn by "+?&7703)
+ 1690 D=D-(?&7702*(G*-1+1)):RETURN
+ 1700 g=?&7701                       : REM Event 11: Burned
+ 1700 PROCB("You are BURNed by "+?&7703)
+ 1700 D=D-(?&7702*(G*-1+1)):VDU7,7
+ 1700 PROCC(1,?&7701,E$+" is Frazzled"):RETURN
+ 1710 g=?&7701                       : REM Event 12: Zapped
+ 1710 IF!(&A00+4*11)=A*&100 RETURN   : REM Shield protects
+ 1711 PROCB(CHR$141+"You areSTEPZAPpedSPCby "+?&7703):VDU7,7,7
+ 1711 PROCB(CHR$141+"You areSTEPZAPpedSPCby "+?&7703)
+ 1711 D=D-?&7702
+ 1711 PROCC(1,g,E$+" is ZAPped. Stamina="+STR$(INTD)):RETURN
+ 1760 g=?&7701                       : REM Event 13: Shot
+ 1760 PROCB("You are SHOT by "+?&7703)
+ 1760 D=D-(?&7702*(G*-1+1)):VDU7
+ 1760 PROCC(1,?&7701,E$+" is SHOT. Stamina now="+STR$(INTD)):RETURN
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: TELEPORT (PROCY)
+REM Teleports player to room d
+REM ----------------------------------------------------------------------------
+ 1770 DEFPROCY(d)
+ 1770 PROCD(1,B,E$+" "+C$(RND(3))+"s "+LEFT$(O$,(LENO$*(RND(2)-1))))
+ 1770 PROCD(1,d,E$+" "+F$(RND(3))+"s from thin air")
+ 1770 PRINT'"You vanish "+LEFT$("in a puff of smoke",(18*(RND(2)-1))):VDU7,7
+ 1770 f=d:B=d
+ 1770 !(A+8)=B*&100+?I:!(A+12)=D:PROCA(A,A+15)
+ 1770 PROCK:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: PRINT COMMAND (PROCk)
+REM Displays command with proper formatting
+REM ----------------------------------------------------------------------------
+ 1820 DEFPROCk(A$,B$)
+ 1820 PRINTJ$;
+ 1820 IFA$=B$PRINTA$ELSEPRINTA$;" ";B$
+ 1850 ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: GET COMMAND (PROCS)
+REM Reads player command from keyboard
+REM ----------------------------------------------------------------------------
+ 1860 DEFPROCS
+ 1860 IF?5-?3<2ANDRND(10)=9PRINT"Difficult to breath"'"QUIT soon ..."
+ 1880 PRINTJ$;:C$=""
+ 1900 A$=FNG
+ 1900 IFA$=CHR$21PRINT" - OH FORGET IT!!":GOTO1880  : REM Ctrl-U cancels
+ 1920 IFA$=CHR$13PRINT:GOTO2050     : REM Enter key
+ 1930 IFA$=CHR$127ANDLENC$=0VDU7:GOTO1900  : REM Delete at start
+ 1940 IFA$=CHR$127 C$=LEFT$(C$,LENC$-1):VDU127:GOTO1900  : REM Delete char
+ 1950 IFLENC$>=30VDU7:GOTO1900       : REM Max command length
+ 1960 IFA$=" "ANDINSTR(C$," ")=0ANDLENC$<>0GOTO2020  : REM First space
+ 1970 IFA$>="A"ANDA$<="Z"THEN1990
+ 1980 IFA$<"a"ORA$>"z"VDU7:GOTO1900  : REM Only letters and space
+ 1990 A$=CHR$(ASCA$AND&DF)           : REM Convert to uppercase
+ 1990 IFINSTR(C$," ")=0THEN2020      : REM First word uppercase
+ 2010 IFINSTR(C$," ")<LENC$A$=CHR$(ASCA$+32)  : REM Second word lowercase
+ 2020 C$=C$+A$:PRINTA$;:GOTO1900
+ 2050 D=D-0.2                        : REM Stamina cost for command
+ 2050 D=D+(TIME-i)/(2000+G*1000):i=TIME  : REM Regeneration
+ 2050 IFD>J D=J                      : REM Cap at maximum
+ 2070 D$=RIGHT$(C$,LENC$-INSTR(C$," "))  : REM Extract second word
+ 2070 C$=LEFT$(C$,INSTR(C$," ")-1)  : REM Extract first word
+ 2070 ENDPROC
+
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: SUMMON COMMAND (PROCZ)
+REM Summons an object or creature to player's location
+REM ----------------------------------------------------------------------------
+ 2100 DEFPROCZ
+ 2100 PROCG("SUMMONing")
+ 2100 IFGTHEN2140                    : REM Wizards always succeed
+ 2130 IFRND(20/z)>1-3*(!&A28=A*&100)PRINT"Nothing Happens":ENDPROC
+ 2140 IFT>&A00 AND ?T<>19 PROCO(T,?T,B):ENDPROC  : REM Move creature
+ 2150 IFT>&A00ENDPROC
+ 2160 IFT=&A00PRINT"Sorry...wasted effort...";D$;" is not"'"in CAVE":ENDPROC
+ 2165 IFNOTFNIVDU7:ENDPROC           : REM Check magic blocked
+ 2170 PROCC(8,?(T+8),CHR$B):ENDPROC  : REM Summon player's object
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: PROCESS COMMAND (PROCT)
+REM Main command parser and dispatcher
+REM ----------------------------------------------------------------------------
+ 2190 DEFPROCT(C$,D$)
+ 2190 IFC$=""ENDPROC
+ 2210 IFB=19AND(C$="HIT"ORC$="SHOOT"ORC$="BURN"ORC$="ZAP"ORC$="STAB"ORC$="BITE"ORC$="STRIKE"ORC$="THUMP"ORC$="PUNCH"ORC$="KICK")PRINT"You can't do it here.":ENDPROC
+ 2220 FORX=1TO6:IFFNB(D$(X))=C$C$=LEFT$(C$,1):NEXTELSENEXT  : REM Direction abbrev
+ 2230 IFLENC$=1ANDINSTR(F$,C$)=0PRINTG$(RND(3)):ENDPROC  : REM Invalid direction
+ 2240 IFLENC$=1PROCP(MID$(F$,INSTR(F$,C$)+1,3)):ENDPROC  : REM Move command
+ 2250 IFC$="KILL"PRINT"Life is not that simple...try HIT":VDU7:ENDPROC
+ 2260 IFC$="GET"ORC$="TAKE"ORC$="LIFT"ORC$="PICKUP"PROC_:ENDPROC
+ 2270 IF(C$="ON"ORC$="OFF")ANDC$=D$C$="LIGHTS"
+ 2280 IF(C$="POWER"ORC$="SWITCH"ORLEFT$(C$,5)="LIGHT")ANDB=12PROC`:ENDPROC
+ 2290 IFC$="GO"ORC$="WALK"ORC$="RUN"PROCt:PROCK:ENDPROC
+ 2300 IFC$="DEBUG":PRINT"MODBITESSTEPDEERRORBOTTOM : MODOW!!":ENDPROC
+ 2310 IFC$="DROP"ORC$="THROW"PROCa:ENDPROC
+ 2320 IFC$="PULL"ANDD$="Rope"PROCu:ENDPROC
+ 2330 IFC$="SUMMON"PROCZ:ENDPROC
+ 2340 IFC$="EXAMINE"PRINT"You see nothing special":ENDPROC
+ 2350 IFC$="EXA"ORC$="LOO"PRINT"Idiot!":ENDPROC
+ 2355 IFC$="DEPOSIT"PROCW:ENDPROC
+ 2360 IFC$="HELLO"PRINT"HELLO!!":PROCD(1,B,E$+" says HELLO!"):ENDPROC
+ 2370 IFC$="FAST"ANDG j=TRUE:ENDPROC  : REM Wizard fast mode
+ 2380 IFC$="VIEW"PROCv:ENDPROC        : REM Crystal ball
+ 2390 IFC$="SLOW"j=FALSE:ENDPROC
+ 2400 IFC$="FORCE"PROCl:ENDPROC
+ 2410 IFC$="DEPLOY"ANDGPROCb:ENDPROC  : REM Wizard deploy creature
+ 2420 IFC$="TELEPORT"PROCw:ENDPROC
+ 2430 IFC$="PACIFY"ANDGPROCc:ENDPROC  : REM Wizard pacify creature
+ 2440 IFC$="ANNOY"PROCm:ENDPROC
+ 2450 IFC$="END"END
+ 2460 IFC$="DRINK"PROCn:ENDPROC
+ 2470 IFC$="ALIAS"ANDGPROCx:ENDPROC   : REM Wizard change name
+ 2480 IFC$="USERS"ORC$="CAVERS"PROCH:ENDPROC
+ 2490 IFC$="SHOOT"PROCo:ENDPROC
+ 2500 IFC$="BURN"PROCy:ENDPROC
+ 2510 IFC$="ZAP"ANDGPROCFA:ENDPROC    : REM Wizard zap
+ 2520 IFC$="STAB"PROCz:ENDPROC
+ 2530 IFC$="EXORCISE"PROCR:ENDPROC
+ 2540 IFC$="LOOK"PROCK:ENDPROC
+ 2550 IFC$="ACTIVITY"ANDGPROCGA:ENDPROC  : REM Wizard set activity
+ 2560 IFC$="SPEAK"ORC$="SAY"ORC$="ASK"PROCHA:ENDPROC
+ 2570 IFC$="HELP"?&7700=1:?&7701=?I:?&7702=E$+" is calling for help!":PROCA(&7700,&77FE):ENDPROC
+ 2580 IFC$="REGEN"AND G OSCLI"LO.OBJINIT":PROCU:ENDPROC  : REM Wizard regenerate
+ 2590 IFC$="SCORE"ORC$="STATUS"PRINT"Score is ";H'"Stamina is ";INTD'"Stamina limit is ";INTJ':ENDPROC
+ 2600 IFC$="INVENT"PROCd:ENDPROC
+ 2610 IFGANDC$="WIZ"PROCY(16):ENDPROC  : REM Wizard teleport to room 16
+ 2620 IFC$="COLLAPSE"ANDGFORX=1TO10:?&7700=3:PROCA(&7700,&7701):A$=INKEY$10:NEXT:PROCH:?&7700=0:ENDPROC
+ 2630 IFC$="BITE"PROCAA:ENDPROC
+ 2640 IFC$="HIT"ORC$="STRIKE"ORC$="THUMP"ORC$="PUNCH"ORC$="KICK"PROCIA:ENDPROC
+ 2650 IFC$="POISON"PROCe:ENDPROC
+ 2660 IFC$="TELL"PROCBA:ENDPROC
+ 2665 IFC$="CHARGE"PROCf:ENDPROC      : REM Charge Staff of Merlin
+ 2670 IFC$<>"QUIT"PRINTE$(RND(3)):ENDPROC  : REM Unknown command
+ 2680 IFV>1PRINT"Unable to QUIT while under the influence":VDU7:ENDPROC
+ 2690 IFMPRINT"I need some medical help for the POISON":VDU7:ENDPROC
+ 2700 IFD<6PROCF:!(q+12)=&A01:!(q+8)=a+1:PROCC(10+RND(H/20),g,"NOSENT")
+ 2710 VDU26,12
+ 2710 IFH>4000 H=4000:PRINT"Aren't you fed up with CAVE?"
+ 2720 PRINT"Hold on";:IFD>=6PROCF
+ 2740 PRINT"..";
+ 2740 Y=OPENUP("C."+L$):PRINT"."
+ 2740 PRINT#Y,E$,H,B,G,G$
+ 2740 PRINT#Y,FNF(E$+STR$(H)+STR$(B)+STR$(G)+G$)  : REM Save with checksum
+ 2740 CLOSE#Y:*FX 200
+ 2810 ?600=0:PRINT"Saved.":*GOING
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: WIZARD ACTIVITY (PROCGA)
+REM Sets CCM activity level (0-9)
+REM ----------------------------------------------------------------------------
+ 2820 DEFPROCGA
+ 2820 PRINT"Enter CCM activity (0-9) ";
+ 2820 A$=FNG:IFA$<"0"ORA$>"9"PRINT;?&A00:ENDPROC
+ 2850 PRINTA$:?&A00=VALA$:PROCA(&A00,&A01):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: CREATURE ACTIONS (PROCEA)
+REM Processes all creature behaviors
+REM ----------------------------------------------------------------------------
+ 2860 DEFPROCEA
+ 2860 FORT=&A04+4*ZTOcSTEP4
+ 2860 IF?T<>BNEXT:ENDPROC            : REM Skip if not in current room
+ 2880 IF!T<256 AND !T>=0 NEXT:ENDPROC  : REM Skip if carried
+ 2890 K$=B$((T-&A00)/4)              : REM Get creature properties
+ 2890 N$=A$((T-&A00)/4)              : REM Get creature name
+ 2890 Q=RND(VALMID$(K$,2,3))
+ 2890 IFQ<=?&A00ANDQ>=1PROCQ         : REM Attack chance
+ 2910 Q=RND(VALMID$(K$,5,3))
+ 2910 IFLEFT$(K$,1)="A"ANDQ<=?&A00ANDQ>=1PROCQ  : REM Aggressive attack
+ 2920 Q=RND(100*VALMID$(K$,8,3))
+ 2920 IFQ<=?&A00ANDQ>=1PROCO(T,B,RND(b))  : REM Teleport chance
+ 2930 Q=RND(10*VALMID$(K$,8,3))
+ 2930 IFQ<=?&A00ANDQ>=1PROCI(T,B,"")  : REM Move chance
+ 2940 NEXT:ENDPROC
+
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: LIGHT SWITCH (PROC`)
+REM Controls lights in room 12
+REM ----------------------------------------------------------------------------
+ 2950 DEFPROC`
+ 2950 IF(D$="On"AND?&A02=0)OR(D$="Off"AND?&A02=1)PRINT"The switch is already in that position":ENDPROC
+ 2970 IFD$="On"?&A02=?&A02-1:PROCA(&A02,&A03)
+ 2970 IFD$="On"?&7700=1:?&7701=I:?&7702="The Lights come ON":PROCA(&7700,&77FE):ENDPROC
+ 2980 IFD$="Off"?&A02=?&A02+1:PROCA(&A02,&A03)
+ 2980 IFD$="Off"?&7700=1:?&7701=I:?&7702="The Lights go OFF":PROCA(&7700,&77FE):ENDPROC
+ 2990 PRINT"I can only switch the lights On or Off":ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: CHECK MAGIC BLOCKED (FNI)
+REM Returns FALSE if magic is blocked by creature 14
+REM ----------------------------------------------------------------------------
+ 2991 DEFFNI
+ 2991 IF!(&A00+14*4)=T*&100:PRINT"Your magical powers are blocked !!!":=FALSE
+ 2994 =TRUE
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: EXORCISE (PROCR)
+REM Removes ghost players and moves their objects to armoury
+REM ----------------------------------------------------------------------------
+ 3000 DEFPROCR
+ 3000 IFGGOTO3040                    : REM Wizards always succeed
+ 3020 IFH<500PRINT"Insufficient Experience":ENDPROC
+ 3030 IFRND(5)<>1PRINT"Concentrate!!":VDU7:ENDPROC
+ 3040 PROCH:PRINT"Beware of the one called ECONET"
+ 3040 FORT=&910TO&9F0STEP16
+ 3040 IF?T=0OR?(T+8)=?ITHEN3070
+ 3060 ?e=?(T+8)-1:CALLr             : REM Check if player still connected
+ 3060 IF?e<>?(T+8)?T=0:PROCA(T,T+1) : REM Remove ghost
+ 3070 NEXT
+ 3070 PRINT"You incant the ritual words"
+ 3070 PROCA(PAGE,TOP):PROCA(&900,&9FF)
+ 3070 PRINT"The ghosts are EXORCISEd?"
+ 3070 ?&7700=1:?&7701=?I:?&7702="The ground trembles!!"
+ 3070 PROCA(&7700,&77FF)
+ 3070 FORT=&A00TO&AFCSTEP4
+ 3070 IF!T<>0AND?T=0AND?(!TDIV&100)=0 !T=20:PROCA(T,T+4)  : REM Move to armoury
+ 3100 NEXT
+ 3100 PRINT"And their objects moved to the Armoury"
+ 3100 PROCA(&A00,&AFF):PROCH:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: TELEPORT OBJECT (PROCw)
+REM Wizard command to teleport object to player
+REM ----------------------------------------------------------------------------
+ 3110 DEFPROCw
+ 3110 T=0:REPEATT=T+1:UNTILA$(T)=D$ORT=F+1
+ 3110 IFT=F+1PRINT"Known OBJECTS & CCMS only!":ENDPROC
+ 3135 IFINSTR(Hh$,D$)<>0PRINT"A magical force prevents this.":VDU7:ENDPROC
+ 3136 IFD$="Treasure"PRINT"Not allowed !!":VDU7:ENDPROC
+ 3140 T=&A00+T*4
+ 3140 IF?T=0PRINT"That object is being carried by a CAVER":ENDPROC
+ 3150 IFG=FALSEAND?T>15AND?T<21PRINT"That is in the WIZARD's domain":ENDPROC
+ 3160 IFG=FALSEANDRND(50/z)>1-4*((A*&100)=!&A28)PRINT"Nothing happens":ENDPROC
+ 3170 PROCY(?T):ENDPROC              : REM Teleport to object's location
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: DEPLOY CREATURE (PROCb)
+REM Wizard command to deploy creature from mortuary
+REM ----------------------------------------------------------------------------
+ 3190 DEFPROCb
+ 3190 IFC$=D$PRINT"DEPLOY What?":ENDPROC
+ 3200 GA=B:B=19:T=FND(D$):B=GA      : REM Temporarily set room to mortuary
+ 3200 IFT<=&A00ENDPROC
+ 3210 IF?T<>19PRINT"CCM must be in mortuary":ENDPROC
+ 3220 HI=VAL(MID$(B$((T-&A00)/4),20,3))  : REM Get creature health
+ 3220 !T=B+&100*(HI+RND(HI/2))       : REM Deploy with random health
+ 3220 PROCA(T,T+4):PRINT"Deployed.":ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: CREATURE ATTACK (PROCQ)
+REM Processes creature attack on player
+REM ----------------------------------------------------------------------------
+ 3250 DEFPROCQ
+ 3250 ?&7700=VALMID$(K$,14,2)        : REM Attack type
+ 3250 ?&7701=0
+ 3250 ?&7702=VALMID$(K$,16,3)+RND(VALMID$(K$,16,3))/2  : REM Damage
+ 3250 ?&7703="The "+A$((T-&A00)/4)  : REM Attacker name
+ 3250 ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: CREATURE DEATH (PROCE)
+REM Handles creature death and awards points
+REM ----------------------------------------------------------------------------
+ 3290 DEFPROCE
+ 3290 IFT=&A04+4*Z ?&7700=1:?&7701=?I:?&7702="The Dragon is Slain!!"
+ 3290 IFT=&A04+4*Z PROCA(&7700,&77FE):!T=19:PROCA(T,T+4):GOTO3320
+ 3310 PROCD(1,B,"The "+A$((T-&A00)/4)+" has passed away")
+ 3310 !T=19:PROCA(T,T+4)             : REM Move to mortuary
+ 3310 PROCB("The "+A$((T-&A00)/4)+" is dead.")
+ 3320 Q=VAL(MID$(B$((T-&A00)/4),20,3))/30  : REM Calculate points
+ 3320 ?&A01=1+RND(Q)+Q:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: DEPOSIT TREASURE (PROCW)
+REM Deposits treasure in bank (room 56)
+REM ----------------------------------------------------------------------------
+ 3341 DEFPROCW
+ 3341 IFD$<>"Treasure"PRINT"You can't.":ENDPROC
+ 3343 IF!(&A00+15*4)<>A*&100PRINT"But you have no treasure !":VDU7:ENDPROC
+ 3344 IFB<>56PRINT"Not here I'm afraid.":ENDPROC
+ 3345 N=20+RND(20)
+ 3345 PRINT"You deposit the treasure, which vanishesand you get credited with ";N;" points."
+ 3345 H=H+N
+ 3345 REPEATN=RND(b):UNTILN>20ORN<16  : REM Respawn treasure
+ 3345 !(&A00+15*4)=N:U=U-1:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: MOVE CREATURE (PROCO)
+REM Teleports creature from room u to room d
+REM ----------------------------------------------------------------------------
+ 3350 DEFPROCO(T,u,d)
+ 3350 PROCD(1,u,"The "+A$((T-&A00)/4)+" "+C$(RND(3))+"s "+LEFT$(O$,(LENO$*(RND(2)-1))))
+ 3350 PROCD(1,d,"The "+A$((T-&A00)/4)+" "+F$(RND(3))+"s!")
+ 3350 IFd=BPROCB("The "+A$((T-&A00)/4)+" is here.")
+ 3380 !T=(!TAND&FFFF00)+d:PROCA(T,T+4):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: CHECKSUM (FNF)
+REM Calculates checksum for player file verification
+REM ----------------------------------------------------------------------------
+ 3410 DEFFNF(A$)
+ 3410 LOCALC,L
+ 3410 FORL=1TOLENA$:C=C+ASCMID$(A$,L,1):NEXT
+ 3410 FORL=1TOLENA$:C=CEORASCMID$(A$,L,1)+1:NEXT
+ 3410 =C
+
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: CREATURE MOVEMENT (PROCI)
+REM Moves creature to adjacent room
+REM ----------------------------------------------------------------------------
+ 3460 DEFPROCI(T,u,Q$)
+ 3460 IFQ$=""Q$=LEFT$(D$(RND(6)),1)  : REM Random direction
+ 3480 IFINSTR(F$,C$)=0ENDPROC
+ 3490 X$=MID$(F$,INSTR(F$,LEFT$(Q$,1))+1,3)
+ 3490 d=VALLEFT$(X$,2):IFd>=10 d=VALX$
+ 3520 IFu=d OR d=0ENDPROC
+ 3530 PROCD(1,d,"The "+N$+" has just wandered in")
+ 3530 PROCD(1,u,"The "+N$+" has left")
+ 3530 IFu=BPROCB("The "+N$+" has left")
+ 3550 GOTO3380
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: SET CREATURE BEHAVIOR (PROCj)
+REM Changes creature behavior flag (A=Aggressive, B=Passive)
+REM ----------------------------------------------------------------------------
+ 3560 DEFPROCj(T,A$)
+ 3560 B$((T-&A00)/4)=A$+RIGHT$(B$((T-&A00)/4),LEN(B$((T-&A00)/4))-1)
+ 3560 ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: ANNOY (PROCm)
+REM Makes creature aggressive
+REM ----------------------------------------------------------------------------
+ 3590 DEFPROCm
+ 3590 PROCG("ANNOY"):IFT=&A00ENDPROC
+ 3620 IFT>&A00AND?T=BPROCJ(T,"A"):ENDPROC  : REM Set aggressive
+ 3630 IFT>&A00OR?(T+9)<>BPRINT"But ";D$;" isn't here!!":VDU7:ENDPROC
+ 3640 PROCC(1,?(T+8),E$+" is ANNOYing you!")  : REM Tell other player
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: PACIFY (PROCc)
+REM Makes creature passive
+REM ----------------------------------------------------------------------------
+ 3650 DEFPROCc
+ 3650 PROCG("PACIFY"):IFT=&A00ENDPROC
+ 3680 IFT<&A00PRINT"SORRY- You'll have to talk/TELL ";D$;" out of it":ENDPROC
+ 3690 PROCJ(T,"B"):ENDPROC            : REM Set passive
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: PULL ROPE (PROCu)
+REM Raises/lowers portcullis in rooms 29-30
+REM ----------------------------------------------------------------------------
+ 3700 DEFPROCu
+ 3700 IFB<>29 AND B<>30PRINT"What Rope?":ENDPROC
+ 3720 IF?&A03=1PRINT"But the Rope is already pulled":ENDPROC
+ 3730 ?&A03=1:PROCA(&A03,&A04)
+ 3730 PRINT"You pull the rope and the Portcullis    goes up!!"
+ 3730 PRINT'"Press <RETURN> to let go"
+ 3730 PROCD(1,29,"The portcullis goes UP")
+ 3730 PROCD(1,30,"The portcullis goes UP")
+ 3730 REPEATUNTILFNG=CHR$13
+ 3730 ?&A03=0:PROCA(&A03,&A04)
+ 3770 PRINT"The portcullis falls as you let go of   the rope"
+ 3770 PROCD(1,29,"The portcullis FALLS")
+ 3770 PROCD(1,30,"The portcullis FALLS"):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: PLAYER DEATH (PROCF)
+REM Handles player death and cleanup
+REM ----------------------------------------------------------------------------
+ 3790 DEFPROCF
+ 3790 ?A=0:?&900=0:PROCA(A,A+1)      : REM Clear player record
+ 3790 ?&7700=1:?&7701=?I:?&7702=E$+" has departed."
+ 3790 PROCA(&7700,&77FE)
+ 3790 ?&287=0:VDU21
+ 3790 D$="All":PROCa                 : REM Drop all items
+ 3790 VDU6:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: STATUS MESSAGE (PROCB)
+REM Displays message in status area
+REM ----------------------------------------------------------------------------
+ 3810 DEFPROCB(X$)
+ 3810 A%=&86:Q=USR&FFF4              : REM Get cursor position
+ 3810 X%=QAND&FF00:X%=X%DIV&100
+ 3810 Y%=QAND&FF0000:Y%=Y%DIV&10000
+ 3810 VDU26,28,0,5,39,0,31,0,5       : REM Set text window
+ 3810 PRINTX$
+ 3810 VDU26,28,0,23,39,7             : REM Restore window
+ 3810 PRINTTAB(X%,Y%);:ENDPROC       : REM Restore cursor
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: SPEAK (PROCHA)
+REM Sends message to all players in current room
+REM ----------------------------------------------------------------------------
+ 3830 DEFPROCHA
+ 3830 PRINT"Enter Message to everyone in this room"
+ 3830 T5=T:M$=FNK:T=T5
+ 3830 IFM$=""PRINT"Not Sent":ENDPROC
+ 3860 PROCD(1,B,E$+": "+M$):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: ALIAS (PROCx)
+REM Wizard command to change player name
+REM ----------------------------------------------------------------------------
+ 3880 DEFPROCx
+ 3880 IFC$=D$PRINT"What new name?":VDU7:ENDPROC
+ 3900 FORT=1TOF:IFA$(T)=D$:PRINT"Already known":VDU7:T=F:NEXT:ENDPROC
+ 3901 NEXT
+ 3902 D$=FNB(D$):VDU21
+ 3902 IFFND(D$)<>&A00 VDU6:PRINT"Already known":VDU7:ENDPROC
+ 3903 VDU6
+ 3920 IFLEND$=0ORLEND$>7PRINT"Incorrect length":VDU7:ENDPROC
+ 3940 $A=D$                          : REM Change name
+ 3940 !(A+8)=B*&100+?I:!(A+12)=D:PROCA(A,A+15)
+ 3940 PRINT"Hello ";D$:E$=D$:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: GENERIC COMMAND SETUP (PROCG)
+REM Sets up target for commands
+REM ----------------------------------------------------------------------------
+ 3960 DEFPROCG(X$)
+ 3960 IFD$=C$D$=R$:PRINTX$;" ";D$
+ 3980 R$=D$
+ 3980 IFFNB(D$)=E$PRINT"Myself???":VDU7
+ 4000 IFD$="All" VDU21
+ 4001 T=FND(D$)                      : REM Find target
+ 4002 VDU6:IFFNB(D$)=E$ T=&A00
+ 4020 ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: TELL (PROCBA)
+REM Sends message to specific player or all players
+REM ----------------------------------------------------------------------------
+ 4030 DEFPROCBA
+ 4030 PROCG("Sending message to")
+ 4030 IFD$="All"ANDNOTGPRINT"Only Wizards can do that!!":VDU7:ENDPROC
+ 4060 IFD$="All"T=&900:GOTO4080
+ 4070 IFT=&A00ENDPROC
+ 4080 PRINT"Enter Message"
+ 4080 T5=T:M$=FNK:T=T5
+ 4080 IFM$=""PRINT"Not Sent":ENDPROC
+ 4100 IFT>&A00PRINT"The ";D$;" takes no notice":ENDPROC
+ 4110 IFD$="All"?&7700=1:?&7701=?I:?&7702=M$
+ 4110 IFD$="All"PROCA(&7700,&77FE):PRINT"Done.":ENDPROC
+ 4120 PROCC(1,?(T+8),E$+":"+M$):ENDPROC
+
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: FORCE (PROCl)
+REM Forces another player or creature to execute a command
+REM ----------------------------------------------------------------------------
+ 4130 DEFPROCl
+ 4130 PROCG("FORCE"):IFT=&A00ENDPROC
+ 4160 IFT>&A00PROCg                  : REM Force creature (NYI)
+ 4170 PRINT"Enter command to FORCE"'"!!";
+ 4170 T9=T:PROCS:T=T9
+ 4170 IFG I$="Magic!":GOTO4250       : REM Wizards use magic
+ 4190 IFC$="QUIT"ORC$="FORCE"ORC$="TELL"ORC$="SAY"ORC$="ACTIVITY"ORC$="COLLAPSE"PRINT"NOT THAT ONE!":C$="":ENDPROC
+ 4200 T9=T
+ 4200 IFFNJ I$="Magic":T=T9:GOTO4240ELSET=T9:I$=E$  : REM Choose method
+ 4210 IFFNA(T)ENDPROC                : REM Check target present
+ 4220 IF(J-10)<!(T+12)ORRND(3)=1PROCC(7,?(T+8),E$):PRINT"Failure":C$="":ENDPROC
+ 4230 GOTO4250
+ 4240 IFRND(20/z)>1-3*(!&A28=A*&100)PRINT"Nothing Happens":ENDPROC
+ 4250 IFNOTFNIVDU7:ENDPROCELSE$(a+&40)=C$:$(a+&80)=D$:PROCC(9,?(T+8),I$):C$="":ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: NOT YET IMPLEMENTED (PROCg)
+REM ----------------------------------------------------------------------------
+ 4260 DEFPROCg:PRINT"NYI":ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: FORCE METHOD (FNJ)
+REM Asks player to choose magic or strength for FORCE
+REM ----------------------------------------------------------------------------
+ 4270 DEFFNJ
+ 4270 PRINT"Use Magic or Strength (M/S)?"
+ 4270 =((ASCFNGAND&DF)=77)           : REM Returns TRUE if Magic
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: GET MESSAGE (FNK)
+REM Gets multi-line message input from player
+REM ----------------------------------------------------------------------------
+ 4280 DEFFNK:LOCALT$
+ 4300 A$=FNG
+ 4300 IFA$=CHR$21PRINT"- FORGET THAT!":T$=""
+ 4320 IFA$=CHR$13PRINT:=T$
+ 4330 IFLENT$=0ANDA$=CHR$127VDU7:GOTO4300
+ 4340 IFA$=CHR$127 T$=LEFT$(T$,LENT$-1):VDU127:GOTO4300
+ 4350 IFLENT$>30-(D$="All")*9THEN4300  : REM Shorter for broadcast
+ 4360 IFASCA$<32VDU7:GOTO4300
+ 4370 T$=T$+A$:PRINTA$;:GOTO4300
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: FIND OBJECT/PLAYER (FND)
+REM Searches for object, creature, or player by name
+REM Returns: pointer to record or &A00 if not found
+REM ----------------------------------------------------------------------------
+ 4390 DEFFND(D$)
+ 4390 mo=0:T=&A00
+ 4390 REPEATT=T+4
+ 4390 UNTIL((A$((T-&A00)/4)=D$ANDB$((T-&A00)/4)<>"")AND?T=B)OR(T-&A00)/4>=F+1
+ 4390 IF(T-&A00)/4<=FTHEN=T          : REM Found in current room
+ 4430 T=&A00
+ 4430 REPEATT=T+4
+ 4430 UNTIL((A$((T-&A00)/4)=D$ AND B$((T-&A00)/4)<>"")) OR (T-&A00)/4>=F+1
+ 4430 IF(T-&A00)/4<=F THEN=T         : REM Found anywhere
+ 4450 D$=FNB(D$):T=&900              : REM Search for player
+ 4450 REPEATT=T+&10:UNTILT>=&A00OR$T=D$
+ 4450 IFT=&A00PRINT"I don't know who that is":VDU7
+ 4480 =T
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: HIT PLAYER (PROCIA)
+REM Player attacks another player
+REM ----------------------------------------------------------------------------
+ 4490 DEFPROCIA
+ 4490 PROCG("Hitting"):IFT>&A00PROCCA:ENDPROC  : REM Hit creature
+ 4520 IFFNA(T)ENDPROC                : REM Check target present
+ 4530 IF!&A08=A*&100 I$=E$+" using the Stick"ELSEI$=E$
+ 4540 PROCC(2,?(T+8),CHR$(RND(3)-(!&A08=A*&100)*3)+I$):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: HIT CREATURE (PROCCA)
+REM Player attacks a creature
+REM ----------------------------------------------------------------------------
+ 4560 DEFPROCCA
+ 4560 IFFNC(T)ENDPROC                : REM Check creature present
+ 4580 PROCJ(T,"A")                   : REM Make aggressive
+ 4580 S=!TAND&FFFF00                 : REM Get stamina
+ 4580 S=S-(RND(3)-(!&A08=A*&100)*3)*&100  : REM Calculate damage
+ 4580 !T=S+B                         : REM Update location and stamina
+ 4580 IFS<=0PROCE:ENDPROCELSEPROCA(T,T+4)
+ 4600 PROCB("The "+D$+" is HIT! stamina now "+STR$(SDIV&100)):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: SHOOT (PROCo)
+REM Shoots arrow at target
+REM ----------------------------------------------------------------------------
+ 4620 DEFPROCo
+ 4620 IF!&A14<>A*&100PRINT"You have nothing to SHOOT with.":VDU7:ENDPROC
+ 4640 IF!&A18<>A*&100PRINT"You have no Arrow":VDU7:ENDPROC
+ 4650 PROCG("SHOOTing"):IFT>&A00PROCh:ENDPROC  : REM Shoot creature
+ 4670 IFFNA(T)ENDPROC
+ 4680 !&A18=T*&100:PROCA(&A18,&A1C):U=U-1  : REM Arrow hits player
+ 4680 PROCC(13,?(T+8),CHR$(RND(10)+30)+E$):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: SHOOT CREATURE (PROCh)
+REM Shoots arrow at creature
+REM ----------------------------------------------------------------------------
+ 4710 DEFPROCh
+ 4710 IFFNC(T)ENDPROC
+ 4730 !&A18=B:PROCA(&A18,&A1C):U=U-1  : REM Drop arrow in room
+ 4730 PROCJ(T,"A")
+ 4730 S=!TAND&FFFF00
+ 4730 S=S-(RND(10)+30)*&100
+ 4730 !T=S+B
+ 4730 IFS<=0PROCE:ENDPROCELSEPROCA(T,T+4)
+ 4760 PROCB("The "+D$+" is SHOT stamina now "+STR$(SDIV&100)):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: BURN (PROCy)
+REM Burns target with torch
+REM ----------------------------------------------------------------------------
+ 4780 DEFPROCy
+ 4780 IF!&A24<>A*&100PRINT"With what?":VDU7:ENDPROC
+ 4800 PROCG("BURNing"):IFT>&A00PROCp:ENDPROC  : REM Burn creature
+ 4820 IFFNA(T)ENDPROC
+ 4830 PROCC(11,?(T+8),CHR$(RND(10)+50)+E$):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: BURN CREATURE (PROCp)
+REM Burns creature with torch
+REM ----------------------------------------------------------------------------
+ 4850 DEFPROCp
+ 4850 IFFNC(T)ENDPROC
+ 4870 PROCJ(T,"A")
+ 4870 S=!TAND&FFFF00
+ 4870 S=S-(RND(10)+50)*&100
+ 4870 !T=S+B
+ 4870 IFS<=0PROCE:ENDPROCELSEPROCA(T,T+4)
+ 4890 PROCM:ENDPROC                  : REM Show stamina
+
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: ZAP (PROCFA)
+REM Wizard zap attack using Staff of Merlin
+REM ----------------------------------------------------------------------------
+ 4910 DEFPROCFA
+ 4910 IFNOTFNHENDPROC                : REM Check staff and charges
+ 4920 PROCG("!ZAPPING!"):IFT>&A00PROCDA:ENDPROC  : REM Zap creature
+ 4940 IFFNA(T)ENDPROC
+ 4950 IF!(&A00+4*11)=T*&100 D=D-(RND(40)+100)  : REM Shield protects target
+ 4950 IF!(&A00+4*11)=T*&100 PROCC(1,?(T+8),"Your shield protects you from a ZAP from"+E$+". His stamina is "+STR$(INTD)):ENDPROC
+ 4960 PROCC(12,?(T+8),CHR$(RND(40)+100)+E$):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: CHECK STAFF (FNH)
+REM Checks if player has Staff of Merlin with charges
+REM ----------------------------------------------------------------------------
+ 4971 DEFFNH
+ 4971 IF!(&A00+13*4)<>A*&100PRINT"You do not have the Staff of Merlin.":=FALSE
+ 4973 T=(?&A02DIV2)AND7              : REM Get charge count
+ 4973 IFT=0PRINT"Nothing happens.":=FALSE
+ 4975 ?&A02=?&A02-2:PROCA(&A02,&A03)  : REM Use one charge
+ 4975 =TRUE
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: ZAP CREATURE (PROCDA)
+REM Zaps creature with Staff of Merlin
+REM ----------------------------------------------------------------------------
+ 4980 DEFPROCDA
+ 4980 IFFNC(T)ENDPROC
+ 5000 PROCJ(T,"A")
+ 5000 S=!TAND&FFFF00
+ 5000 S=S-(RND(40)+100)*&100
+ 5000 !T=S+B
+ 5000 IFS<=0PROCE:ENDPROCELSEPROCA(T,T+4)
+ 5020 PROCB("The "+D$+" is !ZAPPED! stamina now "+STR$(SDIV&100)):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: CHARGE STAFF (PROCf)
+REM Charges Staff of Merlin at altar (room 1)
+REM ----------------------------------------------------------------------------
+ 5031 DEFPROCf
+ 5031 IFD$<>"Staff"PRINTG$(RND(3)):ENDPROC
+ 5033 IFB<>1PRINT"With what ??":ENDPROC
+ 5034 IF(?&A02DIV2)AND7<>0PRINT"You are thrown against the wall."
+ 5034 IF(?&A02DIV2)AND7<>0D=D-RND((?&A02DIV2)AND7)*5:ENDPROC
+ 5035 PRINT"The Staff of Merlin glows in your hand."
+ 5035 ?&A02=(?&A02OR10):PROCA(&A02,&A03):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: CHECK TARGET PRESENT (FNA)
+REM Checks if target is in current room
+REM ----------------------------------------------------------------------------
+ 5040 DEFFNA(T)
+ 5040 IF(!(T+8)DIV&100)<>BPRINT"But "+D$+" isn't here":VDU7:=TRUE
+ 5060 =(T=&A00)
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: CHECK CREATURE PRESENT (FNC)
+REM Checks if creature is in current room
+REM ----------------------------------------------------------------------------
+ 5070 DEFFNC(T)
+ 5070 IF?T<>BPRINT"But the "+D$+" isn't here":VDU7
+ 5090 =(?T<>B)
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: BROADCAST TO ROOM (PROCD)
+REM Sends message to all players in specified room
+REM CO = Command code, RO = Room number, S$ = Message
+REM ----------------------------------------------------------------------------
+ 5100 DEFPROCD(CO,RO,S$)
+ 5100 FORN=&910TO&9F0STEP&10
+ 5100 IF?N<>0AND$N<>E$AND(!(N+8)DIV&100)=ROPROCC(CO,?(N+8),S$)
+ 5130 NEXT:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: STAB (PROCz)
+REM Stabs target with dagger
+REM ----------------------------------------------------------------------------
+ 5150 DEFPROCz
+ 5150 IF!&A10<>A*&100AND!&A20<>A*&100PRINT"But you do not have the dagger":VDU7:ENDPROC
+ 5170 PROCG("STABbing "):IFT>&A00PROCq:ENDPROC  : REM Stab creature
+ 5190 IFFNA(T)ENDPROC
+ 5200 PROCC(6,?(T+8),CHR$(6+RND(4))+E$):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: STAB CREATURE (PROCq)
+REM Stabs creature with dagger
+REM ----------------------------------------------------------------------------
+ 5220 DEFPROCq
+ 5220 IFFNC(T)ENDPROC
+ 5240 PROCJ(T,"A")
+ 5240 S=!TAND&FFFF00
+ 5240 S=S-(RND(4)+6)*&100
+ 5240 !T=S+B
+ 5240 IFS<=0PROCE:ENDPROCELSEPROCA(T,T+4)
+ 5260 PROCM:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: SHOW CREATURE STAMINA (PROCM)
+REM Displays creature's current stamina
+REM ----------------------------------------------------------------------------
+ 5280 DEFPROCM
+ 5280 PROCB("The "+D$+"'s Stamina="+STR$(SDIV&100)):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: DRINK (PROCn)
+REM Drinks vodka, poison, or medicine
+REM ----------------------------------------------------------------------------
+ 5300 DEFPROCn
+ 5300 IFD$="Vodka"AND!&A04=A*&100 V=V+1:?&A01=1:D=D+5+RND(2)
+ 5320 IFV>5 V=V-1:?&A01=0:D=D-7:PRINT"WWhat!! MORE Vodka?":VDU7:ENDPROC
+ 5330 IFD$="Vodka"AND!&A04=A*&100ENDPROC
+ 5340 IFD$="Poison"AND!&A0C=A*&100 M=TRUE:PRINT"It tastes terrible!":VDU7:ENDPROC
+ 5350 IFD$="Medicine"ANDMAND!&A1C=A*&100 M=FALSE:PRINT"You are cured":ENDPROC
+ 5360 IFD$="Medicine"AND!&A1C=A*&100PRINT"YUCK!":ENDPROC
+ 5370 PRINT"You do not have the ";D$:VDU7:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: POISON (PROCe)
+REM Poisons another player
+REM ----------------------------------------------------------------------------
+ 5380 DEFPROCe
+ 5380 IF!&A0C<>A*&100PRINT"You do not have the poison":VDU7:ENDPROC
+ 5400 IFD$=C$D$=R$:PRINT"POISONing ";D$
+ 5410 R$=D$:T=FND(D$)
+ 5410 IFT>&A00PRINT"The cave ";D$;" thrives on POISON!!":VDU7:ENDPROC
+ 5440 IFFNA(T)ENDPROC
+ 5450 PROCC(5,?(T+8),E$):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: BITE (PROCAA)
+REM Bites target (can poison if player is poisoned)
+REM ----------------------------------------------------------------------------
+ 5470 DEFPROCAA
+ 5470 PROCG("BITEing"):IFT>&A00PROCr:ENDPROC  : REM Bite creature
+ 5500 IFFNA(T)ENDPROC
+ 5510 IFRND(3)<>1PROCC(1,?(T+8),E$+" tries to BITE you!")
+ 5510 IFRND(3)<>1PRINTD$;" dodges away":ENDPROC
+ 5520 PROCB(E$+" is BITEn")
+ 5520 IFMPROCC(5,?(T+8),E$):ENDPROC  : REM Transfer poison
+ 5540 PROCC(10,?(T+8),CHR$3+RND(3))+E$):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: BITE CREATURE (PROCr)
+REM Bites creature
+REM ----------------------------------------------------------------------------
+ 5560 DEFPROCr
+ 5560 IFFNC(T)ENDPROC
+ 5580 PROCJ(T,"A")
+ 5580 IFRND(3)<>1PRINT"The ";D$;" dodges away":ENDPROC
+ 5600 S=!TAND&FFFF00
+ 5600 S=S-((3+RND(3))*&100)
+ 5600 !T=S+B
+ 5600 IFS<=0PROCEELSEPROCA(T,T+4)
+ 5610 PROCM:ENDPROC
+
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: LIST USERS (PROCH)
+REM Shows all players currently in CAVE
+REM ----------------------------------------------------------------------------
+ 5630 DEFPROCH
+ 5630 PRINT"These people are in CAVE"
+ 5630 FORT=&910TO&9F0STEP16
+ 5630 IF?T<>0PRINT$T;
+ 5650 IF?T<>0ANDGPRINTTAB(8);" stamina ";!(T+12);TAB(22);"stn ";?(T+8)
+ 5660 IF?T<>0ANDG=0PRINT
+ 5670 NEXT:PRINT:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: MOVE (PROCt)
+REM Processes movement command
+REM ----------------------------------------------------------------------------
+ 5700 DEFPROCt
+ 5700 LOCALd$
+ 5700 FORT=1TO6:IFLEFT$(D$(T),LEND$)=D$d$=LEFT$(D$,1)
+ 5730 NEXT
+ 5730 IFd$=""VDU7:PRINT"I understand only North,South,West,East Up & Down":ENDPROC
+ 5750 IFINSTR(F$,LEFT$(D$,1))=0PRINTG$(RND(3)):ENDPROC
+ 5760 PROCP(MID$(F$,INSTR(F$,LEFT$(D$,1))+1,3)):ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: TAKE/GET (PROC_)
+REM Picks up object from room
+REM ----------------------------------------------------------------------------
+ 5770 DEFPROC_
+ 5770 IFC$=D$PRINT"TAKE What?":ENDPROC
+ 5790 IFD$="All"GOTO5890              : REM Take all objects
+ 5800 T=0:REPEATT=T+1:UNTILD$=A$(T)ORT=F+1
+ 5800 `=T*4+&A00
+ 5800 IF(T=F+1ANDINSTR(FNB(?&7840),FNB(D$))=0)OR?`<>BPRINT"I don't see a ";D$;" here.":ENDPROC
+ 5830 IFT=F+1PRINT"Sorry - I can't":VDU7:ENDPROC
+ 5840 IF!`>&FFPRINT"The "+D$+" is getting annoyed":VDU7:ENDPROC
+ 5850 IFU>=_ PRINT"My hands are full-I can carry no more.":VDU7:ENDPROC
+ 5855 IFh AND(INSTR(Hh$,D$)<>0)PRINT"One magic item only !":VDU7:ENDPROC
+ 5856 IFINSTR(Hh$,D$)<>0 h=TRUE      : REM Mark magic item held
+ 5857 !`=&100*A:PRINT"Taken.":U=U+1:PROCA(`,`+4):ENDPROC
+ 5890 W=0                             : REM Take all
+ 5890 FORT=&A04TO(&A04+Z*4) STEP4
+ 5890 IF!T<>B OR U=_ GOTO5900
+ 5892 D$=FNE
+ 5892 IFh AND(INSTR(Hh$,D$)<>0) GOTO5900
+ 5894 IFINSTR(Hh$,D$)<>0 h=TRUE
+ 5895 !T=&100*A:PROCA(T,T+4):W=W+1:U=U+1
+ 5900 NEXT
+ 5900 PRINTW;" Object";:IFW<>1PRINT"s";
+ 5920 PRINT" picked up."':ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: GET OBJECT NAME (FNE)
+REM Returns name of object at address T
+REM ----------------------------------------------------------------------------
+ 5931 DEFFNE:=A$((T-&A00)/4)
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: DROP (PROCa)
+REM Drops object in current room
+REM ----------------------------------------------------------------------------
+ 5940 DEFPROCa
+ 5940 IFD$="All"THEN6060              : REM Drop all
+ 5960 T=0:REPEATT=T+1:UNTILA$(T)=D$ORT=F+1
+ 5960 IFT=F+1VDU7:PRINT"I am not carrying a ";D$:ENDPROC
+ 6010 `=T*4+&A00
+ 6010 IF!`<>&100*A:VDU7:PRINT"I am not carrying ";D$:ENDPROC
+ 6025 IFINSTR(Hh$,D$)<>0 h=FALSE     : REM Clear magic item flag
+ 6026 !`=B:PRINT"Dropped.":U=U-1:PROCA(`,`+3):ENDPROC
+ 6060 W=0                             : REM Drop all
+ 6060 FORT=&A04TO(&A04+Z*4)STEP4
+ 6060 IF!T<>A*&100GOTO6070
+ 6062 D$=FNE
+ 6062 IFINSTR(Hh$,D$)<>0 h=FALSE
+ 6063 !T=B:PROCA(T,T+4):W=W+1
+ 6070 NEXT:U=0
+ 6070 IFW=0VDU7:PRINT"I am not carrying anything":ENDPROC
+ 6100 PRINT"All dropped":ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM FUNCTION: UPPERCASE (FNB)
+REM Converts string to uppercase, removing non-letters
+REM ----------------------------------------------------------------------------
+ 6110 DEFFNB(X$)
+ 6110 LOCALT,A$
+ 6110 FORT=1TOLENX$
+ 6110 l=ASCMID$(X$,T,1)
+ 6110 IFl>96ANDl<123 l=l-32          : REM Convert lowercase to uppercase
+ 6140 IFl>64ANDl<91 A$=A$+CHR$l      : REM Keep only letters
+ 6150 NEXT:=A$
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: SEND MESSAGE (PROCC)
+REM Sends network message to another station
+REM CO = Command code, v = Station number, S$ = Message
+REM ----------------------------------------------------------------------------
+ 6170 DEFPROCC(CO,v,S$)
+ 6170 IFv<1ORv>253ENDPROC
+ 6190 ?a=CO:?(a+1)=?I:$(a+2)=S$      : REM Build message
+ 6190 ?(q+2)=v:CALLy                 : REM Send via ECONET
+ 6190 ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: WAIT FOR KEY (PROCi)
+REM Waits for spacebar press
+REM ----------------------------------------------------------------------------
+ 6230 DEFPROCi
+ 6230 PRINTTAB(0,23)"Press SPACE BAR to continue";
+ 6230 REPEATUNTILGET=32:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: BROADCAST DATA (PROCA)
+REM Broadcasts data block to all stations
+REM w = Start address, HA = End address
+REM ----------------------------------------------------------------------------
+ 6240 DEFPROCA(w,HA)
+ 6240 !(K+4)=w:!(K+8)=HA:!(K+12)=w
+ 6240 CALLp:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: INVENTORY (PROCd)
+REM Shows what player or target is carrying
+REM ----------------------------------------------------------------------------
+ 6280 DEFPROCd
+ 6280 IFC$=D$D$=E$                   : REM Default to self
+ 6300 T=FND(D$):IFT=&A00ENDPROC
+ 6310 IFT>&A00PRINT:ENDPROC          : REM Can't check creature inventory
+ 6320 IF(!(T+8)DIV&100)<>BAND(NOTGANDH<500)PRINT"But "+D$+" is not here.":VDU7:ENDPROC
+ 6330 TT=T
+ 6330 FORT=&A04TOcSTEP4
+ 6330 IF!T=TT*&100PRINTA$((T-&A00)/4)
+ 6350 NEXT:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: CALL NETWORK ROUTINE (PROCs)
+REM Calls machine code network routine
+REM ----------------------------------------------------------------------------
+ 6370 DEFPROCs:CALLCA:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: MOVE TO ROOM (PROCP)
+REM Moves player to new room
+REM X$ = Room number string from direction data
+REM ----------------------------------------------------------------------------
+ 6380 DEFPROCP(X$)
+ 6380 x=VALLEFT$(X$,2):IFx>=10 x=VALX$
+ 6410 FORT=&A04TOcSTEP4
+ 6410 IF?T=BAND!T<>BANDLEFT$(B$((T-&A00)/4),1)="A"ANDRND(1)<VAL(MID$(B$((T-&A00)/4),11,3))/1000PROCI(T,B,LEFT$(D$,1))
+ 6410 IF?T=BAND!T<>BANDLEFT$(B$((T-&A00)/4),1)="A"ANDRND(1)<VAL(MID$(B$((T-&A00)/4),11,3))/1000PRINT"The ";A$((T-&A00)/4);" follows you!"
+ 6420 NEXT:B=x:ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: VIEW (PROCv)
+REM Uses crystal ball to view remote location
+REM ----------------------------------------------------------------------------
+ 6450 DEFPROCv
+ 6450 IF!(&A00+4*12)<>A*&100PRINT"You stare into your hands.":ENDPROC
+ 6470 PRINT"You concentrate, and the crystal ball   glows, ";
+ 6470 VDU21:N=FND(D$):VDU6
+ 6470 IFN>=&A00ANDN<(&A04+Z*4)PRINT"then fades.":ENDPROC
+ 6500 IFN<&A00 N=?(N+9)ELSEIFN>=Z*4+&A00 N=?NELSEPRINT"then fades.":ENDPROC
+ 6501 PRINT"and you see the following :-":PRINT:PRINT
+ 6501 OSCLI"LO.R."+STR$(N)
+ 6501 PRINT?&7840
+ 6501 PROCX(N):PROCL(N,0):PROCN(N)
+ 6501 OSCLI"LO.R."+STR$(B)
+ 6501 IFB<>29ANDB<>30 F$=?&7800ELSEF$=$(&7803-3*?&A03)
+ 6570 ENDPROC
+
+REM ----------------------------------------------------------------------------
+REM PROCEDURE: INITIALIZE MACHINE CODE (PROCj)
+REM Sets up machine code routines for network operations
+REM ----------------------------------------------------------------------------
+ 6580 DEFPROCj
+ 6580 FORP=0TO3STEP3:P%=&7B80
+ 6580 [
+ 6580 OPTP
+ 6580 .m:RTS
+ 6580 .o:BCCm
+ 6580 LDA#12:STA&1203:LDA#0:STA&287:LDA#0:STAA
+ 6580 LDA#A MOD256:STAK+4:STAK+12:CLC:ADC#1:STAK+8
+ 6580 LDA#A DIV256:STAK+5:STAK+13:ADC#0:STAK+9:JMPp
+ 6580 ]
+ 6580 NEXT
+ 6582 ?&287=&4C:?&288=o MOD256:?&289=o DIV256
+ 6582 ENDPROC
+
+REM ============================================================================
+REM END OF CAVE-PLUS ANNOTATED SOURCE
+REM ============================================================================

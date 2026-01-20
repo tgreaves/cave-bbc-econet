@@ -1,0 +1,319 @@
+/* BBC Micro MODE 7 Authentic Interface */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Import authentic MODE 7 font */
+@import url(https://db.onlinewebfonts.com/c/a0cb693c715aaf804e67963c4d0d4d90?family=ModeSeven);
+
+:root {
+    --char-width: 16px;
+    --char-height: 20px;
+    --cols: 40;
+    --rows: 25;
+}
+
+body {
+    font-family: 'ModeSeven', 'Courier New', monospace;
+    background: #000;
+    color: #fff;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+/* MODE 7 screen - exactly 40x25 characters */
+.container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+.screen {
+    display: none;
+    width: calc(var(--char-width) * var(--cols));
+    max-width: 90vw;
+    background: #000;
+    color: #fff;
+}
+
+.screen.active {
+    display: block;
+}
+
+/* Login screen */
+.login-box {
+    padding: 40px 20px;
+    max-width: calc(var(--char-width) * var(--cols));
+    margin: 0 auto;
+}
+
+.title-art {
+    color: #ffff00;
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 16px;
+    line-height: var(--char-height);
+    white-space: pre;
+}
+
+#login-form {
+    margin: 20px 0;
+}
+
+.login-prompt {
+    margin-bottom: 20px;
+}
+
+.login-prompt label {
+    display: block;
+    color: #ffff00;
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+#player-name, #player-password {
+    width: 100%;
+    max-width: 300px;
+    padding: 4px 8px;
+    font-family: 'ModeSeven', 'Courier New', monospace;
+    font-size: 16px;
+    background: #000;
+    border: 1px solid #ffff00;
+    color: #ffff00;
+    outline: none;
+}
+
+#player-name:focus, #player-password:focus {
+    border-color: #00ffff;
+    color: #00ffff;
+}
+
+button {
+    width: auto;
+    padding: 8px 20px;
+    margin-top: 10px;
+    font-family: 'ModeSeven', 'Courier New', monospace;
+    font-size: 16px;
+    background: #000;
+    border: 1px solid #00ff00;
+    color: #00ff00;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #00ff00;
+    color: #000;
+}
+
+/* Game screen - MODE 7 layout */
+.game-container {
+    width: calc(var(--char-width) * var(--cols));
+    height: calc(var(--char-height) * var(--rows));
+    background: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    line-height: var(--char-height);
+}
+
+/* Status area - rows 0-5 (6 rows) */
+.status-area {
+    height: calc(var(--char-height) * 6);
+    border-bottom: 1px solid #444;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+}
+
+#status-messages {
+    height: 100%;
+    padding: 2px 4px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    color: #ffff00;
+    font-size: 16px;
+    line-height: var(--char-height);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Hide scrollbar in status area */
+#status-messages::-webkit-scrollbar {
+    width: 0;
+    display: none;
+}
+
+#status-messages {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+/* Main game area - rows 7-23 (17 rows) */
+.main-game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Message log */
+#message-log {
+    flex: 1;
+    padding: 4px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #000;
+    color: #fff;
+    font-size: 16px;
+    line-height: var(--char-height);
+}
+
+/* Hide scrollbar but keep functionality */
+#message-log::-webkit-scrollbar {
+    width: 0;
+    display: none;
+}
+
+#message-log {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.message {
+    margin: 0;
+    padding: 0;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.message.system {
+    color: #00ffff;
+}
+
+.message.error {
+    color: #ff0000;
+}
+
+.message.action {
+    color: #ffff00;
+}
+
+.message.combat {
+    color: #ff00ff;
+}
+
+.message.death {
+    color: #ff0000;
+    animation: blink 0.5s infinite;
+}
+
+@keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+/* Command input - bottom row */
+.command-area {
+    height: calc(var(--char-height) * 1);
+    border-top: 1px solid #444;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    background: #000;
+}
+
+.prompt {
+    color: #ffff00;
+    margin-right: 4px;
+}
+
+#command-input {
+    flex: 1;
+    background: #000;
+    border: none;
+    color: #ffff00;
+    font-family: 'ModeSeven', 'Courier New', monospace;
+    font-size: 16px;
+    outline: none;
+    padding: 0;
+    line-height: var(--char-height);
+}
+
+#command-input::placeholder {
+    color: #666;
+}
+
+/* Bottom status bar - single row */
+.bottom-status {
+    height: calc(var(--char-height) * 1);
+    background: #000;
+    border-top: 1px solid #444;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 4px;
+    align-items: center;
+    font-size: 14px;
+}
+
+.stat-item {
+    color: #00ff00;
+}
+
+.stat-label {
+    color: #ffff00;
+}
+
+/* Room info in status area */
+#room-name {
+    color: #ffff00;
+    font-weight: bold;
+}
+
+#room-exits {
+    color: #00ffff;
+}
+
+/* Player info */
+#player-name-display {
+    color: #00ffff;
+}
+
+#player-rank {
+    color: #ffff00;
+}
+
+/* Responsive - scale down on smaller screens */
+@media (max-width: 800px) {
+    :root {
+        --char-width: 12px;
+        --char-height: 16px;
+    }
+    
+    .game-container, #message-log, #command-input, #status-messages {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --char-width: 10px;
+        --char-height: 14px;
+    }
+    
+    .game-container, #message-log, #command-input, #status-messages {
+        font-size: 12px;
+    }
+}
+
+/* Hide elements not needed in MODE 7 */
+.room-graphic, .header, .room-info, .status-bar, .inventory-area, .power-led {
+    display: none !important;
+}

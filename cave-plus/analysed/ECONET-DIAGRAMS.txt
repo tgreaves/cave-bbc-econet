@@ -1,0 +1,402 @@
+================================================================================
+CAVE-PLUS ECONET NETWORK ARCHITECTURE - VISUAL DIAGRAMS
+================================================================================
+
+DIAGRAM 1: NETWORK TOPOLOGY
+================================================================================
+
+    File Server
+        |
+    [ECONET Network - 250 Kbps]
+        |
+    +---+---+---+---+---+---+
+    |   |   |   |   |   |   |
+   Stn Stn Stn Stn Stn Stn Stn
+   23  35  42  51  67  89  102
+    |   |   |   |   |   |   |
+  [BBC][BBC][BBC][BBC][BBC][BBC][BBC]
+   Micro Micro Micro Micro Micro Micro Micro
+    |   |   |   |   |   |   |
+  Player Player Player Player Player Player Player
+  GOBLIN TROLL WIZARD DWARF KNIGHT MAGE ROGUE
+
+Each BBC Micro:
+- Has unique station number (1-254)
+- Runs Cave-Plus game
+- Shares player table via ECONET
+- Can send/receive messages
+
+
+DIAGRAM 2: MEMORY LAYOUT (Each BBC Micro)
+================================================================================
+
+Memory Address    Content                     Size    Purpose
+--------------    -------                     ----    -------
+&0070-&0071      Temp pointer                2       Network ops
+&0287-&0289      Jump vector                 3       Network entry
+&0900-&090F      Player 1 slot              16       Name+Stn+Room+HP
+&0910-&091F      Player 2 slot              16       Name+Stn+Room+HP
+&0920-&092F      Player 3 slot              16       Name+Stn+Room+HP
+...              ...                        ...      ...
+&09F0-&09FF      Player 16 slot             16       Name+Stn+Room+HP
+&0A00-&0A03      Object 1 (Vodka)            4       Room+Stamina
+&0A04-&0A07      Object 2 (Stick)            4       Room+Stamina
+...              ...                        ...      ...
+&0AFC-&0AFF      Object 42 (Caveman)         4       Room+Stamina
+&7700-&77FF      Message buffer            256       Incoming messages
+&7800-&7BFF      Machine code             1024       Network routines
+&7900            Poke routine entry          -       Write remote memory
+&7991            Find routine entry          -       Scan for players
+&795B            Send routine entry          -       Send message
+
+
+DIAGRAM 3: PLAYER TABLE STRUCTURE
+================================================================================
+
+Each player occupies 16 bytes:
+
+Offset:  +0  +1  +2  +3  +4  +5  +6  +7  +8  +9  +10 +11 +12 +13 +14 +15
+         [  Player Name (8 bytes)    ][Stn][Rm][--][--][Stamina (4 bytes)]
+         
+Example at &910:
+         W   I   Z   A   R   D       42  15  00  00  96  00  00  00
+         |_____Name: "WIZARD"______|  |   |   |_____|  |_____HP: 150__|
+                                      |   |    Reserved
+                                      |   Room 15
+                                      Station 42
+
+
+DIAGRAM 4: NETWORK MESSAGE FLOW
+================================================================================
+
+SCENARIO: Player moves from Room 10 to Room 15
+
+Station 42 (WIZARD):
+  +------------------+
+  | 1. Move to Rm 15 |
+  +------------------+
+           |
+           v
+  +------------------+
+  | 2. Update local  |
+  |    player table  |
+  +------------------+
+           |
+           v
+  +------------------+
+  | 3. PROCA(A,A+15) |
+  |    Broadcast     |
+  +------------------+
+           |
+           v
+    [ECONET Network]
+           |
+    +------+------+------+
+    |      |      |      |
+    v      v      v      v
+  Stn23  Stn35  Stn51  Stn67
+    |      |      |      |
+    v      v      v      v
+  +------------------+
+  | Receive Poke     |
+  | Update &910-&91F |
+  +------------------+
+           |
+           v
+  +------------------+
+  | If in Room 10:   |
+  | "WIZARD left"    |
+  +------------------+
+           |
+           v
+  +------------------+
+  | If in Room 15:   |
+  | "WIZARD arrived" |
+  +------------------+
+
+
+DIAGRAM 5: COMBAT MESSAGE SEQUENCE
+================================================================================
+
+WIZARD (Stn 42) attacks GOBLIN (Stn 23) in Room 15:
+
+Time  Station 42 (WIZARD)              Station 23 (GOBLIN)
+----  ------------------------          ------------------------
+T+0   Calculate damage: 10 HP           [Waiting for input]
+      
+T+1   PROCC(2,23,CHR$(10)+"WIZARD")    
+      Send hit message --------->       
+      
+T+2                                     Receive hit message
+                                        Reduce HP: 150 -> 140
+                                        Display: "You are HIT by WIZARD"
+                                        
+T+3                                     PROCA(&910,&91F)
+                                        Broadcast new HP <-------+
+                                                                 |
+T+4   Receive HP update                                         |
+      Update GOBLIN's HP in table                               |
+                                                                 |
+T+5   All players in Room 15 see:                               |
+      "GOBLIN IS HIT! stamina down to 140"                      |
+                                                                 |
+      Station 35 (TROLL) also in Room 15 <---------------------+
+      Receives update, displays message
+
+
+DIAGRAM 6: OBJECT SYNCHRONIZATION
+================================================================================
+
+Object 12 (Staff) location tracking across network:
+
+Station 23 (GOBLIN has Staff):
+  &A30: 17 00 00 00    (Room 17, no stamina - it's an item)
+        ^^
+        Room number
+
+Station 42 (WIZARD):
+  &A30: 17 00 00 00    (Synchronized - Staff in Room 17)
+
+GOBLIN picks up Staff:
+  &A30: 00 17 00 00    (Carried by station 23)
+        ^^ ^^
+        |  Station 23
+        Room 0 = carried
+
+Broadcast update (PROCA(&A30,&A33)):
+  Station 42 receives update
+  &A30: 00 17 00 00    (Now knows GOBLIN has Staff)
+
+WIZARD summons Staff:
+  PROCC(8,23,CHR$42)   (Tell station 23 to drop in room 42)
+  
+Station 23 processes summon:
+  &A30: 2A 00 00 00    (Room 42)
+        ^^
+        Room 42
+  
+Broadcast update:
+  All stations now show Staff in Room 42
+
+
+DIAGRAM 7: LOCK FILE SYNCHRONIZATION
+================================================================================
+
+Timeline of player joining with lock file:
+
+Time  Station 42        File Server       Station 23
+----  ----------        -----------       ----------
+T+0   Try open LOCK     LOCK exists       [Playing]
+      Wait...           (Stn 23 owns)
+      
+T+1   Try open LOCK     LOCK exists       [Playing]
+      Wait...           (Stn 23 owns)
+      
+T+2   Try open LOCK     LOCK deleted      Deletes LOCK
+      Success!          by Stn 23         (Done joining)
+      
+T+3   Create LOCK       LOCK created      [Playing]
+      (Stn 42 owns)     by Stn 42
+      
+T+4   Scan network      [Locked]          [Playing]
+      Find players
+      
+T+5   Allocate slot     [Locked]          [Playing]
+      at &920
+      
+T+6   Broadcast data    [Locked]          Receives update
+      PROCA(&920,&92F)                    Sees new player
+      
+T+7   Delete LOCK       LOCK deleted      [Playing]
+      Enter game        by Stn 42
+
+
+DIAGRAM 8: ECONET PACKET STRUCTURE
+================================================================================
+
+OSWORD &82 (Poke) Control Block:
+
+Byte Offset:  0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15
+             +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+             | 82 | 00 | Station # | Local Start Addr  | Local End Address | Remote Dest Addr  |
+             +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+              Op   Port  (2 bytes)    (4 bytes)          (4 bytes)          (4 bytes)
+
+Example: Broadcast player data from &910-&91F to remote &910:
+             +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+             | 82 | 00 | 23 | 00 | 10 | 09 | 00 | 00 | 1F | 09 | 00 | 00 | 10 | 09 | 00 | 00 |
+             +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+              Poke Port  Stn 23     &0910              &091F              &0910
+
+
+OSWORD &81 (Peek) Control Block:
+
+Byte Offset:  0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15
+             +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+             | 81 | 00 | Station # | Remote Start Addr | Remote End Addr   | Local Dest Addr   |
+             +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+              Op   Port  (2 bytes)    (4 bytes)          (4 bytes)          (4 bytes)
+
+Example: Read player data from remote &910-&91F to local &910:
+             +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+             | 81 | 00 | 23 | 00 | 10 | 09 | 00 | 00 | 1F | 09 | 00 | 00 | 10 | 09 | 00 | 00 |
+             +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+              Peek Port  Stn 23     &0910              &091F              &0910
+
+
+DIAGRAM 9: NETWORK TRAFFIC ANALYSIS
+================================================================================
+
+Typical network traffic for 4 players in Cave-Plus:
+
+Event Type              Frequency       Bytes/Event    Bytes/Second
+----------              ---------       -----------    ------------
+Player movement         ~1/5 sec        16             3.2
+Player HP update        ~1/10 sec       16             1.6
+Combat message          ~1/30 sec       20             0.7
+Room message            ~1/20 sec       30             1.5
+Object update           ~1/60 sec       4              0.07
+                                                       ----
+Total per player:                                      ~7 bytes/sec
+
+For 4 players:                                         ~28 bytes/sec
+For 8 players:                                         ~56 bytes/sec
+For 16 players (max):                                  ~112 bytes/sec
+
+ECONET bandwidth: 250,000 bits/sec = 31,250 bytes/sec
+Network utilization: 112/31,250 = 0.36% (very light!)
+
+
+DIAGRAM 10: STATE MACHINE - PLAYER LIFECYCLE
+================================================================================
+
+    +-------------+
+    |   START     |
+    +-------------+
+           |
+           v
+    +-------------+
+    | *NET        |  Initialize ECONET
+    +-------------+
+           |
+           v
+    +-------------+
+    | Read Stn ID |  Get station number from &D22
+    +-------------+
+           |
+           v
+    +-------------+
+    | Wait LOCK   |  Loop until LOCK file available
+    +-------------+
+           |
+           v
+    +-------------+
+    | Create LOCK |  Claim exclusive access
+    +-------------+
+           |
+           v
+    +-------------+
+    | Find Players|  CALLr - scan network
+    +-------------+
+           |
+           v
+    +-------------+
+    | Alloc Slot  |  Find empty slot in &900-&9F0
+    +-------------+
+           |
+           v
+    +-------------+
+    | Broadcast   |  PROCA - send player data
+    +-------------+
+           |
+           v
+    +-------------+
+    | Delete LOCK |  Release exclusive access
+    +-------------+
+           |
+           v
+    +-------------+
+    |  GAME LOOP  |<-----------------------+
+    +-------------+                        |
+           |                               |
+           +---> Move/Attack/Interact -----+
+           |                               |
+           +---> Receive Updates ----------+
+           |                               |
+           +---> Send Updates -------------+
+           |
+           v
+    +-------------+
+    |    QUIT     |  Save and broadcast departure
+    +-------------+
+           |
+           v
+    +-------------+
+    | Clear Slot  |  Set ?A=0, broadcast
+    +-------------+
+           |
+           v
+    +-------------+
+    |     END     |
+    +-------------+
+
+
+DIAGRAM 11: GHOST PLAYER DETECTION
+================================================================================
+
+EXORCISE command flow:
+
+For each player slot (&910-&9F0):
+
+    +------------------+
+    | Check slot       |
+    | ?T <> 0?         |
+    +------------------+
+           |
+           v
+    +------------------+
+    | Get station #    |
+    | ?e = ?(T+8) - 1  |
+    +------------------+
+           |
+           v
+    +------------------+
+    | CALLr            |  Try to contact station
+    | (Find routine)   |
+    +------------------+
+           |
+           v
+    +------------------+
+    | Response?        |
+    | ?e = ?(T+8)?     |
+    +------------------+
+         /   \
+        /     \
+       v       v
+    YES       NO
+     |         |
+     |         v
+     |    +------------------+
+     |    | Clear slot       |
+     |    | ?T = 0           |
+     |    +------------------+
+     |         |
+     |         v
+     |    +------------------+
+     |    | Broadcast clear  |
+     |    | PROCA(T,T+1)     |
+     |    +------------------+
+     |         |
+     |         v
+     |    +------------------+
+     |    | Move objects     |
+     |    | to Armoury (20)  |
+     |    +------------------+
+     |
+     v
+    Continue to next slot
+
+
+================================================================================
+END OF DIAGRAMS
+================================================================================

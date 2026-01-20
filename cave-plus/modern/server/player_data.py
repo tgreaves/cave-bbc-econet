@@ -1,0 +1,119 @@
+"""
+Player Data Persistence System
+Handles saving/loading player data like the original BBC Micro game
+"""
+
+import json
+import hashlib
+import os
+from typing import Optional, Dict
+
+# Use absolute path relative to this file
+PLAYER_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "player_data")
+
+def ensure_data_dir():
+    """Create player data directory if it doesn't exist"""
+    os.makedirs(PLAYER_DATA_DIR, exist_ok=True)
+    print(f"Player data directory: {os.path.abspath(PLAYER_DATA_DIR)}")
+
+def hash_password(password: str) -> str:
+    """Hash password for storage"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def calculate_checksum(data: Dict) -> str:
+    """Calculate checksum for data validation (like original game)"""
+    # Concatenate key fields like original: name+score+room+wizard+password
+    check_string = f"{data['name']}{data['score']}{data['room_id']}{data['rank']}{data['password_hash']}"
+    return hashlib.md5(check_string.encode()).hexdigest()
+
+def save_player(player_data: Dict) -> bool:
+    """
+    Save player data to file
+    Format similar to original: name, score, room, wizard_flag, password, checksum
+    """
+    ensure_data_dir()
+    
+    try:
+        # Make a copy to avoid modifying original
+        data_to_save = player_data.copy()
+        
+        # Add checksum
+        data_to_save['checksum'] = calculate_checksum(player_data)
+        
+        filename = os.path.join(PLAYER_DATA_DIR, f"{player_data['name']}.json")
+        with open(filename, 'w') as f:
+            json.dump(data_to_save, f, indent=2)
+        
+        print(f"✅ Saved player data for {player_data['name']} to {filename}")
+        return True
+    except Exception as e:
+        print(f"❌ Error saving player data: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def load_player(name: str, password: str) -> Optional[Dict]:
+    """
+    Load player data from file and verify password
+    Returns None if player doesn't exist or password is wrong
+    """
+    ensure_data_dir()
+    
+    filename = os.path.join(PLAYER_DATA_DIR, f"{name}.json")
+    
+    if not os.path.exists(filename):
+        return None
+    
+    try:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+        
+        # Verify checksum
+        stored_checksum = data.get('checksum', '')
+        data_copy = data.copy()
+        data_copy.pop('checksum', None)
+        calculated_checksum = calculate_checksum(data_copy)
+        
+        if stored_checksum != calculated_checksum:
+            print(f"Checksum mismatch for player {name}")
+            return None
+        
+        # Verify password
+        password_hash = hash_password(password)
+        if data.get('password_hash') != password_hash:
+            return None
+        
+        return data
+    except Exception as e:
+        print(f"Error loading player data: {e}")
+        return None
+
+def player_exists(name: str) -> bool:
+    """Check if a player file exists"""
+    ensure_data_dir()
+    filename = os.path.join(PLAYER_DATA_DIR, f"{name}.json")
+    exists = os.path.exists(filename)
+    print(f"Checking if player {name} exists: {exists} ({filename})")
+    return exists
+
+def create_player(name: str, password: str) -> Dict:
+    """
+    Create new player data
+    Returns initial player data dict
+    """
+    import random
+    
+    player_data = {
+        'name': name,
+        'password_hash': hash_password(password),
+        'score': 0,
+        'room_id': 1,  # Start at entrance
+        'rank': 'Novice',
+        'kills': 0,
+        'deaths': 0,
+        'inventory': [],
+        'max_stamina': 50,  # Base stamina for new player
+        'stamina': 25 + random.randint(0, 25)  # 50-100% of max
+    }
+    
+    return player_data

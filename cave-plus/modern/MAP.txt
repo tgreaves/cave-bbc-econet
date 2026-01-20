@@ -1,0 +1,102 @@
+====================================================================================================
+CAVE-PLUS ASCII MAP - 157 Interconnected Rooms
+====================================================================================================
+
+LEGEND:
+  Numbers = Room IDs
+  |  = North/South connections (or Up/Down)
+  -- = East/West connections
+
+ --155153
+   |  |
+   154156123128129139
+      |  |     |  |
+152118122157121130138
+|  |  |  |  |  |  |
+151149148119120131137
+   |  |        |  |
+ --147116134133132135
+      |           |
+146108109110115114136
+|  |     |     |
+107106   111112113141
+   |              |
+104105145144143142140
+|  |  |           |
+10310099-96-95-94-93
+|  |     |        |
+10210198-97       92    73
+                  |     |
+                  5  1--72-11-12                         79-80-81-82-91
+                  |  |  |  |  |                          |     |  |
+               49-4--2--3--75-9--13          25          78-89-90 83
+               |  |           |              |           |        |
+               50-51     --6--7--8--21-22-23-24-27-29-30-77    85-84
+               |              |     |        |  |        |     |
+               52             10-15-53       26 28       88-87-86
+                              |  |              |
+                              14 56             31-32 39
+                        |     |  |              |  |  |
+                        71    55-57 43-42-41    33 37
+                        |     |  |  |     |     |  |
+                        70    58-48-44    40-35-34-36
+                        |     |     |     |        |
+                        69 62-60    45-46-47       38
+                        |     |
+                        68    61-64
+                        |     |  |
+                        67-66-63-65
+
+
+
+
+====================================================================================================
+SPECIAL LOCATIONS
+====================================================================================================
+    1: Main Entrance / Altar - Staff of Merlin can be charged here. Dragon boss starts here.
+   12: Green Room - Light switch location
+   16: Wizard's Room - Central hub of wizard domain
+   17: Limbo - No natural way out - teleport trap
+   18: Wizard's Dungeon - No exits - prison
+   19: Mortuary - Where dead creatures go
+   20: Armoury - Where exorcised objects are moved. Contains defensive items.
+   26: Snake Pit - Multiple snakes spawn here
+   29: Portcullis West - Portcullis entrance
+   30: Demon's Room / Portcullis East - Portcullis exit, leads to torture caves
+   56: Bank / Crystal Tower Top - Deposit treasure here for points
+   72: Hall of Knowledge - Tutorial area with instruction rooms
+
+====================================================================================================
+BOSS CREATURES
+====================================================================================================
+    1: Dragon
+    1: Guardian (item)
+    1: Guardian (creature)
+   20: Guardian
+   38: Troll
+
+====================================================================================================
+MAGICAL ITEMS
+====================================================================================================
+    1: Staff of Merlin
+    1: Amulet
+   20: Ruby
+   20: Shield
+   37: Crystal Ball
+
+====================================================================================================
+GAME AREAS
+====================================================================================================
+  Main Cave System: Rooms 1-71 (entrance, tunnels, chambers)
+  Hall of Knowledge: Room 72+ (tutorial area)
+  Wizard's Domain: Rooms 16-20 (restricted area)
+  Torture Caves: Rooms 30+ (beyond portcullis)
+  Upper Levels: Rooms 100+ (complex maze)
+
+KEY ROOMS:
+  Room 1:  Main Entrance / Altar (charge Staff of Merlin here)
+  Room 12: Green Room (light switch)
+  Room 19: Mortuary (dead creatures respawn here)
+  Room 20: Armoury (defensive items)
+  Room 26: Snake Pit (multiple snakes)
+  Room 56: Bank (deposit treasure for points)

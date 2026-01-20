@@ -1,0 +1,591 @@
+================================================================================
+CAVE-PLUS DATA FILE - ANNOTATED VERSION
+================================================================================
+This file contains all the game data loaded at startup.
+Data is read sequentially using FNget function.
+
+================================================================================
+SECTION 1: MESSAGE STRINGS (G$, H$, C$, F$, E$ arrays - 3 entries each)
+================================================================================
+
+--- G$(1-3): Generic "can't go that way" messages ---
+I am sorry, but I cannot go in that     direction.
+NO WAY.
+I cannot see how I can go that way.
+
+--- H$(1-3): "Hit" messages ---
+I am hit
+I am struck
+I am thumped
+
+--- C$(1-3): Disappear/vanish messages ---
+vanishe
+dematerialise
+disappear
+
+--- F$(1-3): Appear/materialize messages ---
+appear
+materialise
+appear
+
+--- E$(1-3): Error/don't understand messages ---
+I don't understand
+Could you re-phrase that?
+
+================================================================================
+SECTION 2: DIRECTION NAMES (D$ array - 6 entries)
+================================================================================
+North
+South
+West
+East
+Down
+Up
+
+================================================================================
+SECTION 3: OBJECTS AND CREATURES (A$ and B$ arrays - 42 entries)
+================================================================================
+Format for each entry:
+  Line 1: Object/Creature Name (A$)
+  Line 2: Properties String (B$) - format varies by type
+
+INITIAL PLACEMENT:
+  Initial room locations and starting stamina are stored in the OBJINIT file
+  (see OBJINIT-annotated.txt for complete placement details)
+
+OBJECT PROPERTY STRING FORMAT (for items):
+  - Empty string for simple objects
+  
+CREATURE PROPERTY STRING FORMAT (CCMs - Computer Controlled Monsters):
+  Position 1:     Behavior flag (A=Aggressive, B=Passive)
+  Position 2-4:   Attack chance (0-999, checked against activity level)
+  Position 5-7:   Secondary attack chance (only if Aggressive)
+  Position 8-10:  Teleport chance (0-999, multiplied by 100)
+  Position 11-13: Follow chance (0-999, divided by 1000)
+  Position 14-15: Attack type code (see attack types below)
+  Position 16-18: Base damage (randomized: damage + RND(damage)/2)
+  Position 19:    'H' marker
+  Position 20-22: Health/Stamina points
+
+ATTACK TYPE CODES:
+  01 = Message
+  02 = Hit
+  03 = Cave collapse
+  04 = Award points
+  05 = Poison
+  06 = Stab
+  07 = Update
+  08 = Teleport
+  09 = Force command
+  10 = Bite
+  11 = Burn
+  12 = Zap
+  13 = Shoot
+
+--------------------------------------------------------------------------------
+OBJECT 1-15: Items (no special properties)
+--------------------------------------------------------------------------------
+Vodka
+[empty]
+
+Stick
+[empty]
+
+Poison
+[empty]
+
+Dagger
+[empty]
+
+Arrow
+[empty]
+
+Medicine
+[empty]
+
+Knife
+[empty]
+
+Flamethrower
+[empty]
+
+Ruby
+[empty]
+
+Shield
+[empty]
+
+Crystal
+[empty]
+
+Staff
+[empty]
+
+Amulet
+[empty]
+
+Treasure
+[empty]
+
+Guardian
+[empty]
+
+--------------------------------------------------------------------------------
+CREATURE 16: Dragon (Boss Monster)
+--------------------------------------------------------------------------------
+Dragon
+B00015000000011160H600
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive - doesn't attack first)
+  Attack Chance:   000 (0% - never attacks randomly)
+  2nd Attack:      150 (15% if made aggressive)
+  Teleport:        000 (0% - never teleports)
+  Follow:          000 (0% - never follows)
+  Attack Type:     11 (Burn)
+  Damage:          160 (160-240 damage)
+  Health:          600 HP
+
+NOTES: The Dragon is the ultimate boss. It's passive until provoked, but
+       deals massive burn damage. Killing it awards major points and triggers
+       a special "Dragon is Slain!!" message.
+
+--------------------------------------------------------------------------------
+CREATURE 17: Troll
+--------------------------------------------------------------------------------
+Troll
+B30005030060002004H080
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   300 (30%)
+  2nd Attack:      050 (5%)
+  Teleport:        300 (30%)
+  Follow:          600 (60%)
+  Attack Type:     02 (Hit)
+  Damage:          004 (4-6 damage)
+  Health:          080 HP
+
+NOTES: Moderately aggressive troll that likes to follow players and can
+       teleport around. Relatively weak damage but decent health.
+
+--------------------------------------------------------------------------------
+CREATURE 18: (Unnamed - appears to be alternate Troll stats)
+--------------------------------------------------------------------------------
+[empty name]
+B50010020040010006H040
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   500 (50%)
+  2nd Attack:      100 (10%)
+  Teleport:        200 (20%)
+  Follow:          400 (40%)
+  Attack Type:     10 (Bite)
+  Damage:          006 (6-9 damage)
+  Health:          040 HP
+
+--------------------------------------------------------------------------------
+CREATURE 19: Maggot
+--------------------------------------------------------------------------------
+Maggot
+B20020005085010006H060
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   200 (20%)
+  2nd Attack:      200 (20%)
+  Teleport:        050 (5%)
+  Follow:          850 (85%)
+  Attack Type:     10 (Bite)
+  Damage:          006 (6-9 damage)
+  Health:          060 HP
+
+NOTES: Disgusting maggot that loves to follow players (85% chance!).
+       Attacks by biting with moderate frequency.
+
+--------------------------------------------------------------------------------
+CREATURE 20: (Unnamed - alternate stats)
+--------------------------------------------------------------------------------
+[empty name]
+B10000505005002002H030
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   100 (10%)
+  2nd Attack:      005 (0.5%)
+  Teleport:        050 (5%)
+  Follow:          050 (5%)
+  Attack Type:     02 (Hit)
+  Damage:          002 (2-3 damage)
+  Health:          030 HP
+
+--------------------------------------------------------------------------------
+CREATURE 21: Author (Easter Egg!)
+--------------------------------------------------------------------------------
+Author
+B00000210099912120H500
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   000 (0%)
+  2nd Attack:      002 (0.2%)
+  Teleport:        100 (10%)
+  Follow:          999 (99.9% - almost always!)
+  Attack Type:     12 (Zap)
+  Damage:          120 (120-180 damage)
+  Health:          500 HP
+
+NOTES: The game author as a character! Nearly invincible with massive health
+       and damage. Will follow you almost everywhere. A fun easter egg.
+
+--------------------------------------------------------------------------------
+CREATURE 22: Spider
+--------------------------------------------------------------------------------
+Spider
+B10010005010010002H040
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   100 (10%)
+  2nd Attack:      100 (10%)
+  Teleport:        050 (5%)
+  Follow:          100 (10%)
+  Attack Type:     02 (Hit)
+  Damage:          002 (2-3 damage)
+  Health:          040 HP
+
+NOTES: Basic spider enemy. Low damage, moderate health, not very aggressive.
+       Good for beginning players.
+
+--------------------------------------------------------------------------------
+CREATURE 23: Coward
+--------------------------------------------------------------------------------
+Coward
+B50000002000002003H050
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   500 (50%)
+  2nd Attack:      000 (0%)
+  Teleport:        020 (2%)
+  Follow:          000 (0%)
+  Attack Type:     02 (Hit)
+  Damage:          003 (3-4.5 damage)
+  Health:          050 HP
+
+NOTES: Lives up to its name - attacks when cornered but never follows.
+       Rarely teleports away (cowardly behavior).
+
+--------------------------------------------------------------------------------
+CREATURE 24: Killer
+--------------------------------------------------------------------------------
+Killer
+B00004080095006008H100
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   000 (0%)
+  2nd Attack:      040 (4%)
+  Teleport:        800 (80%)
+  Follow:          950 (95%)
+  Attack Type:     06 (Stab)
+  Damage:          008 (8-12 damage)
+  Health:          100 HP
+
+NOTES: Dangerous! Teleports frequently and follows relentlessly. Uses stab
+       attacks for decent damage. High health makes it tough to kill.
+
+--------------------------------------------------------------------------------
+CREATURE 25-28: Snake Family (Viper, Cobra, Python, Adder)
+--------------------------------------------------------------------------------
+Viper
+B20004060050010006H035
+
+Cobra
+B20004060050010006H035
+
+Python
+B20004060050010006H035
+
+Adder
+B20004060050010006H035
+
+DECODED PROPERTIES (all identical):
+  Behavior:        B (Passive)
+  Attack Chance:   200 (20%)
+  2nd Attack:      040 (4%)
+  Teleport:        600 (60%)
+  Follow:          500 (50%)
+  Attack Type:     10 (Bite)
+  Damage:          006 (6-9 damage)
+  Health:          035 HP
+
+NOTES: Four varieties of snake with identical stats. They bite, teleport
+       frequently, and have moderate follow behavior. Low health.
+
+--------------------------------------------------------------------------------
+CREATURE 29: Worm
+--------------------------------------------------------------------------------
+Worm
+B95000030000002002H005
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   950 (95%)
+  2nd Attack:      000 (0%)
+  Teleport:        030 (3%)
+  Follow:          000 (0%)
+  Attack Type:     02 (Hit)
+  Damage:          002 (2-3 damage)
+  Health:          005 HP
+
+NOTES: Very weak (only 5 HP!) but attacks frequently when encountered.
+       Doesn't follow or teleport much. Easy kill.
+
+--------------------------------------------------------------------------------
+CREATURE 30: Drunk
+--------------------------------------------------------------------------------
+Drunk
+B30010070020002002H040
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   300 (30%)
+  2nd Attack:      100 (10%)
+  Teleport:        700 (70%)
+  Follow:          200 (20%)
+  Attack Type:     02 (Hit)
+  Damage:          002 (2-3 damage)
+  Health:          040 HP
+
+NOTES: Stumbles around (high teleport chance). Moderate aggression.
+       Low damage - probably too drunk to fight well!
+
+--------------------------------------------------------------------------------
+CREATURE 31: (Unnamed - alternate stats)
+--------------------------------------------------------------------------------
+[empty name]
+B50010020040010006H040
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   500 (50%)
+  2nd Attack:      100 (10%)
+  Teleport:        200 (20%)
+  Follow:          400 (40%)
+  Attack Type:     10 (Bite)
+  Damage:          006 (6-9 damage)
+  Health:          040 HP
+
+--------------------------------------------------------------------------------
+CREATURE 32: Toad
+--------------------------------------------------------------------------------
+Toad
+B50010020040010006H040
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   500 (50%)
+  2nd Attack:      100 (10%)
+  Teleport:        200 (20%)
+  Follow:          400 (40%)
+  Attack Type:     10 (Bite)
+  Damage:          006 (6-9 damage)
+  Health:          040 HP
+
+NOTES: Amphibious attacker. Moderate stats across the board. Bites for
+       decent damage.
+
+--------------------------------------------------------------------------------
+CREATURE 33: (Unnamed - alternate stats)
+--------------------------------------------------------------------------------
+[empty name]
+B20020005085010006h060
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   200 (20%)
+  2nd Attack:      200 (20%)
+  Teleport:        050 (5%)
+  Follow:          850 (85%)
+  Attack Type:     10 (Bite)
+  Damage:          006 (6-9 damage)
+  Health:          060 HP
+
+NOTE: Lowercase 'h' in the string - might be a typo or variant.
+
+--------------------------------------------------------------------------------
+CREATURE 34: Guardian
+--------------------------------------------------------------------------------
+Guardian
+B10015000000012050H999
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   100 (10%)
+  2nd Attack:      150 (15%)
+  Teleport:        000 (0%)
+  Follow:          000 (0%)
+  Attack Type:     12 (Zap)
+  Damage:          050 (50-75 damage)
+  Health:          999 HP
+
+NOTES: Nearly invincible with 999 HP! Uses powerful zap attacks. Doesn't
+       move around but will defend its position. Major boss-level enemy.
+
+--------------------------------------------------------------------------------
+CREATURE 35: Goblin
+--------------------------------------------------------------------------------
+Goblin
+B10010005010006006H050
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   100 (10%)
+  2nd Attack:      100 (10%)
+  Teleport:        050 (5%)
+  Follow:          100 (10%)
+  Attack Type:     06 (Stab)
+  Damage:          006 (6-9 damage)
+  Health:          050 HP
+
+NOTES: Classic fantasy enemy. Uses stab attacks. Moderate stats.
+
+--------------------------------------------------------------------------------
+CREATURE 36: (Unnamed - alternate stats)
+--------------------------------------------------------------------------------
+[empty name]
+B50050001001002002H020
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   500 (50%)
+  2nd Attack:      500 (50%)
+  Teleport:        010 (1%)
+  Follow:          010 (1%)
+  Attack Type:     02 (Hit)
+  Damage:          002 (2-3 damage)
+  Health:          020 HP
+
+--------------------------------------------------------------------------------
+CREATURE 37: Dwarf
+--------------------------------------------------------------------------------
+Dwarf
+B20010020040010008H060
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   200 (20%)
+  2nd Attack:      100 (10%)
+  Teleport:        200 (20%)
+  Follow:          400 (40%)
+  Attack Type:     10 (Bite)
+  Damage:          008 (8-12 damage)
+  Health:          060 HP
+
+NOTES: Surprisingly vicious dwarf that bites! Moderate health and damage.
+
+--------------------------------------------------------------------------------
+CREATURE 38: Necromancer
+--------------------------------------------------------------------------------
+Necromancer
+B20020005010012030H500
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   200 (20%)
+  2nd Attack:      200 (20%)
+  Teleport:        050 (5%)
+  Follow:          100 (10%)
+  Attack Type:     12 (Zap)
+  Damage:          030 (30-45 damage)
+  Health:          500 HP
+
+NOTES: Powerful magic user with massive health. Uses zap attacks for
+       significant damage. Major threat!
+
+--------------------------------------------------------------------------------
+CREATURE 39: Centipede
+--------------------------------------------------------------------------------
+Centipede
+B10010020040010008H080
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   100 (10%)
+  2nd Attack:      100 (10%)
+  Teleport:        200 (20%)
+  Follow:          400 (40%)
+  Attack Type:     10 (Bite)
+  Damage:          008 (8-12 damage)
+  Health:          080 HP
+
+NOTES: Multi-legged menace. Decent health and damage. Bites for moderate
+       damage.
+
+--------------------------------------------------------------------------------
+CREATURE 40: (Unnamed - alternate stats)
+--------------------------------------------------------------------------------
+[empty name]
+B20010005005002001H100
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   200 (20%)
+  2nd Attack:      100 (10%)
+  Teleport:        050 (5%)
+  Follow:          050 (5%)
+  Attack Type:     02 (Hit)
+  Damage:          001 (1-1.5 damage)
+  Health:          100 HP
+
+--------------------------------------------------------------------------------
+CREATURE 41: Skeleton
+--------------------------------------------------------------------------------
+Skeleton
+B20010005005002001H100
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   200 (20%)
+  2nd Attack:      100 (10%)
+  Teleport:        050 (5%)
+  Follow:          050 (5%)
+  Attack Type:     02 (Hit)
+  Damage:          001 (1-1.5 damage)
+  Health:          100 HP
+
+NOTES: Undead warrior. High health but very low damage. Not very mobile.
+
+--------------------------------------------------------------------------------
+CREATURE 42: Caveman
+--------------------------------------------------------------------------------
+Caveman
+B20010005005002001H150
+
+DECODED PROPERTIES:
+  Behavior:        B (Passive)
+  Attack Chance:   200 (20%)
+  2nd Attack:      100 (10%)
+  Teleport:        050 (5%)
+  Follow:          050 (5%)
+  Attack Type:     02 (Hit)
+  Damage:          001 (1-1.5 damage)
+  Health:          150 HP
+
+NOTES: Primitive human. Highest health of the weak attackers. Very low
+       damage despite high HP.
+
+================================================================================
+END OF DATA FILE
+================================================================================
+
+SUMMARY STATISTICS:
+- Total Objects: 15 (items 1-15)
+- Total Creatures: 27 (creatures 16-42)
+- Strongest: Dragon (600 HP, 160-240 damage)
+- Toughest: Guardian (999 HP)
+- Weakest: Worm (5 HP)
+- Most Aggressive: Worm (95% attack chance)
+- Most Loyal Follower: Author (99.9% follow chance)

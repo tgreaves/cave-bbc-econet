@@ -1,0 +1,186 @@
+"""
+Player class for Cave-Plus
+"""
+import random
+
+class Player:
+    def __init__(self, name: str, websocket, saved_data: dict = None):
+        self.name = name
+        self.websocket = websocket
+        
+        if saved_data:
+            # Load from saved data
+            self.room_id = saved_data.get('room_id', 1)
+            self.score = saved_data.get('score', 0)
+            self.rank = saved_data.get('rank', 'Novice')
+            self.kills = saved_data.get('kills', 0)
+            self.deaths = saved_data.get('deaths', 0)
+            self.inventory = saved_data.get('inventory', [])
+            self.max_stamina = saved_data.get('max_stamina', 50)
+            self.stamina = saved_data.get('stamina', 50)
+            self.staff_charges = saved_data.get('staff_charges', 0)  # Staff of Merlin charges (0-7)
+            self.max_inventory = self._calculate_max_inventory()
+        else:
+            # New player
+            self.room_id = 1  # Start at main entrance
+            self.score = 0
+            self.rank = "Novice"
+            self.kills = 0
+            self.deaths = 0
+            self.inventory = []
+            self.max_stamina = 50
+            self.stamina = 25 + random.randint(0, 25)  # 50-100% of max
+            self.staff_charges = 0  # Staff of Merlin charges (0-7)
+            self.max_inventory = 3
+        
+        # Calculate stamina based on score
+        self.calculate_stamina()
+    
+    def to_save_dict(self):
+        """Convert player to dictionary for saving to disk"""
+        return {
+            'name': self.name,
+            'room_id': self.room_id,
+            'score': self.score,
+            'rank': self.rank,
+            'kills': self.kills,
+            'deaths': self.deaths,
+            'inventory': self.inventory,
+            'max_stamina': self.max_stamina,
+            'stamina': self.stamina,
+            'staff_charges': self.staff_charges
+        }
+        
+    def _calculate_max_inventory(self):
+        """Calculate max inventory based on rank"""
+        if self.rank == "Wizard":
+            return 7
+        elif self.rank == "Master Caver":
+            return 6
+        elif self.rank == "Warrior":
+            return 5
+        elif self.rank == "Adventurer":
+            return 4
+        else:
+            return 3
+    
+    def calculate_stamina(self):
+        """
+        Calculate max stamina based on score and rank (from original game logic)
+        Base: 50 + score/5
+        Wizard bonus: +250
+        Master Caver bonus: +50
+        Warrior bonus: +25
+        """
+        # Base stamina calculation
+        max_stam = 50 + (self.score // 5)
+        
+        # Rank bonuses
+        if self.rank == "Wizard":
+            max_stam += 250
+        elif self.rank == "Master Caver":
+            max_stam += 50
+        elif self.rank == "Warrior":
+            max_stam += 25
+        
+        self.max_stamina = max_stam
+        
+    def respawn(self):
+        """
+        Respawn player with randomized stamina (50-100% of max)
+        Matches original: D=J/2+RND(J/2)
+        """
+        self.calculate_stamina()
+        # Random stamina between 50% and 100% of max
+        self.stamina = self.max_stamina // 2 + random.randint(0, self.max_stamina // 2)
+        
+    def to_dict(self):
+        """Convert player to dictionary for JSON serialization"""
+        return {
+            "name": self.name,
+            "room_id": self.room_id,
+            "stamina": self.stamina,
+            "max_stamina": self.max_stamina,
+            "inventory": self.inventory,
+            "max_inventory": self.max_inventory,
+            "score": self.score,
+            "rank": self.rank,
+            "kills": self.kills,
+            "deaths": self.deaths,
+            "staff_charges": self.staff_charges
+        }
+    
+    def can_carry_more(self):
+        """Check if player can carry more items"""
+        return len(self.inventory) < self.max_inventory
+    
+    def add_item(self, item: str):
+        """Add item to inventory"""
+        if self.can_carry_more():
+            self.inventory.append(item)
+            return True
+        return False
+    
+    def remove_item(self, item: str):
+        """Remove item from inventory"""
+        if item in self.inventory:
+            self.inventory.remove(item)
+            return True
+        return False
+    
+    def has_item(self, item: str):
+        """Check if player has an item"""
+        return item in self.inventory
+    
+    def take_damage(self, amount: int):
+        """Take damage"""
+        self.stamina = max(0, self.stamina - amount)
+        return self.stamina <= 0  # Returns True if dead
+    
+    def heal(self, amount: int):
+        """Heal player"""
+        self.stamina = min(self.max_stamina, self.stamina + amount)
+    
+    def add_score(self, points: int):
+        """Add to score and update rank"""
+        self.score += points
+        self.update_rank()
+        # Recalculate stamina when score changes
+        self.calculate_stamina()
+    
+    def update_rank(self):
+        """Update player rank based on score"""
+        if self.score >= 1000:
+            self.rank = "Wizard"
+            self.max_inventory = 7
+        elif self.score >= 500:
+            self.rank = "Master Caver"
+            self.max_inventory = 6
+        elif self.score >= 200:
+            self.rank = "Warrior"
+            self.max_inventory = 5
+        elif self.score >= 50:
+            self.rank = "Adventurer"
+            self.max_inventory = 4
+        else:
+            self.rank = "Novice"
+            self.max_inventory = 3
+
+
+    def charge_staff(self):
+        """Charge the Staff of Merlin when picked up (gets 7 charges)"""
+        self.staff_charges = 7
+    
+    def use_staff_charge(self) -> bool:
+        """
+        Use one charge from the Staff of Merlin
+        Returns True if charge was used, False if no charges left
+        """
+        if self.staff_charges > 0:
+            self.staff_charges -= 1
+            return True
+        return False
+    
+    def has_staff(self) -> bool:
+        """Check if player has the Staff of Merlin"""
+        return any("staff" in item.lower() and "merlin" in item.lower() for item in self.inventory)

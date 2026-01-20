@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+*.egg-info/
+
+# Player data (contains passwords)
+player_data/
+
+# IDE
+.vscode/
+.idea/

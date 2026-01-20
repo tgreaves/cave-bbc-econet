@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cave-Plus - Multiplayer Adventure</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-box">
+                <pre class="title-art">
+CAVE-PLUS (C) 2026
+
+From CAVE (C) GJL WOTWECP 1985
+                </pre>
+                
+                <form id="login-form">
+                    <div class="login-prompt">
+                        <label for="player-name">Please enter your name :</label>
+                        <input 
+                            type="text" 
+                            id="player-name" 
+                            maxlength="20"
+                            autocomplete="off"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="login-prompt">
+                        <label for="player-password">Enter your password :</label>
+                        <input 
+                            type="password" 
+                            id="player-password" 
+                            minlength="4"
+                            autocomplete="off"
+                            required
+                        >
+                    </div>
+                    
+                    <button type="submit">Enter CAVE</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Game Screen - MODE 7 Layout -->
+        <div id="game-screen" class="screen">
+            <div class="game-container">
+                <!-- Status Area: Rows 0-5 (6 rows) -->
+                <div class="status-area">
+                    <div id="status-messages"></div>
+                </div>
+
+                <!-- Main Game Area: Rows 7-23 (17 rows) -->
+                <div class="main-game-area">
+                    <div id="message-log"></div>
+                </div>
+
+                <!-- Command Input: Row 24 -->
+                <div class="command-area">
+                    <span class="prompt">&gt;</span>
+                    <input 
+                        type="text" 
+                        id="command-input" 
+                        autocomplete="off"
+                        placeholder=""
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/game.js"></script>
+</body>
+</html>
