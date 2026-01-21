@@ -616,6 +616,37 @@ async def handle_command(player: Player, data: dict):
                 "style": "combat"  # PROCC type 1 = status area
             })
     
+    # Handle SUMMON player (line 2170: PROCC(8,?(T+8),CHR$B) - event 8 = teleport)
+    if result.get("summon_player"):
+        target_name = result.get("summon_player")
+        target_player = game_state.get_player(target_name)
+        if target_player:
+            summon_room = result.get("summon_to_room")
+            
+            # Notify summoned player (line 1670: PROCY(?&7702):PRINTJ$;C$;)
+            await send_to_player(target_player, {
+                "type": "message",
+                "text": f"You have been summoned by {player.name}!",
+                "style": "combat"
+            })
+            
+            # Update summoned player's room
+            await send_room_update(target_player)
+            
+            # Announce to old room
+            await broadcast_to_room(target_player.room_id, {
+                "type": "message",
+                "text": f"{target_player.name} vanishes!",
+                "style": "action"
+            }, exclude=target_player.name)
+            
+            # Announce to new room
+            await broadcast_to_room(summon_room, {
+                "type": "message",
+                "text": f"{target_player.name} appears!",
+                "style": "action"
+            }, exclude=target_player.name)
+    
     # Update inventory
     if result.get("inventory_changed"):
         await send_to_player(player, {

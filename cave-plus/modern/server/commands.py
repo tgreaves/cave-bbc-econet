@@ -949,6 +949,7 @@ Examples:
         # Find the target (creature or object)
         target_creature = None
         target_object = None
+        target_player = None
         target_room = None
         
         # Search for creatures first
@@ -969,8 +970,14 @@ Examples:
                 if target_object:
                     break
         
-        # Check if target exists
+        # If not object or creature, search for players (line 4450: FND searches players)
         if not target_creature and not target_object:
+            target_player = self.game_state.get_player(target_name)
+            if target_player and target_player.name != player.name:
+                target_room = target_player.room_id
+        
+        # Check if target exists
+        if not target_creature and not target_object and not target_player:
             return {"message": f"Sorry...wasted effort...{target_name} is not in CAVE"}
         
         # Non-wizards have a chance to fail
@@ -1014,6 +1021,18 @@ Examples:
             
             return {
                 "message": f"The {target_object} appears!",
+                "summoned": True
+            }
+        
+        # Summon player (line 2170: PROCC(8,?(T+8),CHR$B) - event 8 = teleport)
+        if target_player:
+            old_room = target_player.room_id
+            target_player.room_id = player.room_id
+            
+            return {
+                "message": f"{target_player.name} has been summoned!",
+                "summon_player": target_player.name,
+                "summon_to_room": player.room_id,
                 "summoned": True
             }
     
