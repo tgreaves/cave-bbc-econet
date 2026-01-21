@@ -583,6 +583,27 @@ async def handle_command(player: Player, data: dict):
             "style": "action"  # Changed to action so it goes to status area
         }, exclude=player.name)
     
+    # Handle TELL messages (line 4120: PROCC(1,?(T+8),E$+":"+M$))
+    if result.get("tell_all"):
+        # Broadcast to all players (Wizard only)
+        message_text = result.get("tell_message")
+        await broadcast_to_all({
+            "type": "message",
+            "text": message_text,
+            "style": "combat"  # PROCC type 1 = status area
+        })
+    elif result.get("tell_target"):
+        # Send to specific player
+        target_name = result.get("tell_target")
+        target_player = game_state.get_player(target_name)
+        if target_player:
+            message_text = result.get("tell_message")
+            await send_to_player(target_player, {
+                "type": "message",
+                "text": message_text,
+                "style": "combat"  # PROCC type 1 = status area (appears in status window)
+            })
+    
     # Update inventory
     if result.get("inventory_changed"):
         await send_to_player(player, {

@@ -1,12 +1,12 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (26 total):
+IMPLEMENTED COMMANDS (27 total):
 =================================
 Movement (6):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
 
-Interaction (9):
+Interaction (10):
   LOOK/L          - Look at current room
   GET/TAKE/PICKUP - Pick up an object (prevents picking up creatures)
   DROP/LEAVE      - Drop an object
@@ -16,6 +16,7 @@ Interaction (9):
   KILL            - Shows message "Life is not that simple...try HIT"
   EXAMINE         - Examine an object (shows "You see nothing special")
   DEPOSIT         - Deposit treasure at bank (room 56) for 20-40 points
+  TELL            - Send message to specific player or all (Wizard only for all)
   
 Combat (5):
   HIT/ATTACK/FIGHT - Attack with bare hands or stick
@@ -44,7 +45,7 @@ Wizard-Only Commands (5):
   REGEN           - Reset all objects and creatures to initial state
   ACTIVITY <0-9>  - Set CCM activity level (0=passive, 9=maximum aggression)
 
-NOT YET IMPLEMENTED (23 commands):
+NOT YET IMPLEMENTED (22 commands):
 ===================================
 Basic Commands:
   EXORCISE        - Exorcise an object to the armoury (room 20)
@@ -53,7 +54,6 @@ Basic Commands:
   PULL            - Pull rope (portcullis in rooms 29/30)
   ANNOY           - Make creature aggressive
   BITE            - Bite attack (creature-like)
-  TELL            - Send message to specific player or all
   LIGHTS/SWITCH/POWER - Toggle lights on/off (room 12)
   GO/WALK/RUN     - Alternative movement command
   DEBUG           - Debug command (shows error message)
@@ -93,6 +93,7 @@ IMPLEMENTATION NOTES:
 - Room display matches BBC Micro: no room numbers, no exits, no aggressive status
 - DEPOSIT: Treasure can be deposited at bank (room 56) for 20-40 points, then respawns randomly
 - Objects 11-15 (Crystal Ball, Staff, Amulet, Treasure, Guardian) spawn randomly on REGEN
+- TELL: Messages appear in status area (combat style), Wizards can broadcast to all
 """
 
 import random
@@ -241,6 +242,10 @@ class CommandParser:
         # Deposit command
         if cmd in ['deposit']:
             return await self.deposit(player, args)
+        
+        # Tell command
+        if cmd in ['tell']:
+            return await self.tell(player, args)
             
         # Quit command (save and exit)
         if cmd in ['quit', 'exit']:
@@ -1285,6 +1290,69 @@ Examples:
         return {
             "message": f"You deposit the treasure, which vanishes and you get credited with {points} points.",
             "inventory_changed": True
+        }
+    
+    async def tell(self, player: Player, args: str) -> Dict:
+        """
+        Send a message to a specific player or all players
+        Based on DEFPROCBA (lines 4030-4120)
+        
+        Original logic:
+        4030: PROCG("Sending message to")
+        4030: IFD$="All"ANDNOTGPRINT"Only Wizards can do that!!":VDU7:ENDPROC
+        4060: IFD$="All"T=&900:GOTO4080
+        4070: IFT=&A00ENDPROC
+        4080: PRINT"Enter Message"
+        4080: M$=FNK
+        4080: IFM$=""PRINT"Not Sent":ENDPROC
+        4100: IFT>&A00PRINT"The ";D$;" takes no notice":ENDPROC
+        4110: IFD$="All"?&7700=1:?&7701=?I:?&7702=M$
+        4110: IFD$="All"PROCA(&7700,&77FE):PRINT"Done.":ENDPROC
+        4120: PROCC(1,?(T+8),E$+":"+M$):ENDPROC
+        
+        Format: TELL <player> <message>
+        Example: TELL Bob Hello there!
+        """
+        if not args:
+            return {"message": "TELL who? (Format: TELL <player> <message>)"}
+        
+        # Parse target and message
+        parts = args.split(maxsplit=1)
+        if len(parts) < 2:
+            return {"message": "What message? (Format: TELL <player> <message>)"}
+        
+        target_name = parts[0]
+        message = parts[1]
+        
+        # Check for "All" broadcast (Wizard-only)
+        if target_name.upper() == "ALL":
+            if player.rank != "Wizard":
+                return {"message": "Only Wizards can do that!!", "beeps": 1}
+            
+            # Broadcast to all players
+            return {
+                "message": "Done.",
+                "tell_all": True,
+                "tell_message": f"{player.name}:{message}"
+            }
+        
+        # Find target player
+        target_player = self.game_state.get_player(target_name)
+        
+        if not target_player:
+            # Check if it's a creature
+            creatures = self.game_state.creatures.values()
+            for creature in creatures:
+                if target_name.lower() in creature.name.lower():
+                    return {"message": f"The {creature.name} takes no notice"}
+            
+            return {"message": f"Player '{target_name}' not found"}
+        
+        # Send message to specific player
+        return {
+            "message": f"Message sent to {target_player.name}",
+            "tell_target": target_player.name,
+            "tell_message": f"{player.name}:{message}"
         }
 
     async def quit_game(self, player: Player) -> Dict:
