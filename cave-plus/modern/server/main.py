@@ -841,7 +841,7 @@ async def broadcast_to_all(message: dict):
             print(f"Error broadcasting to {player_name}: {e}")
 
 # Serve static files
-app.mount("/graphics", StaticFiles(directory="../analysed/graphics"), name="graphics")
+app.mount("/graphics", StaticFiles(directory="static/graphics"), name="graphics")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
