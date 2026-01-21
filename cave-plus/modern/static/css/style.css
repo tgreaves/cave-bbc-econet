@@ -23,8 +23,8 @@
 }
 
 :root {
-    --char-width: 20px;
-    --char-height: 25px;
+    --char-width: 2.2vmin;
+    --char-height: 2.7vmin;
     --cols: 40;
     --rows: 25;
 }
@@ -45,44 +45,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(ellipse at center, #2a2a2a 0%, #0a0a0a 100%);
+    background: #000 url('../images/cub-monitor.png') no-repeat center center;
+    background-size: contain;
     position: relative;
-}
-
-/* CRT Monitor Bezel */
-.container::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(var(--char-width) * var(--cols) + 120px);
-    height: calc(var(--char-height) * var(--rows) + 120px);
-    background: linear-gradient(145deg, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%);
-    border-radius: 20px;
-    box-shadow: 
-        inset 0 0 20px rgba(0,0,0,0.8),
-        inset 0 0 40px rgba(0,0,0,0.5),
-        0 10px 50px rgba(0,0,0,0.9),
-        0 0 100px rgba(0,0,0,0.5);
-    z-index: 0;
-}
-
-/* Inner bezel shadow */
-.container::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(var(--char-width) * var(--cols) + 40px);
-    height: calc(var(--char-height) * var(--rows) + 40px);
-    border-radius: 8px;
-    box-shadow: 
-        inset 0 0 30px rgba(0,0,0,0.9),
-        inset 0 0 10px rgba(0,0,0,0.7);
-    pointer-events: none;
-    z-index: 2;
 }
 
 /* CRT Toggle Button on Bezel */
@@ -109,17 +74,17 @@ body {
     justify-content: center;
 }
 
-/* Sound button positioning (left button) */
+/* Sound button positioning (left button) - positioned on monitor bezel */
 #sound-toggle {
-    bottom: calc(50vh - (var(--char-height) * var(--rows) / 2) - 80px);
-    right: calc(50vw - (var(--char-width) * var(--cols) / 2) - 150px);
+    bottom: 8%;
+    left: 12%;
     font-size: 24px;
 }
 
-/* CRT button positioning (right button) */
+/* CRT button positioning (right button) - positioned on monitor bezel */
 #crt-toggle {
-    bottom: calc(50vh - (var(--char-height) * var(--rows) / 2) - 80px);
-    right: calc(50vw - (var(--char-width) * var(--cols) / 2) - 80px);
+    bottom: 8%;
+    right: 8%;
 }
 
 .bezel-button:hover {
@@ -293,7 +258,7 @@ body {
     overflow-x: hidden;
     color: #ffff00;
     font-family: 'Bedstead', 'Courier New', monospace;
-    font-size: 20px;
+    font-size: 2.2vmin;
     line-height: var(--char-height);
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -329,7 +294,7 @@ body {
     background: #000;
     color: #fff;
     font-family: 'Bedstead', 'Courier New', monospace;
-    font-size: 20px;
+    font-size: 2.2vmin;
     line-height: var(--char-height);
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -378,7 +343,7 @@ body {
 /* Terminal text output - scrolling pre element */
 .terminal-text {
     font-family: 'Bedstead', 'Courier New', monospace;
-    font-size: 20px;
+    font-size: 2.2vmin;
     line-height: var(--char-height);
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -405,7 +370,7 @@ body {
 .prompt-inline {
     color: #ffff00;
     font-family: 'Bedstead', 'Courier New', monospace;
-    font-size: 20px;
+    font-size: 2.2vmin;
     line-height: var(--char-height);
 }
 
@@ -413,7 +378,7 @@ body {
 .command-inline {
     color: #ffff00;
     font-family: 'Bedstead', 'Courier New', monospace;
-    font-size: 20px;
+    font-size: 2.2vmin;
     line-height: var(--char-height);
 }
 
@@ -462,8 +427,8 @@ body {
 /* Double-height text (MODE 7 teletext style) */
 .double-height {
     font-family: 'Bedstead Ultra Condensed', 'Bedstead', 'Courier New', monospace;
-    font-size: 40px;
-    line-height: 50px;
+    font-size: 4.4vmin;
+    line-height: 5.4vmin;
 }
 
 @keyframes blink {
@@ -474,23 +439,23 @@ body {
 /* Responsive - scale down on smaller screens */
 @media (max-width: 800px) {
     :root {
-        --char-width: 12px;
-        --char-height: 16px;
+        --char-width: 1.5vmin;
+        --char-height: 2vmin;
     }
     
     .game-container, #message-log, #command-input, #status-messages {
-        font-size: 14px;
+        font-size: 1.75vmin;
     }
 }
 
 @media (max-width: 600px) {
     :root {
-        --char-width: 10px;
-        --char-height: 14px;
+        --char-width: 1.25vmin;
+        --char-height: 1.75vmin;
     }
     
     .game-container, #message-log, #command-input, #status-messages {
-        font-size: 12px;
+        font-size: 1.5vmin;
     }
 }
 

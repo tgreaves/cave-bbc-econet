@@ -68,10 +68,18 @@ async def handle_player_death(player: Player):
             save_data['password_hash'] = player.password_hash
         
         print(f"   Saving player {player.name} data on death")
-        save_player(save_data)
         
-        # Delay during save
-        await asyncio.sleep(0.8)
+        # Send disk activity notification
+        await send_to_player(player, {
+            "type": "disk_activity",
+            "operation": "write"
+        })
+        
+        success, disk_time = save_player(save_data)
+        print(f"📀 Death save completed (disk time: {disk_time:.2f}s)")
+        
+        # Small additional delay for visual effect
+        await asyncio.sleep(0.3)
         
         print(f"   Sending '..' message, waiting 1.5s...")
         # Line 1520: ".." (appends to previous line)
@@ -298,22 +306,38 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
     
     if player_exists(player_name):
         # Existing player - verify password
-        saved_data = load_player(player_name, password)
-        if saved_data is None:
+        # Send disk activity notification
+        await websocket.send_json({
+            "type": "disk_activity",
+            "operation": "read"
+        })
+        
+        result = load_player(player_name, password)
+        if result is None:
             await websocket.send_json({
                 "type": "error",
                 "message": f"Sorry, I know someone called {player_name} and that is not the password."
             })
             await websocket.close()
             return
+        
+        saved_data, disk_time = result
+        print(f"📀 Loaded player {player_name} (disk time: {disk_time:.2f}s)")
     else:
         # New player - create account
         print(f"Creating new player: {player_name}")
         saved_data = create_player(player_name, password)
         saved_data['password_hash'] = hash_password(password)
         
+        # Send disk activity notification
+        await websocket.send_json({
+            "type": "disk_activity",
+            "operation": "write"
+        })
+        
         # Save immediately
-        if not save_player(saved_data):
+        success, disk_time = save_player(saved_data)
+        if not success:
             await websocket.send_json({
                 "type": "error",
                 "message": "Failed to create player account. Please try again."
@@ -322,7 +346,7 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
             return
         
         is_new_player = True
-        print(f"✅ New player {player_name} created and saved")
+        print(f"✅ New player {player_name} created and saved (disk time: {disk_time:.2f}s)")
     
     # Create player object
     player = Player(player_name, websocket, saved_data)
@@ -466,10 +490,18 @@ async def handle_command(player: Player, data: dict):
             return
         
         print(f"Saving player {player.name} data: {save_data}")
-        success = save_player(save_data)
         
-        # Delay during save
-        await asyncio.sleep(0.6)
+        # Send disk activity notification
+        await send_to_player(player, {
+            "type": "disk_activity",
+            "operation": "write"
+        })
+        
+        success, disk_time = save_player(save_data)
+        print(f"📀 Save completed (disk time: {disk_time:.2f}s)")
+        
+        # Delay during save (already included in save_player, but add a bit more for visual effect)
+        await asyncio.sleep(0.3)
         
         # Line 2740: "."
         await send_to_player(player, {
@@ -555,7 +587,7 @@ async def handle_command(player: Player, data: dict):
             "player": player.to_dict()
         })
     
-    # Update room if player moved
+    # Update room if player moved (normal movement)
     if result.get("moved"):
         await send_room_update(player)
         
@@ -572,6 +604,26 @@ async def handle_command(player: Player, data: dict):
             await broadcast_to_room(player.room_id, {
                 "type": "message",
                 "text": f"{player.name} arrived.",
+                "style": "action"
+            }, exclude=player.name)
+    
+    # Update room if player teleported (WIZ, TELEPORT, ROOM commands)
+    if result.get("room_changed"):
+        await send_room_update(player)
+        
+        # Announce to old room if teleport flag is set
+        if result.get("teleport") and result.get("old_room") and result["old_room"] != player.room_id:
+            await broadcast_to_room(result["old_room"], {
+                "type": "message",
+                "text": f"{player.name} vanishes!",
+                "style": "action"
+            })
+        
+        # Announce to new room if teleport flag is set
+        if result.get("teleport") and result.get("old_room") != player.room_id:
+            await broadcast_to_room(player.room_id, {
+                "type": "message",
+                "text": f"{player.name} appears!",
                 "style": "action"
             }, exclude=player.name)
     
@@ -628,6 +680,7 @@ async def handle_command(player: Player, data: dict):
         target_player = game_state.get_player(target_name)
         if target_player:
             summon_room = result.get("summon_to_room")
+            old_room = target_player.room_id
             
             # Notify summoned player (line 1670: PROCY(?&7702):PRINTJ$;C$;)
             await send_to_player(target_player, {
@@ -636,15 +689,16 @@ async def handle_command(player: Player, data: dict):
                 "style": "combat"
             })
             
-            # Update summoned player's room
-            await send_room_update(target_player)
-            
             # Announce to old room
-            await broadcast_to_room(target_player.room_id, {
+            await broadcast_to_room(old_room, {
                 "type": "message",
                 "text": f"{target_player.name} vanishes!",
                 "style": "action"
             }, exclude=target_player.name)
+            
+            # Update summoned player's room
+            target_player.room_id = summon_room
+            await send_room_update(target_player)
             
             # Announce to new room
             await broadcast_to_room(summon_room, {
@@ -721,6 +775,16 @@ async def send_room_update(player: Player):
     
     if not room:
         return
+    
+    # Send disk activity notification (loading room data from disk)
+    await send_to_player(player, {
+        "type": "disk_activity",
+        "operation": "read"
+    })
+    
+    # Simulate disk read delay (room data loading)
+    import asyncio
+    await asyncio.sleep(0.15)  # Short delay for room loading
     
     # Get other players in room
     other_players = [

@@ -1,311 +1,59 @@
 ================================================================================
-OBJINIT FILE - ANNOTATED VERSION
-Initial Object and Creature Placement for Cave-Plus
+OBJINIT FILE DECODER - Initial Object/Creature Placement
 ================================================================================
 
-This binary file (256 bytes) contains the initial placement of all 42 objects
-and creatures in the game. Each entry is a 4-byte little-endian integer.
+Header/Load Address: 0x00000002
 
-FORMAT:
-  Byte 0:       Room number (0-70)
-  Bytes 1-3:    Initial stamina/health for creatures (0 for items)
+Total entries: 63
+Expected: 42 objects + creatures
 
-SPECIAL ROOMS:
-  Room 1:  Altar (where Staff of Merlin can be charged)
-  Room 19: Mortuary (where dead creatures go)
-  Room 20: Armoury (where exorcised objects are moved)
-  Room 56: Bank (where treasure can be deposited)
-
-================================================================================
-ITEMS (Objects 1-15)
-================================================================================
-
- 1. Vodka                Room  2  (0x00000002)
-    - Drinking increases vodka level, affects typing and movement
-    - Restores some stamina
-
- 2. Stick                Room 32  (0x00000020)
-    - Weapon for hitting enemies
-    - Increases hit damage by 3 points
-
- 3. Poison               Room  5  (0x00000005)
-    - Can be drunk (bad idea!) or used to poison others
-    - Causes continuous damage over time
-
- 4. Dagger               Room  5  (0x00000005)
-    - Weapon for stabbing attacks
-    - Deals 6-9 damage
-
- 5. Arrow                Room 30  (0x0000001E)
-    - Ammunition for bow
-    - Deals 30-40 damage when shot
-
- 6. Medicine             Room 11  (0x0000000B)
-    - Cures poison
-    - Essential for survival if poisoned
-
- 7. Knife                Room 15  (0x0000000F)
-    - Another stabbing weapon
-    - Similar to dagger
-
- 8. Flamethrower         Room 25  (0x00000019)
-    - Weapon for burning attacks
-    - Deals 50-75 damage
-
- 9. Ruby                 Room 20  (0x00000014) - ARMOURY
-    - Valuable gem
-    - Can be collected
-
-10. Shield               Room 20  (0x00000014) - ARMOURY
-    - Protects against ZAP attacks
-    - Blocks magical staff attacks
-
-11. Crystal              Room 37  (0x00000025)
-    - Crystal ball for remote viewing
-    - Use VIEW command to see other rooms
-
-12. Staff                Room  1  (0x00000001) - ALTAR
-    - Staff of Merlin
-    - Powerful ZAP attack (50-75 damage)
-    - Must be charged at altar (room 1)
-    - Holds up to 7 charges
-
-13. Amulet               Room  1  (0x00000001) - ALTAR
-    - Magical amulet
-    - One of the magic items (only one magic item can be carried)
-
-14. Treasure             Room  1  (0x00000001) - ALTAR
-    - Can be deposited at bank (room 56) for 20-40 points
-    - Respawns in random room after deposit
-
-15. Guardian             Room  1  (0x00000001) - ALTAR
-    - Special item (possibly related to Guardian creature)
+ 1. Vodka                = 0x00000020 -> Room 32
+ 2. Stick                = 0x00000005 -> Room 5
+ 3. Poison               = 0x00000005 -> Room 5
+ 4. Dagger               = 0x0000001E -> Room 30
+ 5. Arrow                = 0x0000000B -> Room 11
+ 6. Medicine             = 0x0000000F -> Room 15
+ 7. Knife                = 0x00000019 -> Room 25
+ 8. Flamethrower         = 0x00000014 -> Room 20
+ 9. Ruby                 = 0x00000014 -> Room 20
+10. Shield               = 0x00000025 -> Room 37
+11. Crystal              = 0x00000001 -> Room 1
+12. Staff                = 0x00000001 -> Room 1
+13. Amulet               = 0x00000001 -> Room 1
+14. Treasure             = 0x00000001 -> Room 1
+15. Guardian             = 0x00000001 -> Room 1
+16. Dragon               = 0x00031026 -> Room 38 (stamina: 784)
+17. Troll                = 0x00005717 -> Room 23 (stamina: 87)
+18. (unnamed)            = 0x00003005 -> Room 5 (stamina: 48)
+19. Maggot               = 0x0000430B -> Room 11 (stamina: 67)
+20. (unnamed)            = 0x00002227 -> Room 39 (stamina: 34)
+21. Author               = 0x00024314 -> Room 20 (stamina: 579)
+22. Spider               = 0x00003143 -> Room 67 (stamina: 49)
+23. Coward               = 0x0000262E -> Room 46 (stamina: 38)
+24. Killer               = 0x00007014 -> Room 20 (stamina: 112)
+25. Viper                = 0x00002A1A -> Room 26 (stamina: 42)
+26. Cobra                = 0x00002A1A -> Room 26 (stamina: 42)
+27. Python               = 0x00002A1A -> Room 26 (stamina: 42)
+28. Adder                = 0x00002A1A -> Room 26 (stamina: 42)
+29. Worm                 = 0x00000614 -> Room 20 (stamina: 6)
+30. Drunk                = 0x00003720 -> Room 32 (stamina: 55)
+31. (unnamed)            = 0x0000303F -> Room 63 (stamina: 48)
+32. Toad                 = 0x00003C3F -> Room 63 (stamina: 60)
+33. (unnamed)            = 0x00000014 -> Room 20
+34. Guardian             = 0x00FFFF37 -> Room 55 (stamina: 65535)
+35. Goblin               = 0x00003203 -> Room 3 (stamina: 50)
+36. (unnamed)            = 0x0000140D -> Room 13 (stamina: 20)
+37. Dwarf                = 0x00003C0D -> Room 13 (stamina: 60)
+38. Necromancer          = 0x00003225 -> Room 37 (stamina: 50)
+39. Centipede            = 0x0000500E -> Room 14 (stamina: 80)
+40. (unnamed)            = 0x00006408 -> Room 8 (stamina: 100)
+41. Skeleton             = 0x00006453 -> Room 83 (stamina: 100)
+42. Caveman              = 0x00009655 -> Room 85 (stamina: 150)
 
 ================================================================================
-CREATURES (Objects 16-42)
-================================================================================
-
-BOSS CREATURES:
----------------
-
-16. Dragon               Room  1  (0x00000001) - ALTAR
-    Health: 600 HP (from data file)
-    - THE ultimate boss monster
-    - Passive until provoked
-    - Burn attack: 160-240 damage
-    - Killing it triggers "The Dragon is Slain!!" message
-    - Awards major points
-
-34. Guardian             Room 20  (0x00000014) - ARMOURY
-    Health: 999 HP (from data file)
-    - Nearly invincible guardian
-    - ZAP attack: 50-75 damage
-    - Doesn't move or follow
-    - Blocks creature 14's magic when present
-
-STRONG CREATURES:
------------------
-
-17. Troll                Room 38  (0x00031026)
-    Initial Stamina: 784 HP
-    Data Health: 80 HP
-    - Moderately aggressive
-    - Can teleport (30%) and follow (60%)
-    - Hit attack: 4-6 damage
-    NOTE: Initial stamina much higher than base health!
-
-21. Author               Room 39  (0x00002227)
-    Initial Stamina: 34 HP
-    Data Health: 500 HP
-    - Easter egg character (the game author!)
-    - Follows almost everywhere (99.9%)
-    - ZAP attack: 120-180 damage
-    - Can teleport (10%)
-
-24. Killer               Room 46  (0x0000262E)
-    Initial Stamina: 38 HP
-    Data Health: 100 HP
-    - Teleports frequently (80%)
-    - Follows relentlessly (95%)
-    - Stab attack: 8-12 damage
-
-38. Necromancer          Room 13  (0x00003C0D)
-    Initial Stamina: 60 HP
-    Data Health: 500 HP
-    - Powerful magic user
-    - ZAP attack: 30-45 damage
-    - Moderate mobility
-
-MEDIUM CREATURES:
------------------
-
-22. Spider               Room 20  (0x00024314) - ARMOURY
-    Initial Stamina: 579 HP
-    Data Health: 40 HP
-    - Basic enemy
-    - Hit attack: 2-3 damage
-    - Low aggression (10%)
-
-19. Maggot               Room  5  (0x00003005)
-    Initial Stamina: 48 HP
-    Data Health: 60 HP
-    - Loves to follow (85%)
-    - Bite attack: 6-9 damage
-    - Moderate aggression (20%)
-
-32. Toad                 Room 63  (0x0000303F)
-    Initial Stamina: 48 HP
-    Data Health: 40 HP
-    - Moderate stats
-    - Bite attack: 6-9 damage
-    - Follows 40% of time
-
-37. Dwarf                Room 13  (0x0000140D)
-    Initial Stamina: 20 HP
-    Data Health: 60 HP
-    - Surprisingly bites!
-    - Bite attack: 8-12 damage
-    - Moderate mobility
-
-39. Centipede            Room 37  (0x00003225)
-    Initial Stamina: 50 HP
-    Data Health: 80 HP
-    - Multi-legged menace
-    - Bite attack: 8-12 damage
-    - Decent health
-
-41. Skeleton             Room  8  (0x00006408)
-    Initial Stamina: 100 HP
-    Data Health: 100 HP
-    - Undead warrior
-    - Hit attack: 1-1.5 damage (very weak!)
-    - High health, low damage
-
-42. Caveman              Room 83  (0x00006453)
-    Initial Stamina: 100 HP
-    Data Health: 150 HP
-    - Primitive human
-    - Hit attack: 1-1.5 damage
-    - Highest health of weak attackers
-
-SNAKE FAMILY:
--------------
-
-25. Viper                Room 20  (0x00007014) - ARMOURY
-    Initial Stamina: 112 HP
-    Data Health: 35 HP
-
-26. Cobra                Room 26  (0x00002A1A)
-    Initial Stamina: 42 HP
-    Data Health: 35 HP
-
-27. Python               Room 26  (0x00002A1A)
-    Initial Stamina: 42 HP
-    Data Health: 35 HP
-
-28. Adder                Room 26  (0x00002A1A)
-    Initial Stamina: 42 HP
-    Data Health: 35 HP
-
-All snakes:
-    - Identical stats
-    - Bite attack: 6-9 damage
-    - Teleport frequently (60%)
-    - Follow moderately (50%)
-
-WEAK CREATURES:
----------------
-
-29. Worm                 Room 26  (0x00002A1A)
-    Initial Stamina: 42 HP
-    Data Health: 5 HP
-    - Weakest creature (only 5 HP!)
-    - Very aggressive (95% attack chance)
-    - Hit attack: 2-3 damage
-    - Easy kill for points
-
-30. Drunk                Room 20  (0x00000614) - ARMOURY
-    Initial Stamina: 6 HP
-    Data Health: 40 HP
-    - Stumbles around (70% teleport)
-    - Hit attack: 2-3 damage
-    - Moderate aggression (30%)
-
-23. Coward               Room 67  (0x00003143)
-    Initial Stamina: 49 HP
-    Data Health: 50 HP
-    - Lives up to its name
-    - Never follows (0%)
-    - Attacks when cornered (50%)
-    - Hit attack: 3-4.5 damage
-
-UNNAMED CREATURES:
-------------------
-
-18. (unnamed)            Room 23  (0x00005717)
-    Initial Stamina: 87 HP
-    - Bite attack: 6-9 damage
-
-20. (unnamed)            Room 11  (0x0000430B)
-    Initial Stamina: 67 HP
-    - Hit attack: 2-3 damage
-
-31. (unnamed)            Room 32  (0x00003720)
-    Initial Stamina: 55 HP
-    - Bite attack: 6-9 damage
-
-33. (unnamed)            Room 63  (0x00003C3F)
-    Initial Stamina: 60 HP
-    - Bite attack: 6-9 damage
-
-35. Goblin               Room 55  (0x00FFFF37)
-    Initial Stamina: 65535 HP (MAX!)
-    Data Health: 50 HP
-    - Stab attack: 6-9 damage
-    NOTE: Appears to have corrupted stamina value!
-
-36. (unnamed)            Room  3  (0x00003203)
-    Initial Stamina: 50 HP
-    - Hit attack: 2-3 damage
-
-40. (unnamed)            Room 14  (0x0000500E)
-    Initial Stamina: 80 HP
-    - Hit attack: 1-1.5 damage
-
-================================================================================
-ROOM DISTRIBUTION ANALYSIS
-================================================================================
-
-Most Populated Rooms:
-- Room  1 (Altar):    6 items/creatures (Dragon, Staff, Amulet, Treasure, Guardian x2)
-- Room 20 (Armoury):  6 items/creatures (Ruby, Shield, Spider, Viper, Drunk, Guardian)
-- Room 26:            5 creatures (Cobra, Python, Adder, Worm, and one more)
-
-Strategic Locations:
-- Room  1: High-value items and Dragon boss
-- Room 20: Armoury with defensive items and multiple enemies
-- Room 13: Dwarf and Necromancer together (dangerous!)
-- Room 26: Snake pit!
-
-Empty Rooms:
-- Many rooms (6, 7, 9, 10, 12, 16-19, 21-25, 27-31, etc.) start empty
-- Rooms 16-20 are in "wizard's domain" (special area)
-
-================================================================================
-NOTES ON STAMINA VALUES
-================================================================================
-
-There's a discrepancy between initial stamina (in OBJINIT) and base health
-(in data file). The game likely uses:
-- OBJINIT stamina: Starting health when game begins
-- Data file health: Health when creature is deployed/respawned
-
-Some creatures have much higher initial stamina than their base health,
-suggesting they were manually placed with boosted stats for game balance.
-
-The Goblin with 65535 HP appears to be a bug or intentional "unkillable"
-creature for testing/easter egg purposes.
-
-================================================================================
-END OF OBJINIT ANALYSIS
+NOTES:
+- Room 19 = Mortuary (where dead creatures go)
+- Room 20 = Armoury
+- Room 56 = Bank (for treasure deposit)
+- High bytes for creatures = initial stamina/health
 ================================================================================

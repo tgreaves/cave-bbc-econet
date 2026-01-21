@@ -275,7 +275,6 @@ class CommandParser:
         player.room_id = next_room
         
         return {
-            "message": f"You move {direction}.",
             "moved": True,
             "old_room": old_room,
             "direction": direction
@@ -925,13 +924,11 @@ Examples:
         old_room = player.room_id
         player.room_id = target_room
         
-        # Show new location (same as LOOK command)
-        look_result = await self.look(player)
-        
         return {
-            "message": f"You concentrate... and suddenly find yourself elsewhere!\n\n{look_result['message']}",
+            "message": "You concentrate... and suddenly find yourself elsewhere!",
             "room_changed": True,
-            "teleport": True
+            "teleport": True,
+            "old_room": old_room
         }
     
     async def summon(self, player: Player, target_name: str) -> Dict:
@@ -1166,11 +1163,8 @@ Examples:
         old_room = player.room_id
         player.room_id = 16
         
-        # Get room info for display
-        look_result = await self.look(player)
-        
         return {
-            "message": f"You vanish in a puff of smoke!\n\n{look_result['message']}",
+            "message": "You vanish in a puff of smoke!",
             "room_changed": True,
             "teleport": True,
             "old_room": old_room
@@ -1203,11 +1197,8 @@ Examples:
         old_room = player.room_id
         player.room_id = target_room
         
-        # Get room info for display
-        look_result = await self.look(player)
-        
         return {
-            "message": f"You concentrate... and suddenly find yourself elsewhere!\n\n{look_result['message']}",
+            "message": "You concentrate... and suddenly find yourself elsewhere!",
             "room_changed": True,
             "teleport": True,
             "old_room": old_room

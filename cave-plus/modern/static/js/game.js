@@ -1,4 +1,4 @@
-// Cave-Plus Web Client v1.1
+// Cave-Plus Web Client v1.6 - Auto-scroll after disk activity
 class CaveGame {
     constructor() {
         this.ws = null;
@@ -22,6 +22,10 @@ class CaveGame {
         
         // Audio context for BBC Micro beep simulation
         this.audioContext = null;
+        
+        // Disk activity state - queue messages during disk operations
+        this.diskActivityInProgress = false;
+        this.messageQueue = [];
         
         this.initElements();
         this.initEventListeners();
@@ -260,8 +264,46 @@ class CaveGame {
         };
     }
     
-    handleMessage(data) {
+    async handleMessage(data) {
+        // If disk activity is in progress and this isn't a disk_activity message, queue it
+        if (this.diskActivityInProgress && data.type !== 'disk_activity') {
+            console.log('🖴 Queuing message during disk activity:', data.type);
+            this.messageQueue.push(data);
+            return;
+        }
+        
         switch (data.type) {
+            case 'disk_activity':
+                // Play disk sounds and block until complete
+                console.log('🖴 Disk activity started:', data.operation);
+                this.diskActivityInProgress = true;
+                
+                // Hide prompt during disk activity
+                this.promptElement.style.display = 'none';
+                this.commandDisplay.style.display = 'none';
+                const cursorDisk = this.messageLog.querySelector('.cursor');
+                if (cursorDisk) cursorDisk.style.display = 'none';
+                
+                const operation = data.operation || 'read';
+                await this.playDiskOperation(operation);
+                this.diskActivityInProgress = false;
+                console.log('🖴 Disk activity complete, processing', this.messageQueue.length, 'queued messages');
+                
+                // Process any queued messages
+                while (this.messageQueue.length > 0) {
+                    const queuedMessage = this.messageQueue.shift();
+                    await this.handleMessage(queuedMessage);
+                }
+                
+                // Show prompt after all queued messages are processed
+                this.promptElement.style.display = 'inline';
+                this.commandDisplay.style.display = 'inline';
+                if (cursorDisk) cursorDisk.style.display = 'inline';
+                
+                // Scroll to show the prompt
+                this.messageLog.scrollTop = this.messageLog.scrollHeight;
+                break;
+            
             case 'disable_input':
                 // Disable command input (used during QUIT/death sequence)
                 this.commandInput.disabled = true;
@@ -612,6 +654,78 @@ class CaveGame {
             
             oscillator.start(startTime);
             oscillator.stop(startTime + 0.1); // 100ms duration
+        }
+    }
+    
+    async playDiskOperation(type = 'read') {
+        // Play complete disk operation using real BBC Micro disk sounds
+        // Returns a promise that resolves when sound completes
+        if (!this.soundEnabled) {
+            // Still add delay even if sound is off (authentic disk timing)
+            return new Promise(resolve => {
+                setTimeout(resolve, type === 'read' ? 400 : 600);
+            });
+        }
+        
+        console.log('🖴 Playing disk operation:', type);
+        
+        return new Promise(async (resolve) => {
+            // Play seek.wav first
+            await this.playWavFile('/static/sounds/seek.wav');
+            
+            // Small delay between seek and steps
+            await new Promise(r => setTimeout(r, 100));
+            
+            // Play step.wav 2-3 times
+            const steps = 2 + Math.floor(Math.random() * 2); // 2-3 steps
+            console.log('   Playing', steps, 'steps');
+            for (let i = 0; i < steps; i++) {
+                await this.playWavFile('/static/sounds/step.wav');
+                if (i < steps - 1) {
+                    await new Promise(r => setTimeout(r, 50)); // 50ms between steps
+                }
+            }
+            
+            // Resolve after operation completes
+            setTimeout(resolve, type === 'read' ? 200 : 400);
+        });
+    }
+    
+    async playWavFile(url) {
+        // Play a WAV file using Web Audio API
+        if (!this.soundEnabled) {
+            return;
+        }
+        
+        // Lazy initialize audio context
+        if (!this.audioContext) {
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('   Audio context created:', this.audioContext.state);
+            } catch (e) {
+                console.error('   Failed to create audio context:', e);
+                return;
+            }
+        }
+        
+        try {
+            // Fetch and decode the audio file
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            
+            // Create and play the sound
+            const source = this.audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(this.audioContext.destination);
+            
+            // Return a promise that resolves when the sound finishes
+            return new Promise((resolve) => {
+                source.onended = resolve;
+                source.start(0);
+            });
+        } catch (e) {
+            console.error('   Error playing WAV file:', url, e);
         }
     }
     
