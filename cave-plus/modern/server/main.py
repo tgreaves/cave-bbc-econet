@@ -420,6 +420,11 @@ async def handle_command(player: Player, data: dict):
     
     # Handle QUIT sequence with delays (matching BBC Micro timing)
     if result.get("quit_sequence"):
+        # Disable input immediately (before "Hold on" appears)
+        await send_to_player(player, {
+            "type": "disable_input"
+        })
+        
         # Line 2720: "Hold on"
         await send_to_player(player, {
             "type": "message",

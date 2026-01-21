@@ -1,12 +1,12 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (23 total):
+IMPLEMENTED COMMANDS (26 total):
 =================================
 Movement (6):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
 
-Interaction (7):
+Interaction (9):
   LOOK/L          - Look at current room
   GET/TAKE/PICKUP - Pick up an object (prevents picking up creatures)
   DROP/LEAVE      - Drop an object
@@ -14,6 +14,8 @@ Interaction (7):
   SAY/CHAT/TALK   - Say something to players in room
   HELLO           - Say hello (broadcasts "PlayerName says HELLO!" to room)
   KILL            - Shows message "Life is not that simple...try HIT"
+  EXAMINE         - Examine an object (shows "You see nothing special")
+  DEPOSIT         - Deposit treasure at bank (room 56) for 20-40 points
   
 Combat (5):
   HIT/ATTACK/FIGHT - Attack with bare hands or stick
@@ -22,9 +24,10 @@ Combat (5):
   SHOOT           - Attack with arrow
   ZAP/STAFF       - Wizard-only: Attack with Staff of Merlin (requires wizard rank, staff + charges)
 
-Magic/Special (2):
+Magic/Special (3):
   TELEPORT/TELE   - Teleport to an object or creature (success based on rank, score, Shield)
   CHARGE          - Charge Staff of Merlin at altar (room 1)
+  DRINK           - Drink vodka, poison, or medicine
   
 Information (3):
   SCORE/STATS/STATUS - Show score and stamina
@@ -34,21 +37,19 @@ Information (3):
 System (1):
   QUIT/EXIT       - Save and quit game
 
-Wizard-Only Commands (4):
+Wizard-Only Commands (5):
   WIZ             - Teleport to room 16 (Wizard's domain)
   SUMMON <target> - Summon object or creature to your location
   DEPLOY <target> - Resurrect creature from mortuary to your room
   REGEN           - Reset all objects and creatures to initial state
+  ACTIVITY <0-9>  - Set CCM activity level (0=passive, 9=maximum aggression)
 
-NOT YET IMPLEMENTED (26 commands):
+NOT YET IMPLEMENTED (23 commands):
 ===================================
 Basic Commands:
   EXORCISE        - Exorcise an object to the armoury (room 20)
-  DRINK           - Drink vodka, poison, or medicine
   POISON          - Poison another player
   VIEW            - Use crystal ball to view remote location
-  EXAMINE         - Examine an object (shows "nothing special")
-  DEPOSIT         - Deposit treasure at bank (room 56) for points
   PULL            - Pull rope (portcullis in rooms 29/30)
   ANNOY           - Make creature aggressive
   BITE            - Bite attack (creature-like)
@@ -63,7 +64,6 @@ Wizard-Only Commands (Not Implemented):
   SLOW            - Disable fast mode
   PACIFY          - Make creature passive
   ALIAS           - Change player name
-  ACTIVITY        - Set activity level
   COLLAPSE        - Trigger cave collapse for all players
   FORCE           - Force another player to execute a command
 
@@ -91,6 +91,8 @@ IMPLEMENTATION NOTES:
 - Staff charging happens at altar (room 1) via CHARGE command
 - Creature movement has two types: walk (10x more likely) and teleport (rare)
 - Room display matches BBC Micro: no room numbers, no exits, no aggressive status
+- DEPOSIT: Treasure can be deposited at bank (room 56) for 20-40 points, then respawns randomly
+- Objects 11-15 (Crystal Ball, Staff, Amulet, Treasure, Guardian) spawn randomly on REGEN
 """
 
 import random
@@ -223,6 +225,22 @@ class CommandParser:
         # Drink command
         if cmd in ['drink']:
             return await self.drink(player, args)
+        
+        # Examine command
+        if cmd in ['examine']:
+            return await self.examine(player, args)
+        
+        # Abbreviated examine/look (shows "Idiot!")
+        if cmd in ['exa', 'loo']:
+            return {"message": "Idiot!"}
+        
+        # Activity command (Wizard-only)
+        if cmd in ['activity']:
+            return await self.activity(player, args)
+        
+        # Deposit command
+        if cmd in ['deposit']:
+            return await self.deposit(player, args)
             
         # Quit command (save and exit)
         if cmd in ['quit', 'exit']:
@@ -1045,20 +1063,28 @@ Examples:
         Regenerate all objects and creatures to initial state
         Based on REGEN command from original game (line 2580)
         Wizard-only command - resets the entire game world
+        Original: IFC$="REGEN"AND G OSCLI"LO.OBJINIT":PROCU:ENDPROC
+        No message is shown in the original
         """
         # Must be a wizard
         if player.rank != "Wizard":
             return {"message": "Only wizards can regenerate!"}
         
+        # Clear all player inventories to prevent object duplication
+        for p in self.game_state.players.values():
+            p.inventory = []
+        
         # Reload creatures (this will reset all creatures to initial positions)
         await self.game_state.load_creatures(clear_existing=True)
         
-        # Reload objects (reset to initial positions)
-        await self.game_state.load_initial_objects()
+        # Reload objects (reset to initial positions, clearing existing)
+        await self.game_state.load_initial_objects(clear_existing=True)
         
+        # No message in original - just silently regenerates
         return {
-            "message": "Objects and creatures regenerated.",
-            "regen": True
+            "message": "",
+            "regen": True,
+            "inventory_changed": True  # Flag to update inventory display
         }
     
     async def charge_staff(self, player: Player) -> Dict:
@@ -1168,6 +1194,98 @@ Examples:
         
         else:
             return {"message": f"You can't drink the {found_item}!", "beeps": 1}
+    
+    async def examine(self, player: Player, item_name: str) -> Dict:
+        """
+        Examine an object
+        Based on line 2340: IFC$="EXAMINE"PRINT"You see nothing special":ENDPROC
+        Always returns the same message regardless of what is examined
+        """
+        return {"message": "You see nothing special"}
+    
+    async def activity(self, player: Player, level_str: str) -> Dict:
+        """
+        Set CCM activity level (Wizard-only)
+        Based on line 2550/2820: IFC$="ACTIVITY"ANDGPROCGA
+        PROCGA: PRINT"Enter CCM activity (0-9) ";:A$=FNG:IFA$<"0"ORA$>"9"PRINT;?&A00:ENDPROC
+        Line 2850: PRINTA$:?&A00=VALA$:PROCA(&A00,&A01):ENDPROC
+        """
+        # Must be a wizard
+        if player.rank != "Wizard":
+            return {"message": "Only wizards can set activity level!"}
+        
+        # Parse level
+        if not level_str:
+            # Show current level if no argument
+            return {"message": f"Current CCM activity: {self.game_state.activity_level}"}
+        
+        try:
+            level = int(level_str)
+        except ValueError:
+            return {"message": f"Current CCM activity: {self.game_state.activity_level}", "beeps": 1}
+        
+        # Validate range (0-9)
+        if level < 0 or level > 9:
+            return {"message": f"Current CCM activity: {self.game_state.activity_level}", "beeps": 1}
+        
+        # Set activity level
+        self.game_state.activity_level = level
+        
+        # No message in original - just silently sets the value
+        return {"message": ""}
+    
+    async def deposit(self, player: Player, item_name: str) -> Dict:
+        """
+        Deposit treasure at bank (room 56)
+        Based on PROCW (lines 3341-3345):
+        3341: IFD$<>"Treasure"PRINT"You can't.":ENDPROC
+        3343: IF!(&A00+15*4)<>A*&100PRINT"But you have no treasure !":VDU7:ENDPROC
+        3344: IFB<>56PRINT"Not here I'm afraid.":ENDPROC
+        3345: N=20+RND(20):PRINT"...";N;" points.":H=H+N
+        3345: REPEATN=RND(b):UNTILN>20ORN<16:!(&A00+15*4)=N:U=U-1:ENDPROC
+        """
+        import random
+        
+        # Must be depositing treasure
+        if not item_name or "treasure" not in item_name.lower():
+            return {"message": "You can't."}
+        
+        # Must have treasure in inventory
+        has_treasure = any("treasure" in item.lower() for item in player.inventory)
+        if not has_treasure:
+            return {"message": "But you have no treasure !", "beeps": 1}
+        
+        # Must be in room 56 (the bank)
+        if player.room_id != 56:
+            return {"message": "Not here I'm afraid."}
+        
+        # Award points (20-40)
+        points = 20 + random.randint(1, 20)
+        player.add_score(points)
+        
+        # Remove treasure from inventory
+        for item in player.inventory[:]:
+            if "treasure" in item.lower():
+                player.remove_item(item)
+                break
+        
+        # Respawn treasure in random room (not in wizard's domain 16-20)
+        # Line 3345: REPEATN=RND(b):UNTILN>20ORN<16
+        max_room = max(self.game_state.rooms.keys())
+        while True:
+            new_room = random.randint(1, max_room)
+            if new_room > 20 or new_room < 16:
+                break
+        
+        # Add treasure to new room
+        if new_room not in self.game_state.objects:
+            self.game_state.objects[new_room] = []
+        self.game_state.objects[new_room].append("Treasure")
+        
+        return {
+            "message": f"You deposit the treasure, which vanishes and you get credited with {points} points.",
+            "inventory_changed": True
+        }
 
     async def quit_game(self, player: Player) -> Dict:
         """

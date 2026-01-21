@@ -17,6 +17,7 @@ class GameState:
         self.creatures_by_room: Dict[int, List[int]] = {}  # room_id -> list of creature_ids
         self.rooms_with_graphics = set()
         self.tick_count = 0
+        self.activity_level = 0  # CCM activity level (0-9), default 0
         
     async def initialize(self):
         """Load game data"""
@@ -59,17 +60,27 @@ class GameState:
             }
             self.objects[1] = []
     
-    async def load_initial_objects(self):
-        """Load initial object placement"""
+    async def load_initial_objects(self, clear_existing: bool = False):
+        """
+        Load initial object placement
+        Based on OBJINIT and DEFPROCU (line 1001)
+        DEFPROCU randomly places objects 11-15 in rooms excluding wizard's domain (16-20)
+        """
+        # Clear existing objects if regenerating
+        if clear_existing:
+            self.objects.clear()
+            # Initialize empty lists for all rooms
+            for room_id in self.rooms.keys():
+                self.objects[room_id] = []
+        
         # Graphics availability (rooms with PNG files)
         self.rooms_with_graphics = {
             2, 3, 9, 11, 12, 13, 16, 17, 18, 19, 20, 25, 29, 30,
             32, 37, 49, 50, 51, 55, 60, 99, 141, 148, 150
         }
         
-        # Initial object placement (from OBJINIT analysis)
-        initial_placement = {
-            1: ["Staff of Merlin", "Amulet", "Treasure"],
+        # Fixed object placement (objects 1-10 from OBJINIT)
+        fixed_placement = {
             2: ["Vodka"],
             5: ["Poison", "Dagger"],
             11: ["Medicine"],
@@ -78,12 +89,35 @@ class GameState:
             25: ["Flamethrower"],
             30: ["Arrow"],
             32: ["Stick"],
-            37: ["Crystal Ball"],
         }
         
-        for room_id, objects in initial_placement.items():
-            if room_id in self.objects:
-                self.objects[room_id].extend(objects)
+        for room_id, objects in fixed_placement.items():
+            if room_id not in self.objects:
+                self.objects[room_id] = []
+            self.objects[room_id] = list(objects)  # Replace with fresh copy
+        
+        # Random object placement (objects 11-15 from OBJINIT)
+        # DEFPROCU: REPEATT=RND(b):UNTILT>20ORT<16
+        # This places objects in random rooms excluding wizard's domain (16-20)
+        random_objects = [
+            "Crystal Ball",    # Object 11
+            "Staff of Merlin", # Object 12
+            "Amulet",          # Object 13
+            "Treasure",        # Object 14
+            "Guardian"         # Object 15
+        ]
+        
+        max_room = max(self.rooms.keys())
+        for obj in random_objects:
+            # Find random room excluding wizard's domain (16-20)
+            while True:
+                room = random.randint(1, max_room)
+                if room > 20 or room < 16:
+                    break
+            
+            if room not in self.objects:
+                self.objects[room] = []
+            self.objects[room].append(obj)
     
     async def load_creatures(self, clear_existing: bool = False):
         """Load and spawn initial creatures"""
@@ -138,12 +172,13 @@ class GameState:
                 continue
             
             # Check if creature should walk (10x more likely than teleport)
-            if creature.should_walk():
+            # Pass activity_level to respect BBC Micro behavior
+            if creature.should_walk(self.activity_level):
                 movement_info = await self.walk_creature(creature)
                 if movement_info:
                     movement_events.append(movement_info)
             # Check if creature should teleport (rare)
-            elif creature.should_teleport():
+            elif creature.should_teleport(self.activity_level):
                 movement_info = await self.teleport_creature(creature)
                 if movement_info:
                     movement_events.append(movement_info)
@@ -156,7 +191,8 @@ class GameState:
                     creature.target_player = target.name
             
             # Check if creature should attack
-            if creature.should_attack():
+            # Pass activity_level to respect BBC Micro behavior
+            if creature.should_attack(self.activity_level):
                 attack_info = await self.creature_attack(creature)
                 if attack_info:
                     attack_events.append(attack_info)

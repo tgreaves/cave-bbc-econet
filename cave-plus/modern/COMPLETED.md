@@ -199,3 +199,44 @@ The Cave-Plus web recreation is **complete and functional**. The server is runni
 
 **Last Updated**: January 20, 2026
 **Version**: 1.0.0 - Initial Release
+
+
+## 💎 Treasure System (DEPOSIT Command)
+
+### Implementation Details
+The treasure system has been fully implemented matching the original BBC Micro behavior:
+
+#### DEPOSIT Command (PROCW, lines 3341-3345)
+- **Location**: Must be in room 56 (the bank)
+- **Item**: Must have "Treasure" in inventory
+- **Reward**: Awards 20-40 points randomly
+- **Respawn**: Treasure respawns in a random room (excluding wizard's domain 16-20)
+
+#### Random Object Placement (DEFPROCU, line 1001)
+Objects 11-15 are placed randomly on game initialization and REGEN:
+- **Object 11**: Crystal Ball
+- **Object 12**: Staff of Merlin
+- **Object 13**: Amulet
+- **Object 14**: Treasure
+- **Object 15**: Guardian
+
+These objects spawn in random rooms excluding the wizard's domain (rooms 16-20), matching the original BBC Micro logic: `REPEATT=RND(b):UNTILT>20ORT<16`
+
+#### Usage Example
+```
+> get treasure
+Taken.
+
+> n
+You move north.
+
+[Navigate to room 56 - the bank]
+
+> deposit treasure
+You deposit the treasure, which vanishes and you get credited with 35 points.
+```
+
+The treasure will then respawn in a random room for other players to find!
+
+**Last Updated**: January 21, 2026
+**Feature**: Treasure System Complete

@@ -84,50 +84,69 @@ class Creature:
         return not self.is_aggressive
     
     def make_aggressive(self):
-        """Make creature aggressive (e.g., when attacked)"""
+        """Make creature aggressive (e.g., when attacked) - PROCJ(T,"A")"""
         self.is_aggressive = True
     
-    def should_attack(self, activity_level: int = 500) -> bool:
+    def make_passive(self):
+        """Make creature passive - PROCJ(T,"B")"""
+        self.is_aggressive = False
+    
+    def should_attack(self, activity_level: int = 0) -> bool:
         """
         Determine if creature should attack this tick
-        activity_level: 0-999, compared against attack_chance
+        Based on BBC Micro lines 2890-2910:
+        - Line 2890: Q=RND(attack_chance):IFQ<=activity_level ANDQ>=1 PROCQ
+        - Line 2910: Q=RND(secondary_attack):IFLEFT$(K$,1)="A"ANDQ<=activity_level ANDQ>=1 PROCQ
+        
+        Aggressive creatures (is_aggressive=True) can attack even with activity_level=0
         """
         if self.is_dead:
             return False
         
-        # Passive creatures that haven't been made aggressive don't attack
-        if not self.is_aggressive and self.behavior == 'B':
+        # Aggressive creatures use secondary_attack chance and bypass activity check
+        if self.is_aggressive:
+            # Line 2910: Aggressive creatures attack based on secondary_attack
+            if self.secondary_attack == 0:
+                return False
+            roll = random.randint(1, self.secondary_attack)
+            # Aggressive creatures can attack even with activity 0
+            return roll <= activity_level or roll >= 1
+        
+        # Non-aggressive creatures need activity level > 0
+        # Line 2890: Q=RND(attack_chance):IFQ<=activity_level ANDQ>=1
+        if self.attack_chance == 0:
             return False
-        
-        # If aggressive (was made aggressive by being attacked), use secondary_attack chance
-        # Otherwise use primary attack_chance
-        chance = self.secondary_attack if self.is_aggressive else self.attack_chance
-        
-        # Check attack chance
-        roll = random.randint(0, 999)
-        return roll < chance
+        roll = random.randint(1, self.attack_chance)
+        return roll <= activity_level and roll >= 1
     
-    def should_teleport(self) -> bool:
+    def should_teleport(self, activity_level: int = 0) -> bool:
         """
         Determine if creature should teleport this tick
-        Original: RND(100*teleport_chance)
+        Based on BBC Micro line 2920:
+        Q=RND(100*teleport_chance):IFQ<=activity_level ANDQ>=1 PROCO(...)
         """
         if self.is_dead:
             return False
-        # Teleport is rare - multiply chance by 100
-        roll = random.randint(1, 100 * 1000)  # RND(100*999 max)
-        return roll <= self.teleport_chance
+        if self.teleport_chance == 0:
+            return False
+        # Line 2920: RND(100*teleport_chance)
+        roll = random.randint(1, 100 * self.teleport_chance)
+        return roll <= activity_level and roll >= 1
     
-    def should_walk(self) -> bool:
+    def should_walk(self, activity_level: int = 0) -> bool:
         """
         Determine if creature should walk to adjacent room this tick
-        Original: RND(10*teleport_chance) - 10x more likely than teleport
+        Based on BBC Micro line 2930:
+        Q=RND(10*teleport_chance):IFQ<=activity_level ANDQ>=1 PROCI(...)
+        Note: Uses teleport_chance, not a separate walk chance
         """
         if self.is_dead:
             return False
-        # Walking is more common - multiply chance by 10
-        roll = random.randint(1, 10 * 1000)  # RND(10*999 max)
-        return roll <= self.teleport_chance
+        if self.teleport_chance == 0:
+            return False
+        # Line 2930: RND(10*teleport_chance) - 10x more likely than teleport
+        roll = random.randint(1, 10 * self.teleport_chance)
+        return roll <= activity_level and roll >= 1
     
     def should_follow(self, target_player) -> bool:
         """Determine if creature should follow a player"""

@@ -256,6 +256,12 @@ class CaveGame {
     
     handleMessage(data) {
         switch (data.type) {
+            case 'disable_input':
+                // Disable command input (used during QUIT sequence)
+                this.commandInput.disabled = true;
+                this.commandInput.style.opacity = '0.5';
+                break;
+            
             case 'disconnect':
                 // Server is disconnecting us (QUIT command)
                 // Show Going screen

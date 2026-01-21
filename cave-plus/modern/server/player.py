@@ -9,18 +9,18 @@ class Player:
         self.websocket = websocket
         
         if saved_data:
-            # Load from saved data
+            # Load from saved data (BBC Micro format: name, score, room, wizard flag)
             self.room_id = saved_data.get('room_id', 1)
             self.score = saved_data.get('score', 0)
             self.rank = saved_data.get('rank', 'Novice')
-            self.kills = saved_data.get('kills', 0)
-            self.deaths = saved_data.get('deaths', 0)
-            self.inventory = saved_data.get('inventory', [])
-            self.max_stamina = saved_data.get('max_stamina', 50)
-            self.stamina = saved_data.get('stamina', 50)
-            self.staff_charges = saved_data.get('staff_charges', 0)  # Staff of Merlin charges (0-7)
-            self.vodka_level = saved_data.get('vodka_level', 0)  # Drunk level (V variable)
-            self.poisoned = saved_data.get('poisoned', False)  # Poisoned flag (M variable)
+            
+            # Everything else starts fresh on login
+            self.kills = 0
+            self.deaths = 0
+            self.inventory = []
+            self.staff_charges = 0
+            self.vodka_level = 0
+            self.poisoned = False
             self.max_inventory = self._calculate_max_inventory()
         else:
             # New player
@@ -30,32 +30,27 @@ class Player:
             self.kills = 0
             self.deaths = 0
             self.inventory = []
-            self.max_stamina = 50
-            self.stamina = 25 + random.randint(0, 25)  # 50-100% of max
-            self.staff_charges = 0  # Staff of Merlin charges (0-7)
-            self.vodka_level = 0  # Drunk level (V variable)
-            self.poisoned = False  # Poisoned flag (M variable)
+            self.staff_charges = 0
+            self.vodka_level = 0
+            self.poisoned = False
             self.max_inventory = 3
         
-        # Calculate stamina based on score
+        # Calculate stamina based on score (always fresh on login)
         self.calculate_stamina()
+        # Respawn with random stamina (50-100% of max)
+        self.respawn()
     
     def to_save_dict(self):
-        """Convert player to dictionary for saving to disk"""
+        """
+        Convert player to dictionary for saving to disk
+        BBC Micro only saves: name, score, room (B), wizard flag (G), password
+        Everything else is recalculated on login
+        """
         return {
             'name': self.name,
             'room_id': self.room_id,
             'score': self.score,
-            'rank': self.rank,
-            'kills': self.kills,
-            'deaths': self.deaths,
-            'inventory': self.inventory,
-            'max_stamina': self.max_stamina,
-            'stamina': self.stamina,
-            'staff_charges': self.staff_charges,
-            'vodka_level': self.vodka_level,
-            'poisoned': self.poisoned,
-            'staff_charges': self.staff_charges
+            'rank': self.rank  # Derived from score, but saved for convenience
         }
         
     def _calculate_max_inventory(self):
