@@ -23,6 +23,12 @@ class CaveGame {
         // Audio context for BBC Micro beep simulation
         this.audioContext = null;
         
+        // Preloaded audio buffers for disk sounds
+        this.audioBuffers = {
+            seek: null,
+            step: null
+        };
+        
         // Disk activity state - queue messages during disk operations
         this.diskActivityInProgress = false;
         this.messageQueue = [];
@@ -31,6 +37,7 @@ class CaveGame {
         this.initEventListeners();
         this.applyCRTFilter();
         this.applySoundState();
+        // Note: preloadSounds() is called on first keypress (user interaction required)
     }
     
     initElements() {
@@ -152,6 +159,22 @@ class CaveGame {
     }
     
     handleLoginKey(e) {
+        // Initialize AudioContext on first keypress (user interaction)
+        if (!this.audioContext) {
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('🔊 AudioContext initialized on first keypress');
+                // Resume if suspended
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+                // Now preload sounds with the active context
+                this.preloadSounds();
+            } catch (e) {
+                console.error('Failed to initialize AudioContext:', e);
+            }
+        }
+        
         // Check if login input is enabled
         if (!this.loginInputEnabled) {
             return;
@@ -234,6 +257,9 @@ class CaveGame {
     }
     
     connect() {
+        // Disable login input during connection
+        this.loginInputEnabled = false;
+        
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/${encodeURIComponent(this.playerName)}`;
         
@@ -296,9 +322,16 @@ class CaveGame {
                 }
                 
                 // Show prompt after all queued messages are processed
-                this.promptElement.style.display = 'inline';
-                this.commandDisplay.style.display = 'inline';
-                if (cursorDisk) cursorDisk.style.display = 'inline';
+                // BUT only if input hasn't been disabled (e.g., during QUIT/death)
+                console.log('🖴 Disk activity done. Input disabled?', this.commandInput.disabled);
+                if (!this.commandInput.disabled) {
+                    console.log('   Re-showing prompt');
+                    this.promptElement.style.display = 'inline';
+                    this.commandDisplay.style.display = 'inline';
+                    if (cursorDisk) cursorDisk.style.display = 'inline';
+                } else {
+                    console.log('   Keeping prompt hidden (input disabled)');
+                }
                 
                 // Scroll to show the prompt
                 this.messageLog.scrollTop = this.messageLog.scrollHeight;
@@ -351,6 +384,7 @@ class CaveGame {
                     // Wait for keypress then reset
                     const resetLogin = (e) => {
                         document.removeEventListener('keydown', resetLogin);
+                        this.loginInputEnabled = true;  // Re-enable input
                         this.updateLoginDisplay();
                     };
                     document.addEventListener('keydown', resetLogin);
@@ -708,11 +742,28 @@ class CaveGame {
             }
         }
         
+        // Resume audio context if suspended (browser autoplay policy)
+        if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+        }
+        
         try {
-            // Fetch and decode the audio file
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            let audioBuffer;
+            
+            // Check if we have a preloaded buffer for this sound
+            if (url === '/static/sounds/seek.wav' && this.audioBuffers.seek) {
+                audioBuffer = this.audioBuffers.seek;
+                console.log('   Using cached seek.wav');
+            } else if (url === '/static/sounds/step.wav' && this.audioBuffers.step) {
+                audioBuffer = this.audioBuffers.step;
+                console.log('   Using cached step.wav');
+            } else {
+                // Fetch and decode the audio file
+                console.log('   Fetching audio file:', url);
+                const response = await fetch(url);
+                const arrayBuffer = await response.arrayBuffer();
+                audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            }
             
             // Create and play the sound
             const source = this.audioContext.createBufferSource();
@@ -726,6 +777,35 @@ class CaveGame {
             });
         } catch (e) {
             console.error('   Error playing WAV file:', url, e);
+        }
+    }
+    
+    async preloadSounds() {
+        // Preload disk sound effects for instant playback
+        console.log('🔊 Preloading disk sound effects...');
+        
+        try {
+            // Initialize audio context
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            // Preload seek.wav
+            const seekResponse = await fetch('/static/sounds/seek.wav');
+            const seekBuffer = await seekResponse.arrayBuffer();
+            this.audioBuffers.seek = await this.audioContext.decodeAudioData(seekBuffer);
+            console.log('   ✅ Preloaded seek.wav');
+            
+            // Preload step.wav
+            const stepResponse = await fetch('/static/sounds/step.wav');
+            const stepBuffer = await stepResponse.arrayBuffer();
+            this.audioBuffers.step = await this.audioContext.decodeAudioData(stepBuffer);
+            console.log('   ✅ Preloaded step.wav');
+            
+            console.log('🔊 All disk sounds preloaded successfully!');
+        } catch (e) {
+            console.error('⚠️  Failed to preload sounds:', e);
+            // Non-fatal - sounds will be loaded on-demand if preload fails
         }
     }
     

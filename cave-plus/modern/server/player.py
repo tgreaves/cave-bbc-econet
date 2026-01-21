@@ -7,6 +7,12 @@ class Player:
     def __init__(self, name: str, websocket, saved_data: dict = None):
         self.name = name
         self.websocket = websocket
+        self.player_id = id(self)  # Unique ID for this session
+        
+        # Disconnect tracking
+        self.is_disconnected = False
+        self.disconnect_time = None
+        self.disconnect_timeout = 300  # 5 minutes in seconds
         
         if saved_data:
             # Load from saved data (BBC Micro format: name, score, room, wizard flag)
@@ -111,8 +117,29 @@ class Player:
             "deaths": self.deaths,
             "staff_charges": self.staff_charges,
             "vodka_level": self.vodka_level,
-            "poisoned": self.poisoned
+            "poisoned": self.poisoned,
+            "is_disconnected": self.is_disconnected
         }
+    
+    def mark_disconnected(self):
+        """Mark player as disconnected but keep in game"""
+        import time
+        self.is_disconnected = True
+        self.disconnect_time = time.time()
+        self.websocket = None  # Clear websocket reference
+    
+    def reconnect(self, websocket):
+        """Reconnect player with new websocket"""
+        self.is_disconnected = False
+        self.disconnect_time = None
+        self.websocket = websocket
+    
+    def is_timeout_expired(self) -> bool:
+        """Check if disconnect timeout has expired"""
+        if not self.is_disconnected or self.disconnect_time is None:
+            return False
+        import time
+        return (time.time() - self.disconnect_time) > self.disconnect_timeout
     
     def can_carry_more(self):
         """Check if player can carry more items"""

@@ -17,7 +17,10 @@ class GameState:
         self.creatures_by_room: Dict[int, List[int]] = {}  # room_id -> list of creature_ids
         self.rooms_with_graphics = set()
         self.tick_count = 0
-        self.activity_level = 0  # CCM activity level (0-9), default 0
+        # CCM activity level (0-9), default 2 (from OBJINIT file byte 0)
+        # Controls creature attack/movement frequency
+        # Wizards can change this with ACTIVITY command
+        self.activity_level = 2
         
     async def initialize(self):
         """Load game data"""

@@ -6,6 +6,7 @@ FastAPI + WebSocket server for real-time multiplayer
 
 import asyncio
 import json
+import time
 from typing import Dict, Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
@@ -117,6 +118,34 @@ async def game_loop():
     """Main game loop - runs every second"""
     while True:
         try:
+            # Check for timed-out disconnected players
+            timed_out_players = []
+            for player_name, player in list(game_state.players.items()):
+                if player.is_timeout_expired():
+                    timed_out_players.append(player)
+            
+            # Remove timed-out players and save their data
+            for player in timed_out_players:
+                print(f"⏱️  {player.name} disconnect timeout expired - saving and removing")
+                
+                # Save player data
+                from player_data import save_player
+                save_data = player.to_save_dict()
+                if hasattr(player, 'password_hash'):
+                    save_data['password_hash'] = player.password_hash
+                success, disk_time = save_player(save_data)
+                print(f"📀 Auto-saved {player.name} on timeout (disk time: {disk_time:.2f}s)")
+                
+                # Announce to room
+                await broadcast_to_room(player.room_id, {
+                    "type": "message",
+                    "text": f"{player.name} has been removed from the cave (timeout).",
+                    "style": "action"
+                })
+                
+                # Remove from game
+                game_state.remove_player(player)
+            
             events = await game_state.update()
             attack_events = events.get("attacks", [])
             movement_events = events.get("movements", [])
@@ -269,51 +298,27 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
         await websocket.close()
         return
     
-    # Check if name is taken (already logged in)
-    if player_name in game_state.players:
-        await websocket.send_json({
-            "type": "error",
-            "message": f"Name '{player_name}' is already logged in"
-        })
-        await websocket.close()
-        return
-    
-    # Wait for password from client
-    try:
-        auth_data = await websocket.receive_json()
-        password = auth_data.get("password", "").strip()
-    except:
-        await websocket.send_json({
-            "type": "error",
-            "message": "Authentication failed"
-        })
-        await websocket.close()
-        return
-    
-    if not password or len(password) < 4:
-        await websocket.send_json({
-            "type": "error",
-            "message": "Password must be at least 4 characters"
-        })
-        await websocket.close()
-        return
-    
-    # Try to load existing player or create new one
-    from player_data import load_player, player_exists, create_player, save_player, hash_password
-    
-    saved_data = None
-    is_new_player = False
-    
-    if player_exists(player_name):
-        # Existing player - verify password
-        # Send disk activity notification
-        await websocket.send_json({
-            "type": "disk_activity",
-            "operation": "read"
-        })
+    # Check if player is already in game (disconnected but still active)
+    existing_player = game_state.players.get(player_name)
+    if existing_player and existing_player.is_disconnected:
+        # Reconnection! Need to verify password first
+        print(f"🔄 {player_name} attempting reconnection (was disconnected for {time.time() - existing_player.disconnect_time:.1f}s)")
         
-        result = load_player(player_name, password)
-        if result is None:
+        # Wait for password from client
+        try:
+            auth_data = await websocket.receive_json()
+            password = auth_data.get("password", "").strip()
+        except:
+            await websocket.send_json({
+                "type": "error",
+                "message": "Authentication failed"
+            })
+            await websocket.close()
+            return
+        
+        # Verify password
+        from player_data import verify_password
+        if not hasattr(existing_player, 'password_hash') or not verify_password(password, existing_player.password_hash):
             await websocket.send_json({
                 "type": "error",
                 "message": f"Sorry, I know someone called {player_name} and that is not the password."
@@ -321,97 +326,175 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
             await websocket.close()
             return
         
-        saved_data, disk_time = result
-        print(f"📀 Loaded player {player_name} (disk time: {disk_time:.2f}s)")
-    else:
-        # New player - create account
-        print(f"Creating new player: {player_name}")
-        saved_data = create_player(player_name, password)
-        saved_data['password_hash'] = hash_password(password)
+        # Password verified - reconnect!
+        print(f"✅ {player_name} reconnected successfully")
+        existing_player.reconnect(websocket)
+        active_connections[player_name] = websocket
+        player = existing_player
         
-        # Send disk activity notification
-        await websocket.send_json({
-            "type": "disk_activity",
-            "operation": "write"
+        # Send welcome-style message to trigger UI transition
+        await send_to_player(player, {
+            "type": "welcome",
+            "message": "Reconnected! You are still in the cave.",
+            "player_list": "",  # No player list on reconnect
+            "player": player.to_dict(),
+            "new_player": False
         })
         
-        # Save immediately
-        success, disk_time = save_player(saved_data)
-        if not success:
+        # Announce to room
+        await broadcast_to_room(player.room_id, {
+            "type": "message",
+            "text": f"{player_name} has reconnected.",
+            "style": "action"
+        }, exclude=player_name)
+        
+        # Send current room state
+        await send_room_update(player)
+        
+    elif player_name in game_state.players:
+        # Player is already connected (not disconnected)
+        await websocket.send_json({
+            "type": "error",
+            "message": f"Name '{player_name}' is already logged in"
+        })
+        await websocket.close()
+        return
+    else:
+        # New connection - normal login flow
+        # Wait for password from client
+        try:
+            auth_data = await websocket.receive_json()
+            password = auth_data.get("password", "").strip()
+        except:
             await websocket.send_json({
                 "type": "error",
-                "message": "Failed to create player account. Please try again."
+                "message": "Authentication failed"
             })
             await websocket.close()
             return
         
-        is_new_player = True
-        print(f"✅ New player {player_name} created and saved (disk time: {disk_time:.2f}s)")
-    
-    # Create player object
-    player = Player(player_name, websocket, saved_data)
-    player.password_hash = saved_data['password_hash']  # Store for saving later
-    game_state.add_player(player)
-    active_connections[player_name] = websocket
-    
-    # Send welcome message (matching original BBC Micro game)
-    if player.rank == "Wizard":
-        welcome_msg = "Welcome Powerful Wizard"
-    elif not is_new_player:
-        welcome_msg = "Welcome again to CAVE"
-    else:
-        welcome_msg = "Welcome new caver"
-    
-    # Check if there are other players (matching BBC Micro behavior)
-    other_players = [p for p in game_state.players.values() if p.name != player_name]
-    
-    if len(other_players) == 0:
-        # You are alone
-        player_list_msg = "You are the only caver here."
-    else:
-        # Show player list (matching WHO command format exactly)
-        player_list_msg = "These people are in CAVE\n"
+        if not password or len(password) < 4:
+            await websocket.send_json({
+                "type": "error",
+                "message": "Password must be at least 4 characters"
+            })
+            await websocket.close()
+            return
         
-        is_wizard = (player.rank == "Wizard")
+        # Try to load existing player or create new one
+        from player_data import load_player, player_exists, create_player, save_player, hash_password
         
-        for p in other_players:
-            # Print player name
-            player_list_msg += p.name
+        saved_data = None
+        is_new_player = False
+        
+        if player_exists(player_name):
+            # Existing player - verify password
+            # Send disk activity notification
+            await websocket.send_json({
+                "type": "disk_activity",
+                "operation": "read"
+            })
             
-            # Wizards see extra info (stamina and station number)
-            if is_wizard:
-                # TAB(8) = column 8, TAB(22) = column 22
-                # Pad to column 8, show stamina, pad to column 22, show station
-                padding1 = max(1, 8 - len(p.name))
-                player_list_msg += " " * padding1
-                stamina_text = f"stamina {int(p.stamina)}"
-                player_list_msg += stamina_text
+            result = load_player(player_name, password)
+            if result is None:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": f"Sorry, I know someone called {player_name} and that is not the password."
+                })
+                await websocket.close()
+                return
+            
+            saved_data, disk_time = result
+            print(f"📀 Loaded player {player_name} (disk time: {disk_time:.2f}s)")
+        else:
+            # New player - create account
+            print(f"Creating new player: {player_name}")
+            saved_data = create_player(player_name, password)
+            saved_data['password_hash'] = hash_password(password)
+            
+            # Send disk activity notification
+            await websocket.send_json({
+                "type": "disk_activity",
+                "operation": "write"
+            })
+            
+            # Save immediately
+            success, disk_time = save_player(saved_data)
+            if not success:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Failed to create player account. Please try again."
+                })
+                await websocket.close()
+                return
+            
+            is_new_player = True
+            print(f"✅ New player {player_name} created and saved (disk time: {disk_time:.2f}s)")
+        
+        # Create player object
+        player = Player(player_name, websocket, saved_data)
+        player.password_hash = saved_data['password_hash']  # Store for saving later
+        game_state.add_player(player)
+        active_connections[player_name] = websocket
+        
+        # Send welcome message (matching original BBC Micro game)
+        if player.rank == "Wizard":
+            welcome_msg = "Welcome Powerful Wizard"
+        elif not is_new_player:
+            welcome_msg = "Welcome again to CAVE"
+        else:
+            welcome_msg = "Welcome new caver"
+        
+        # Check if there are other players (matching BBC Micro behavior)
+        other_players = [p for p in game_state.players.values() if p.name != player_name]
+        
+        if len(other_players) == 0:
+            # You are alone
+            player_list_msg = "You are the only caver here."
+        else:
+            # Show player list (matching WHO command format exactly)
+            player_list_msg = "These people are in CAVE\n"
+            
+            is_wizard = (player.rank == "Wizard")
+            
+            for p in other_players:
+                # Print player name
+                player_list_msg += p.name
                 
-                # Calculate padding to reach column 22
-                current_pos = len(p.name) + padding1 + len(stamina_text)
-                padding2 = max(1, 22 - current_pos)
-                player_list_msg += " " * padding2
-                player_list_msg += f"stn {p.room_id}"
-            
-            player_list_msg += "\n"
-    
-    await send_to_player(player, {
-        "type": "welcome",
-        "message": welcome_msg,
-        "player_list": player_list_msg,
-        "player": player.to_dict(),
-        "new_player": is_new_player
-    })
-    
-    # Send initial room state
-    await send_room_update(player)
-    
-    # Announce to other players in room
-    await broadcast_to_room(player.room_id, {
-        "type": "message",
-        "text": f"{player_name} has entered the cave.",
-        "style": "action"  # Changed to action so it goes to status area
-    }, exclude=player_name)
+                # Wizards see extra info (stamina and station number)
+                if is_wizard:
+                    # TAB(8) = column 8, TAB(22) = column 22
+                    # Pad to column 8, show stamina, pad to column 22, show station
+                    padding1 = max(1, 8 - len(p.name))
+                    player_list_msg += " " * padding1
+                    stamina_text = f"stamina {int(p.stamina)}"
+                    player_list_msg += stamina_text
+                    
+                    # Calculate padding to reach column 22
+                    current_pos = len(p.name) + padding1 + len(stamina_text)
+                    padding2 = max(1, 22 - current_pos)
+                    player_list_msg += " " * padding2
+                    player_list_msg += f"stn {p.room_id}"
+                
+                player_list_msg += "\n"
+        
+        await send_to_player(player, {
+            "type": "welcome",
+            "message": welcome_msg,
+            "player_list": player_list_msg,
+            "player": player.to_dict(),
+            "new_player": is_new_player
+        })
+        
+        # Send initial room state
+        await send_room_update(player)
+        
+        # Announce to other players in room
+        await broadcast_to_room(player.room_id, {
+            "type": "message",
+            "text": f"{player_name} has entered the cave.",
+            "style": "action"  # Changed to action so it goes to status area
+        }, exclude=player_name)
     
     try:
         while True:
@@ -420,22 +503,32 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
             await handle_command(player, data)
             
     except WebSocketDisconnect:
-        # Player disconnected
-        game_state.remove_player(player)
+        # Check if this was an intentional quit
+        if hasattr(player, 'is_quitting') and player.is_quitting:
+            print(f"👋 {player_name} quit normally")
+            # Player already removed in QUIT handler, nothing more to do
+            return
+        
+        # Player disconnected unexpectedly - keep them in game for 5 minutes
+        print(f"🔌 {player_name} disconnected - keeping in game for {player.disconnect_timeout}s")
+        
+        player.mark_disconnected()
         del active_connections[player_name]
         
-        # Announce to other players
+        # Announce to other players (they're still in the game, just disconnected)
         await broadcast_to_room(player.room_id, {
             "type": "message",
-            "text": f"{player_name} has left the cave.",
-            "style": "action"  # Changed to action so it goes to status area
+            "text": f"{player_name} has lost connection (still in cave).",
+            "style": "action"
         })
         
     except Exception as e:
         print(f"WebSocket error for {player_name}: {e}")
         if player_name in active_connections:
             del active_connections[player_name]
-        game_state.remove_player(player)
+        # Mark as disconnected but don't remove from game
+        if player_name in game_state.players:
+            game_state.players[player_name].mark_disconnected()
 
 async def handle_command(player: Player, data: dict):
     """Handle a command from a player"""
@@ -530,6 +623,21 @@ async def handle_command(player: Player, data: dict):
                 "message": "Goodbye!"
             })
             
+            # Mark player as intentionally quitting (not a disconnect)
+            player.is_quitting = True
+            
+            # Remove player from game immediately
+            game_state.remove_player(player)
+            if player.name in active_connections:
+                del active_connections[player.name]
+            
+            # Announce to room
+            await broadcast_to_room(player.room_id, {
+                "type": "message",
+                "text": f"{player.name} has left the cave.",
+                "style": "action"
+            })
+            
             # Close connection
             await player.websocket.close()
         else:
@@ -572,11 +680,22 @@ async def handle_command(player: Player, data: dict):
         # Get beep count (VDU7 simulation)
         beeps = result.get("beeps", 0)
         
+        print(f"DEBUG: Sending message: '{result['message']}' with style: {style}")
+        
         await send_to_player(player, {
             "type": "message",
             "text": result["message"],
             "style": style,
             "beeps": beeps
+        })
+    
+    # Send status_message separately (for commands like ZAP that have both main and status messages)
+    if result.get("status_message"):
+        print(f"DEBUG: Sending status_message: '{result['status_message']}'")
+        await send_to_player(player, {
+            "type": "message",
+            "text": result["status_message"],
+            "style": "combat"  # Status messages always go to status area
         })
     
     # Send player update if vodka/poison/medicine was consumed or player state changed

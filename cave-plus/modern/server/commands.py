@@ -635,16 +635,20 @@ Examples:
         # Zap attack (Wizard zap does 50-75 damage)
         result = await self.game_state.player_attack_creature(player, target_creature, "Staff")
         
-        # BBC Micro format: "The [creature] is !ZAPPED! stamina now [X]"
-        message = f"The {result['creature_name']} is !ZAPPED! stamina now {target_creature.stamina}"
-        message += f"\n(Staff charges remaining: {player.staff_charges})"
+        # BBC Micro format (line 4920 + 5020):
+        # Main area: "!ZAPPING!" (PROCG)
+        # Status area: "The [creature] is !ZAPPED! stamina now [X]" (PROCB)
+        main_message = "!ZAPPING!"
+        status_message = f"The {result['creature_name']} is !ZAPPED! stamina now {target_creature.stamina}"
         
         if result['creature_died']:
-            message = f"The {result['creature_name']} is obliterated! You gain {result['points_awarded']} points.\n(Staff charges remaining: {player.staff_charges})"
+            # Line 3310: PROCB("The "+creature+" is dead.")
+            status_message = f"The {result['creature_name']} is dead."
         
         return {
-            "message": message,
-            "combat": True,
+            "message": main_message,
+            "status_message": status_message,
+            "style": "normal",  # Main message goes to main area, not status
             "creature_died": result['creature_died'],
             "beeps": 3  # ZAP = 3 beeps! (VDU7,7,7) - most dramatic!
         }

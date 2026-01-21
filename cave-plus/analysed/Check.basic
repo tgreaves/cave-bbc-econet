@@ -1,38 +1,119 @@
+REM ============================================================================
+REM CHECK - CAVE-PLUS Initialization and Integrity Checker
+REM Author: W.T-PEDOE XOB
+REM ============================================================================
+REM This program runs before CAVE to:
+REM 1. Initialize game memory (objects, creatures, activity level)
+REM 2. Verify CAVE program integrity via checksum
+REM 3. Set up function keys and display mode
+REM ============================================================================
+
    10 REM CHECK W.T-PEDOE XOB
-   12 HIMEM=&78FF
+   
+REM ----------------------------------------------------------------------------
+REM MEMORY INITIALIZATION
+REM ----------------------------------------------------------------------------
+   12 HIMEM=&78FF                    : REM Set high memory limit
    14 PRINT"Checking your caving gear."
+   
+REM Initialize object/creature memory region (&A00-&AFF)
+REM This region stores:
+REM   &A00      = Activity level (CCM activity 0-9)
+REM   &A01      = Points awarded
+REM   &A02      = Light switch state / Staff charges
+REM   &A03      = Portcullis state
+REM   &A04-&AFF = Object/creature data (4 bytes per object/creature)
+REM
+REM Each 4-byte record stores:
+REM   Byte 0: Room number (location)
+REM   Bytes 1-3: Object/creature properties
+REM
+REM Setting all to 0 means:
+REM   - Activity level = 0 (creatures don't attack)
+REM   - All objects/creatures start in room 0 (will be placed by OBJINIT)
    85 FOR I%=&A00 TO &AFF STEP 4:!I%=0:NEXT
+   
+REM Expected checksum value (stored in A%)
+REM &A1 = 161 decimal
    90 A%=&A1
-  100 PROCcompile
+   
+REM ----------------------------------------------------------------------------
+REM COMPILE CHECKSUM ROUTINE
+REM ----------------------------------------------------------------------------
+  100 PROCcompile                    : REM Assemble machine code checksum
+  
+REM ----------------------------------------------------------------------------
+REM LOAD AND VERIFY CAVE PROGRAM
+REM ----------------------------------------------------------------------------
   110 REPEAT
-  130 OSCLI"LOAD CAVE 1200"
+  130 OSCLI"LOAD CAVE 1200"          : REM Load CAVE program at &1200
+  
+REM Display warning message (using Teletext control codes)
+REM MOD = Teletext double height
+REM EOR = Teletext color change
+REM STEP = Teletext separated graphics
   132 PRINT"MODDon't try to BREAK out of CAVE"
-  133PRINT"EORAlways use theSTEPQUIT command"
-  134 a=INKEY(200)
-  140 CALL check
+  133 PRINT"EORAlways use theSTEPQUIT command"
+  134 a=INKEY(200)                   : REM Wait 2 seconds
+  
+REM Run checksum verification
+  140 CALL check                     : REM Calculate checksum of CAVE program
+  
+REM Check if checksum matches expected value
+REM ?&70 = calculated checksum
+REM A% = expected checksum (&A1)
   150 IF ?&70<>A% PRINT "DIVFailed... OFF";~?&70:PRINT"Re-trying ..."
-  160 UNTIL ?&70=A%
+  160 UNTIL ?&70=A%                  : REM Repeat until checksum is correct
+  
+REM ----------------------------------------------------------------------------
+REM CONFIGURE SYSTEM AND START CAVE
+REM ----------------------------------------------------------------------------
+REM Set function key 0 to run main menu
   170 *KEY0 RUN|M
+  
+REM Flush all buffers
   175 *FX 15 255
+  
+REM Set CAPS LOCK on, SHIFT disables CAPS
   180 *FX 138 0 128
-  190VDU21:PAGE=&1200:END
+  
+REM Disable VDU (screen output) and set PAGE to &1200
+  190 VDU21:PAGE=&1200:END           : REM Transfer control to CAVE
+  
+REM ============================================================================
+REM MACHINE CODE: CHECKSUM CALCULATOR
+REM ============================================================================
+REM This routine calculates a simple checksum of the CAVE program
+REM by adding all bytes from &1200 to &1200+&4466
+REM
+REM Memory usage:
+REM   &70    = Checksum accumulator
+REM   &72-73 = Pointer to current byte (16-bit address)
+REM
+REM Algorithm:
+REM   1. Initialize checksum to 0
+REM   2. Set pointer to &1200 (start of CAVE)
+REM   3. Loop through all bytes, adding each to checksum
+REM   4. Stop when pointer reaches &1200+&4466 (end of CAVE)
+REM   5. Return with checksum in &70
+REM ============================================================================
   210 DEFPROCcompile
-  220 FOR PASS=0 TO 2 STEP 2
-  230 P%=&900
+  220 FOR PASS=0 TO 2 STEP 2         : REM Two-pass assembly
+  230 P%=&900                         : REM Assemble at &900
   240 [OPT PASS
   250 .check
-  260 LDA#0 : STA &70
-  270 LDA#&00 : STA &72
-  280 LDA#&1200 DIV 256 : STA &73
+  260 LDA#0 : STA &70                 : REM Initialize checksum to 0
+  270 LDA#&00 : STA &72               : REM Set pointer low byte to &00
+  280 LDA#&1200 DIV 256 : STA &73    : REM Set pointer high byte to &12
   290 .loop
-  300 LDA &73 : CMP#(&1200+&4466)DIV 256: BEQ end
-  310 LDY#0
-  320 LDA(&72),Y
-  330 CLC
-  340 ADC &70 : STA &70
-  350 INC &72 : BNE loop
-  360 INC &73 : BNE loop
+  300 LDA &73 : CMP#(&1200+&4466)DIV 256: BEQ end  : REM Check if done
+  310 LDY#0                           : REM Index = 0
+  320 LDA(&72),Y                      : REM Load byte at pointer
+  330 CLC                             : REM Clear carry
+  340 ADC &70 : STA &70               : REM Add to checksum
+  350 INC &72 : BNE loop              : REM Increment pointer low byte
+  360 INC &73 : BNE loop              : REM Increment pointer high byte
   370 .end
-  380 RTS
+  380 RTS                             : REM Return to BASIC
   390 ]NEXT
   400 ENDPROC

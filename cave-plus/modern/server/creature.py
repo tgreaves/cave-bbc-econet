@@ -86,10 +86,12 @@ class Creature:
     def make_aggressive(self):
         """Make creature aggressive (e.g., when attacked) - PROCJ(T,"A")"""
         self.is_aggressive = True
+        self.behavior = 'A'  # Update behavior flag (BBC: B$=A$+RIGHT$(B$,LEN(B$)-1))
     
     def make_passive(self):
         """Make creature passive - PROCJ(T,"B")"""
         self.is_aggressive = False
+        self.behavior = 'B'  # Update behavior flag
     
     def should_attack(self, activity_level: int = 0) -> bool:
         """
@@ -98,26 +100,25 @@ class Creature:
         - Line 2890: Q=RND(attack_chance):IFQ<=activity_level ANDQ>=1 PROCQ
         - Line 2910: Q=RND(secondary_attack):IFLEFT$(K$,1)="A"ANDQ<=activity_level ANDQ>=1 PROCQ
         
-        Aggressive creatures (is_aggressive=True) can attack even with activity_level=0
+        Aggressive creatures (behavior='A') get TWO attack chances per tick
         """
         if self.is_dead:
             return False
         
-        # Aggressive creatures use secondary_attack chance and bypass activity check
-        if self.is_aggressive:
-            # Line 2910: Aggressive creatures attack based on secondary_attack
-            if self.secondary_attack == 0:
-                return False
-            roll = random.randint(1, self.secondary_attack)
-            # Aggressive creatures can attack even with activity 0
-            return roll <= activity_level or roll >= 1
+        # First attack chance (line 2890) - all creatures
+        if self.attack_chance > 0:
+            roll = random.randint(1, self.attack_chance)
+            if roll <= activity_level and roll >= 1:
+                return True
         
-        # Non-aggressive creatures need activity level > 0
-        # Line 2890: Q=RND(attack_chance):IFQ<=activity_level ANDQ>=1
-        if self.attack_chance == 0:
-            return False
-        roll = random.randint(1, self.attack_chance)
-        return roll <= activity_level and roll >= 1
+        # Second attack chance (line 2910) - only if behavior flag is 'A'
+        # BBC: IFLEFT$(K$,1)="A"ANDQ<=activity_level ANDQ>=1PROCQ
+        if self.behavior == 'A' and self.secondary_attack > 0:
+            roll = random.randint(1, self.secondary_attack)
+            if roll <= activity_level and roll >= 1:
+                return True
+        
+        return False
     
     def should_teleport(self, activity_level: int = 0) -> bool:
         """

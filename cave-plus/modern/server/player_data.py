@@ -26,6 +26,10 @@ def hash_password(password: str) -> str:
     """Hash password for storage"""
     return hashlib.sha256(password.encode()).hexdigest()
 
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verify a password against a stored hash"""
+    return hash_password(password) == password_hash
+
 def calculate_checksum(data: Dict) -> str:
     """Calculate checksum for data validation (like original game)"""
     # Concatenate key fields like original: name+score+room+wizard+password
