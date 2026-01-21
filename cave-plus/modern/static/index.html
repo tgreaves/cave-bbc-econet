@@ -8,42 +8,45 @@
 </head>
 <body>
     <div class="container">
+        <!-- CRT Filter Toggle Button on Bezel -->
+        <button id="crt-toggle" class="bezel-button" title="Toggle CRT Filter">
+            <span class="button-label">CRT</span>
+        </button>
+        
+        <!-- Sound Toggle Button on Bezel -->
+        <button id="sound-toggle" class="bezel-button" title="Toggle Sound">
+            <span class="button-label">🔊</span>
+        </button>
+        
         <!-- Login Screen -->
         <div id="login-screen" class="screen active">
-            <div class="login-container">
-                <pre class="login-text" id="login-display"><span style="color: #ffff00;">CAVE-PLUS</span> <span style="color: #ffffff;">(C) 2026</span>
+            <div class="terminal-container">
+                <pre id="login-display" class="terminal-text"><span class="double-height" style="color: #ffff00;">CAVE-PLUS</span><span style="color: #ffffff;">(C) XOB 1988 </span><span class="double-height" style="color: #ffffff;">Version 1.00</span>
 
-<span style="color: #ffff00;">From CAVE</span> <span style="color: #ffffff;">(C)</span> <span style="color: #00ffff;">GJL WOTWECP</span> <span style="color: #ffffff;">1985</span>
+<span class="double-height" style="color: #ffff00;">From CAVE</span><span style="color: #ffffff;">(C) GJL WOTWECP 1985</span>
 
 
 <span style="color: #ffffff;">Please enter your name : <span id="name-input" class="cursor">_</span></span></pre>
             </div>
         </div>
 
-        <!-- Game Screen - MODE 7 Layout -->
+        <!-- Game Screen - Status area + scrolling terminal -->
         <div id="game-screen" class="screen">
-            <div class="game-container">
-                <!-- Status Area: Rows 0-5 (6 rows) -->
-                <div class="status-area">
-                    <div id="status-messages"></div>
-                </div>
-
-                <!-- Main Game Area: Rows 7-23 (17 rows) -->
-                <div class="main-game-area">
-                    <div id="message-log"></div>
-                </div>
-
-                <!-- Command Input: Row 24 -->
-                <div class="command-area">
-                    <span class="prompt" id="command-prompt">*</span>
-                    <input 
-                        type="text" 
-                        id="command-input" 
-                        autocomplete="off"
-                        placeholder=""
-                    >
+            <!-- Status area - rows 0-5 (6 rows) -->
+            <div class="status-area">
+                <pre id="status-messages"></pre>
+            </div>
+            
+            <!-- Main scrolling area - rows 7-23 with inline prompt -->
+            <div class="main-game-area">
+                <pre id="message-log"></pre>
+                <div class="prompt-line">
+                    <span id="prompt" class="prompt">*</span><span id="command-display" class="command-display"></span><span class="cursor">_</span>
                 </div>
             </div>
+            
+            <!-- Hidden input for capturing keystrokes -->
+            <input type="text" id="command-input" class="hidden-input" autocomplete="off">
         </div>
     </div>
 

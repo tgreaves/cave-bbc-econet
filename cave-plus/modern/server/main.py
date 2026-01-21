@@ -33,6 +33,73 @@ async def startup_event():
     print("🎮 Cave-Plus server started!")
     print("📍 Navigate to http://localhost:8000")
 
+async def handle_player_death(player: Player):
+    """
+    Handle player death with authentic BBC Micro death sequence
+    Based on line 1520: PRINT'"Life is slipping away...You are going";:PROCF:...:PRINT"..":*GOING
+    """
+    try:
+        # Save player data before death
+        from player_data import save_player
+        
+        print(f"🪦 Starting death sequence for {player.name}")
+        
+        # Line 1520: "Life is slipping away...You are going"
+        # PRINT'"..." means: blank line, then the message
+        # This appears in main screen area (PRINT, not PROCB)
+        await send_to_player(player, {
+            "type": "message",
+            "text": "\nLife is slipping away...You are going",
+            "style": "normal"  # Main screen, not status area
+        })
+        
+        print(f"   Sent 'Life is slipping away' message, waiting 1.5s...")
+        # Longer delay to let player process what's happening
+        await asyncio.sleep(1.5)
+        
+        # Save player data (PROCF cleanup)
+        save_data = player.to_save_dict()
+        if hasattr(player, 'password_hash'):
+            save_data['password_hash'] = player.password_hash
+        
+        print(f"   Saving player {player.name} data on death")
+        save_player(save_data)
+        
+        # Delay during save
+        await asyncio.sleep(0.8)
+        
+        print(f"   Sending '..' message, waiting 1.5s...")
+        # Line 1520: ".." (appends to previous line)
+        await send_to_player(player, {
+            "type": "message",
+            "text": "..",
+            "style": "normal"  # Main screen, not status area
+        })
+        
+        # Longer final delay before GOING
+        await asyncio.sleep(1.5)
+        
+        print(f"   Sending disconnect message for GOING screen")
+        # Send disconnect to trigger GOING screen
+        await send_to_player(player, {
+            "type": "disconnect",
+            "message": "You have died."
+        })
+        
+        # Small delay to ensure message is sent before closing
+        await asyncio.sleep(0.2)
+        
+        print(f"   Closing websocket for {player.name}")
+        # Close connection
+        await player.websocket.close()
+        
+        print(f"✅ Death sequence complete for {player.name}")
+        
+    except Exception as e:
+        print(f"❌ Error in death sequence for {player.name}: {e}")
+        import traceback
+        traceback.print_exc()
+
 async def game_loop():
     """Main game loop - runs every second"""
     while True:
@@ -93,7 +160,8 @@ async def game_loop():
                         await send_to_player(target_player, {
                             "type": "message",
                             "text": f"The {creature_name} {verb} you for {damage} damage!",
-                            "style": "combat"
+                            "style": "combat",
+                            "beeps": 2  # Being hit by creature = 2 beeps
                         })
                         
                         # Update player stats
@@ -105,19 +173,26 @@ async def game_loop():
                         # Check if player died
                         if target_player.stamina <= 0:
                             target_player.deaths += 1
-                            target_player.respawn()
-                            target_player.room_id = 1
-                            target_player.inventory = []
                             
                             # Make all creatures forget about this player
                             game_state.reset_creatures_targeting_player(target_player.name)
                             
-                            await send_to_player(target_player, {
+                            # Broadcast death to room before player is removed
+                            await broadcast_to_room(room_id, {
                                 "type": "message",
-                                "text": "You have been slain! Respawning at entrance...",
-                                "style": "death"
-                            })
-                            await send_room_update(target_player)
+                                "text": f"{target_player.name} has died!",
+                                "style": "combat"
+                            }, exclude=target_player.name)
+                            
+                            # Handle death sequence (save, show messages, GOING screen)
+                            await handle_player_death(target_player)
+                            
+                            # Remove player from game state
+                            game_state.remove_player(target_player)
+                            if target_player.name in active_connections:
+                                del active_connections[target_player.name]
+                            
+                            continue  # Skip room update since player is disconnected
                     
                     # Broadcast to others in room
                     await broadcast_to_room(room_id, {
@@ -127,6 +202,38 @@ async def game_loop():
                     }, exclude=target_name)
             
             await asyncio.sleep(1.0)  # 1 second tick
+            
+            # Update all players' vodka/poison status
+            for player in list(game_state.players.values()):
+                # Sober up gradually (line 1460)
+                player.update_vodka_level()
+                
+                # Apply poison damage (line 1480)
+                if player.poisoned:
+                    player.update_poison_damage()
+                    
+                    # Check if player died from poison
+                    if player.stamina <= 0:
+                        player.deaths += 1
+                        
+                        # Make all creatures forget about this player
+                        game_state.reset_creatures_targeting_player(player.name)
+                        
+                        # Broadcast death to room
+                        await broadcast_to_room(player.room_id, {
+                            "type": "message",
+                            "text": f"{player.name} has succumbed to poison!",
+                            "style": "combat"
+                        }, exclude=player.name)
+                        
+                        # Handle death sequence
+                        await handle_player_death(player)
+                        
+                        # Remove player from game state
+                        game_state.remove_player(player)
+                        if player.name in active_connections:
+                            del active_connections[player.name]
+                
         except Exception as e:
             print(f"Game loop error: {e}")
 
@@ -311,7 +418,89 @@ async def handle_command(player: Player, data: dict):
     # Parse and execute command
     result = await command_parser.parse(player, command)
     
-    # Handle QUIT command
+    # Handle QUIT sequence with delays (matching BBC Micro timing)
+    if result.get("quit_sequence"):
+        # Line 2720: "Hold on"
+        await send_to_player(player, {
+            "type": "message",
+            "text": "Hold on",
+            "style": "system"
+        })
+        
+        # Delay before first dots
+        await asyncio.sleep(0.8)
+        
+        # Line 2740: ".."
+        await send_to_player(player, {
+            "type": "message",
+            "text": "..",
+            "style": "system"
+        })
+        
+        # Save player data
+        from player_data import save_player
+        
+        save_data = player.to_save_dict()
+        
+        # Add password hash (stored on player object)
+        if hasattr(player, 'password_hash'):
+            save_data['password_hash'] = player.password_hash
+        else:
+            print(f"⚠️  Warning: Player {player.name} has no password_hash!")
+            await send_to_player(player, {
+                "type": "message",
+                "text": "Error: Cannot save without password. Please contact admin.",
+                "style": "error",
+                "beeps": 1
+            })
+            return
+        
+        print(f"Saving player {player.name} data: {save_data}")
+        success = save_player(save_data)
+        
+        # Delay during save
+        await asyncio.sleep(0.6)
+        
+        # Line 2740: "."
+        await send_to_player(player, {
+            "type": "message",
+            "text": ".",
+            "style": "system"
+        })
+        
+        # Delay after final dot
+        await asyncio.sleep(0.8)
+        
+        if success:
+            # Line 2810: "Saved."
+            await send_to_player(player, {
+                "type": "message",
+                "text": "Saved.",
+                "style": "system"
+            })
+            
+            # Delay before GOING screen
+            await asyncio.sleep(1.0)
+            
+            # Send disconnect message to trigger GOING screen
+            await send_to_player(player, {
+                "type": "disconnect",
+                "message": "Goodbye!"
+            })
+            
+            # Close connection
+            await player.websocket.close()
+        else:
+            await send_to_player(player, {
+                "type": "message",
+                "text": "Error saving your data. Please try again.",
+                "style": "error",
+                "beeps": 1
+            })
+        
+        return
+    
+    # Handle QUIT command (old style, shouldn't be reached)
     if result.get("quit"):
         # Send goodbye message
         await send_to_player(player, {
@@ -338,10 +527,22 @@ async def handle_command(player: Player, data: dict):
         else:
             style = result.get("style", "normal")
         
+        # Get beep count (VDU7 simulation)
+        beeps = result.get("beeps", 0)
+        
         await send_to_player(player, {
             "type": "message",
             "text": result["message"],
-            "style": style
+            "style": style,
+            "beeps": beeps
+        })
+    
+    # Send player update if vodka/poison/medicine was consumed or player state changed
+    if result.get("healed") or result.get("poisoned") or result.get("cured") or result.get("vodka_level"):
+        print(f"Sending player_update for {player.name}. Vodka level: {player.vodka_level}")
+        await send_to_player(player, {
+            "type": "player_update",
+            "player": player.to_dict()
         })
     
     # Update room if player moved
@@ -403,7 +604,8 @@ async def handle_command(player: Player, data: dict):
                 await send_to_player(target_player, {
                     "type": "message",
                     "text": f"{hit_message} by {player.name}",
-                    "style": "combat"
+                    "style": "combat",
+                    "beeps": 2  # Being hit = 2 beeps (VDU7,7)
                 })
                 
                 # Message for attacker: Stamina feedback (status bar)
@@ -411,7 +613,8 @@ async def handle_command(player: Player, data: dict):
                 await send_to_player(player, {
                     "type": "message",
                     "text": f"{target_player.name} IS HIT! stamina down to {target_player.stamina}",
-                    "style": "combat"
+                    "style": "combat",
+                    "beeps": 1  # Notification beep for attacker
                 })
                 
                 # Update target's stats
@@ -420,14 +623,22 @@ async def handle_command(player: Player, data: dict):
                     "player": target_player.to_dict()
                 })
                 
-                # If target died, notify them and move them
+                # If target died, handle death sequence
                 if result.get("target_died"):
-                    await send_to_player(target_player, {
+                    # Broadcast death to room
+                    await broadcast_to_room(target_player.room_id, {
                         "type": "message",
-                        "text": "You have been defeated! Respawning at entrance...",
-                        "style": "death"
-                    })
-                    await send_room_update(target_player)
+                        "text": f"{target_player.name} has been slain by {player.name}!",
+                        "style": "combat"
+                    }, exclude=target_player.name)
+                    
+                    # Handle death sequence (save, show messages, GOING screen)
+                    await handle_player_death(target_player)
+                    
+                    # Remove player from game state
+                    game_state.remove_player(target_player)
+                    if target_player.name in active_connections:
+                        del active_connections[target_player.name]
 
 async def send_room_update(player: Player):
     """Send complete room state to player"""
@@ -491,13 +702,13 @@ async def broadcast_to_all(message: dict):
             print(f"Error broadcasting to {player_name}: {e}")
 
 # Serve static files
-app.mount("/graphics", StaticFiles(directory="../../analysed/graphics"), name="graphics")
-app.mount("/static", StaticFiles(directory="../static"), name="static")
+app.mount("/graphics", StaticFiles(directory="../analysed/graphics"), name="graphics")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 async def root():
     """Serve the main game page"""
-    return FileResponse("../static/index.html")
+    return FileResponse("static/index.html")
 
 @app.get("/health")
 async def health():

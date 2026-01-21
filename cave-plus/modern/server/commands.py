@@ -1,54 +1,54 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS:
-=====================
-Movement:
+IMPLEMENTED COMMANDS (23 total):
+=================================
+Movement (6):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
 
-Interaction:
+Interaction (7):
   LOOK/L          - Look at current room
-  GET/TAKE/PICKUP - Pick up an object
+  GET/TAKE/PICKUP - Pick up an object (prevents picking up creatures)
   DROP/LEAVE      - Drop an object
   INVENTORY/I/INV - Show inventory
   SAY/CHAT/TALK   - Say something to players in room
   HELLO           - Say hello (broadcasts "PlayerName says HELLO!" to room)
   KILL            - Shows message "Life is not that simple...try HIT"
   
-Combat:
+Combat (5):
   HIT/ATTACK/FIGHT - Attack with bare hands or stick
   STAB            - Attack with dagger/knife
   BURN            - Attack with flamethrower
   SHOOT           - Attack with arrow
   ZAP/STAFF       - Wizard-only: Attack with Staff of Merlin (requires wizard rank, staff + charges)
 
-Magic/Special:
-  TELEPORT/TELE   - Teleport to an object or creature
+Magic/Special (2):
+  TELEPORT/TELE   - Teleport to an object or creature (success based on rank, score, Shield)
   CHARGE          - Charge Staff of Merlin at altar (room 1)
   
-Information:
+Information (3):
   SCORE/STATS/STATUS - Show score and stamina
   WHO/PLAYERS/LIST   - List all players in game
   HELP/COMMANDS/?    - Show help
 
-System:
+System (1):
   QUIT/EXIT       - Save and quit game
 
-Wizard-Only Commands:
+Wizard-Only Commands (4):
   WIZ             - Teleport to room 16 (Wizard's domain)
   SUMMON <target> - Summon object or creature to your location
   DEPLOY <target> - Resurrect creature from mortuary to your room
   REGEN           - Reset all objects and creatures to initial state
 
-NOT YET IMPLEMENTED:
-====================
+NOT YET IMPLEMENTED (26 commands):
+===================================
 Basic Commands:
-  EXORCISE        - Exorcise an object to the armoury
+  EXORCISE        - Exorcise an object to the armoury (room 20)
   DRINK           - Drink vodka, poison, or medicine
   POISON          - Poison another player
   VIEW            - Use crystal ball to view remote location
   EXAMINE         - Examine an object (shows "nothing special")
-  DEPOSIT         - Deposit treasure at bank (room 56)
+  DEPOSIT         - Deposit treasure at bank (room 56) for points
   PULL            - Pull rope (portcullis in rooms 29/30)
   ANNOY           - Make creature aggressive
   BITE            - Bite attack (creature-like)
@@ -59,17 +59,16 @@ Basic Commands:
   END             - End game (alternative to quit)
 
 Wizard-Only Commands (Not Implemented):
-  FAST            - Enable fast mode (skip graphics)
+  FAST            - Enable fast mode (skip graphics/delays)
   SLOW            - Disable fast mode
-  DEPLOY          - Deploy creature from mortuary
   PACIFY          - Make creature passive
   ALIAS           - Change player name
   ACTIVITY        - Set activity level
-  REGEN           - Regenerate objects
   COLLAPSE        - Trigger cave collapse for all players
   FORCE           - Force another player to execute a command
 
-ALIASES:
+COMMAND ALIASES:
+================
   TAKE/PICKUP -> GET
   LEAVE -> DROP
   CHAT/TALK -> SAY
@@ -80,6 +79,18 @@ ALIASES:
   STAFF -> ZAP
   TELE -> TELEPORT
   ATTACK/FIGHT -> HIT
+  L -> LOOK
+  I/INV -> INVENTORY
+
+IMPLEMENTATION NOTES:
+=====================
+- GET command now prevents picking up creatures (shows "The [creature] is getting annoyed")
+- TELEPORT success depends on: Wizard rank (always succeeds), player level (score >= 500), 
+  and Shield possession (guarantees success)
+- Staff of Merlin requires: Wizard rank + Staff in inventory + Charges (0-7)
+- Staff charging happens at altar (room 1) via CHARGE command
+- Creature movement has two types: walk (10x more likely) and teleport (rare)
+- Room display matches BBC Micro: no room numbers, no exits, no aggressive status
 """
 
 import random
@@ -163,7 +174,7 @@ class CommandParser:
         
         # Kill command (shows message)
         if cmd in ['kill']:
-            return {"message": "Life is not that simple...try HIT"}
+            return {"message": "Life is not that simple...try HIT", "beeps": 1}
         
         # Stab command (Dagger/Knife)
         if cmd in ['stab']:
@@ -208,8 +219,11 @@ class CommandParser:
         # Hello command (broadcast to room)
         if cmd in ['hello']:
             return await self.hello(player)
-            return await self.teleport(player, args)
         
+        # Drink command
+        if cmd in ['drink']:
+            return await self.drink(player, args)
+            
         # Quit command (save and exit)
         if cmd in ['quit', 'exit']:
             return await self.quit_game(player)
@@ -222,7 +236,7 @@ class CommandParser:
         can_move, next_room = self.game_state.can_move(player, direction)
         
         if not can_move:
-            return {"message": f"You can't go {direction} from here."}
+            return {"message": f"You can't go {direction} from here.", "beeps": 1}
         
         old_room = player.room_id
         player.room_id = next_room
@@ -299,11 +313,11 @@ class CommandParser:
         creatures = self.game_state.get_creatures_in_room(player.room_id)
         for creature in creatures:
             if item_name_lower in creature.name.lower():
-                return {"message": f"The {creature.name} is getting annoyed"}
+                return {"message": f"The {creature.name} is getting annoyed", "beeps": 1}
         
         # Check if player can carry more
         if not player.can_carry_more():
-            return {"message": "My hands are full-I can carry no more."}
+            return {"message": "My hands are full-I can carry no more.", "beeps": 1}
         
         # Find item in room (case-insensitive partial match)
         objects = self.game_state.get_objects_in_room(player.room_id)
@@ -315,7 +329,7 @@ class CommandParser:
                 break
         
         if not found_item:
-            return {"message": f"I don't see a {item_name} here."}
+            return {"message": f"I don't see a {item_name} here.", "beeps": 1}
         
         # Pick up item
         self.game_state.remove_object_from_room(player.room_id, found_item)
@@ -341,7 +355,7 @@ class CommandParser:
                 break
         
         if not found_item:
-            return {"message": f"You don't have a '{item_name}'."}
+            return {"message": f"You don't have a '{item_name}'.", "beeps": 1}
         
         # Drop item
         player.remove_item(found_item)
@@ -556,11 +570,11 @@ Examples:
         
         # Check 2: Must have Staff of Merlin
         if not player.has_staff():
-            return {"message": "You do not have the Staff of Merlin."}
+            return {"message": "You do not have the Staff of Merlin.", "beeps": 1}
         
         # Check 3: Staff must have charges
         if player.staff_charges <= 0:
-            return {"message": "Nothing happens."}  # Staff is out of charges
+            return {"message": "Nothing happens.", "beeps": 1}  # Staff is out of charges
         
         # Get creatures in room
         creatures = self.game_state.get_creatures_in_room(player.room_id)
@@ -599,7 +613,8 @@ Examples:
         return {
             "message": message,
             "combat": True,
-            "creature_died": result['creature_died']
+            "creature_died": result['creature_died'],
+            "beeps": 3  # ZAP = 3 beeps! (VDU7,7,7) - most dramatic!
         }
 
     async def stab(self, player: Player, target_name: str) -> Dict:
@@ -612,7 +627,7 @@ Examples:
         has_knife = any("knife" in item.lower() for item in player.inventory)
         
         if not has_dagger and not has_knife:
-            return {"message": "But you do not have the dagger or knife!"}
+            return {"message": "But you do not have the dagger or knife!", "beeps": 1}
         
         weapon = "Dagger" if has_dagger else "Knife"
         
@@ -1111,51 +1126,89 @@ Examples:
             "broadcast": "says HELLO!",
             "broadcast_raw": True  # Flag to use raw broadcast without adding "says:"
         }
+    
+    async def drink(self, player: Player, item_name: str) -> Dict:
+        """
+        Drink vodka, poison, or medicine
+        Based on PROCn (lines 5300-5370)
+        """
+        if not item_name:
+            return {"message": "Drink what?", "beeps": 1}
+        
+        item_name_lower = item_name.lower()
+        
+        # Check if player has the item
+        found_item = None
+        for item in player.inventory:
+            if item_name_lower in item.lower():
+                found_item = item
+                break
+        
+        if not found_item:
+            return {"message": f"You do not have the {item_name}", "beeps": 1}
+        
+        # Determine what was drunk
+        item_lower = found_item.lower()
+        
+        if "vodka" in item_lower:
+            result = player.drink_vodka()
+            print(f"Player {player.name} drank vodka. Vodka level now: {player.vodka_level}")
+            # Vodka stays in inventory (original behavior - not consumed)
+            return result
+        
+        elif "poison" in item_lower:
+            result = player.drink_poison()
+            # Poison stays in inventory (original behavior - not consumed)
+            return result
+        
+        elif "medicine" in item_lower:
+            result = player.drink_medicine()
+            # Medicine stays in inventory (original behavior - not consumed)
+            return result
+        
+        else:
+            return {"message": f"You can't drink the {found_item}!", "beeps": 1}
 
     async def quit_game(self, player: Player) -> Dict:
         """
         Quit and save player data
-        Based on original game QUIT command
+        Based on original game QUIT command (lines 2680-2810)
+        
+        Original sequence:
+        2680: IFV>1PRINT"Unable to QUIT while under the influence"
+        2690: IFMPRINT"I need some medical help for the POISON"
+        2700: IFD<6 (too weak to quit)
+        2720: PRINT"Hold on";
+        2740: PRINT".."; (save file) PRINT"."
+        2810: PRINT"Saved." then *GOING
         """
-        # Check if player is under influence of vodka (if we implement that)
-        # Original: IFV>1PRINT"Unable to QUIT while under the influence"
+        # Check if player is drunk (line 2680)
+        if player.is_drunk():
+            return {
+                "message": "Unable to QUIT while under the influence",
+                "quit_denied": True,
+                "beeps": 1
+            }
         
-        # Check if player is poisoned (if we implement that)
-        # Original: IFMPRINT"I need some medical help for the POISON"
+        # Check if player is poisoned (line 2690)
+        if player.poisoned:
+            return {
+                "message": "I need some medical help for the POISON",
+                "quit_denied": True,
+                "beeps": 1
+            }
         
-        # Check if stamina is too low
+        # Check if stamina is too low (line 2700)
         if player.stamina < 6:
             return {
                 "message": "You are too weak to quit safely. Rest first!",
-                "quit_denied": True
+                "quit_denied": True,
+                "beeps": 1
             }
         
-        # Save player data
-        from player_data import save_player
-        
-        save_data = player.to_save_dict()
-        
-        # Add password hash (stored on player object)
-        if hasattr(player, 'password_hash'):
-            save_data['password_hash'] = player.password_hash
-        else:
-            print(f"⚠️  Warning: Player {player.name} has no password_hash!")
-            return {
-                "message": "Error: Cannot save without password. Please contact admin.",
-                "quit_denied": True
-            }
-        
-        print(f"Saving player {player.name} data: {save_data}")
-        success = save_player(save_data)
-        
-        if success:
-            return {
-                "message": "Your progress has been saved. Farewell!",
-                "quit": True,
-                "disconnect": True
-            }
-        else:
-            return {
-                "message": "Error saving your data. Please try again.",
-                "quit_denied": True
-            }
+        # Return quit_sequence flag to trigger multi-stage quit process
+        # The server will handle the delayed messages
+        return {
+            "quit_sequence": True,
+            "player": player
+        }

@@ -30,7 +30,7 @@ class GameState:
     async def load_rooms(self):
         """Load room data from YAML"""
         try:
-            with open("../rooms-parsed.yml", "r") as f:
+            with open("rooms-parsed.yml", "r") as f:
                 data = yaml.safe_load(f)
                 
             rooms_data = data.get("rooms", {})

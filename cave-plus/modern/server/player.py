@@ -19,6 +19,8 @@ class Player:
             self.max_stamina = saved_data.get('max_stamina', 50)
             self.stamina = saved_data.get('stamina', 50)
             self.staff_charges = saved_data.get('staff_charges', 0)  # Staff of Merlin charges (0-7)
+            self.vodka_level = saved_data.get('vodka_level', 0)  # Drunk level (V variable)
+            self.poisoned = saved_data.get('poisoned', False)  # Poisoned flag (M variable)
             self.max_inventory = self._calculate_max_inventory()
         else:
             # New player
@@ -31,6 +33,8 @@ class Player:
             self.max_stamina = 50
             self.stamina = 25 + random.randint(0, 25)  # 50-100% of max
             self.staff_charges = 0  # Staff of Merlin charges (0-7)
+            self.vodka_level = 0  # Drunk level (V variable)
+            self.poisoned = False  # Poisoned flag (M variable)
             self.max_inventory = 3
         
         # Calculate stamina based on score
@@ -48,6 +52,9 @@ class Player:
             'inventory': self.inventory,
             'max_stamina': self.max_stamina,
             'stamina': self.stamina,
+            'staff_charges': self.staff_charges,
+            'vodka_level': self.vodka_level,
+            'poisoned': self.poisoned,
             'staff_charges': self.staff_charges
         }
         
@@ -107,7 +114,9 @@ class Player:
             "rank": self.rank,
             "kills": self.kills,
             "deaths": self.deaths,
-            "staff_charges": self.staff_charges
+            "staff_charges": self.staff_charges,
+            "vodka_level": self.vodka_level,
+            "poisoned": self.poisoned
         }
     
     def can_carry_more(self):
@@ -184,3 +193,91 @@ class Player:
     def has_staff(self) -> bool:
         """Check if player has the Staff of Merlin"""
         return any("staff" in item.lower() and "merlin" in item.lower() for item in self.inventory)
+    
+    def drink_vodka(self) -> dict:
+        """
+        Drink vodka - increases vodka level, heals stamina
+        Based on line 5300: V=V+1:?&A01=1:D=D+5+RND(2)
+        Line 5320: IFV>5 V=V-1:?&A01=0:D=D-7
+        
+        Note: Original game shows NO message when successfully drinking vodka
+        """
+        import random
+        
+        # Check if already too drunk
+        if self.vodka_level > 5:
+            self.vodka_level -= 1
+            damage = 7
+            self.take_damage(damage)
+            return {
+                "message": "WWhat!! MORE Vodka?",
+                "beeps": 1,
+                "too_drunk": True,
+                "damage": damage
+            }
+        
+        # Drink vodka (silently - no message in original)
+        self.vodka_level += 1
+        heal_amount = 5 + random.randint(1, 2)  # 6-7 stamina
+        self.heal(heal_amount)
+        
+        return {
+            "message": "",  # No message in original game
+            "healed": heal_amount,
+            "vodka_level": self.vodka_level
+        }
+    
+    def drink_poison(self) -> dict:
+        """
+        Drink poison - sets poisoned flag
+        Based on line 5340: M=TRUE:PRINT"It tastes terrible!"
+        """
+        self.poisoned = True
+        return {
+            "message": "It tastes terrible!",
+            "beeps": 1,
+            "poisoned": True
+        }
+    
+    def drink_medicine(self) -> dict:
+        """
+        Drink medicine - cures poison if poisoned, otherwise just tastes bad
+        Based on line 5350: M=FALSE:PRINT"You are cured"
+        Line 5360: PRINT"YUCK!"
+        """
+        if self.poisoned:
+            self.poisoned = False
+            return {
+                "message": "You are cured",
+                "cured": True
+            }
+        else:
+            return {
+                "message": "YUCK!",
+                "beeps": 1
+            }
+    
+    def update_vodka_level(self):
+        """
+        Slowly decrease vodka level over time (sobering up)
+        Based on line 1460: IFV>1 V=V-.001
+        Called each game tick
+        """
+        if self.vodka_level > 1:
+            self.vodka_level -= 0.001
+            if self.vodka_level < 1:
+                self.vodka_level = 0
+    
+    def update_poison_damage(self):
+        """
+        Apply poison damage over time
+        Based on line 1480: IFM D=D-0.05
+        Called each game tick
+        """
+        if self.poisoned:
+            self.take_damage(0.05)
+    
+    def is_drunk(self) -> bool:
+        """Check if player is drunk (vodka level > 1)"""
+        return self.vodka_level > 1
+
