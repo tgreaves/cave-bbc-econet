@@ -604,6 +604,18 @@ async def handle_command(player: Player, data: dict):
                 "style": "combat"  # PROCC type 1 = status area (appears in status window)
             })
     
+    # Handle ANNOY messages (line 3640: PROCC(1,?(T+8),E$+" is ANNOYing you!"))
+    if result.get("annoy_player"):
+        target_name = result.get("annoy_player")
+        target_player = game_state.get_player(target_name)
+        if target_player:
+            message_text = result.get("annoy_message")
+            await send_to_player(target_player, {
+                "type": "message",
+                "text": message_text,
+                "style": "combat"  # PROCC type 1 = status area
+            })
+    
     # Update inventory
     if result.get("inventory_changed"):
         await send_to_player(player, {

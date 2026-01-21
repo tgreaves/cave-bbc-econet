@@ -1,12 +1,12 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (27 total):
+IMPLEMENTED COMMANDS (28 total):
 =================================
 Movement (6):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
 
-Interaction (10):
+Interaction (11):
   LOOK/L          - Look at current room
   GET/TAKE/PICKUP - Pick up an object (prevents picking up creatures)
   DROP/LEAVE      - Drop an object
@@ -17,6 +17,7 @@ Interaction (10):
   EXAMINE         - Examine an object (shows "You see nothing special")
   DEPOSIT         - Deposit treasure at bank (room 56) for 20-40 points
   TELL            - Send message to specific player or all (Wizard only for all)
+  ANNOY           - Make creature aggressive or annoy a player
   
 Combat (5):
   HIT/ATTACK/FIGHT - Attack with bare hands or stick
@@ -45,14 +46,13 @@ Wizard-Only Commands (5):
   REGEN           - Reset all objects and creatures to initial state
   ACTIVITY <0-9>  - Set CCM activity level (0=passive, 9=maximum aggression)
 
-NOT YET IMPLEMENTED (22 commands):
+NOT YET IMPLEMENTED (21 commands):
 ===================================
 Basic Commands:
   EXORCISE        - Exorcise an object to the armoury (room 20)
   POISON          - Poison another player
   VIEW            - Use crystal ball to view remote location
   PULL            - Pull rope (portcullis in rooms 29/30)
-  ANNOY           - Make creature aggressive
   BITE            - Bite attack (creature-like)
   LIGHTS/SWITCH/POWER - Toggle lights on/off (room 12)
   GO/WALK/RUN     - Alternative movement command
@@ -94,6 +94,7 @@ IMPLEMENTATION NOTES:
 - DEPOSIT: Treasure can be deposited at bank (room 56) for 20-40 points, then respawns randomly
 - Objects 11-15 (Crystal Ball, Staff, Amulet, Treasure, Guardian) spawn randomly on REGEN
 - TELL: Messages appear in status area (combat style), Wizards can broadcast to all
+- ANNOY: Makes creatures aggressive and target the player, or sends annoy message to players
 """
 
 import random
@@ -246,6 +247,10 @@ class CommandParser:
         # Tell command
         if cmd in ['tell']:
             return await self.tell(player, args)
+        
+        # Annoy command
+        if cmd in ['annoy']:
+            return await self.annoy(player, args)
             
         # Quit command (save and exit)
         if cmd in ['quit', 'exit']:
@@ -1354,6 +1359,59 @@ Examples:
             "tell_target": target_player.name,
             "tell_message": f"{player.name}:{message}"
         }
+    
+    async def annoy(self, player: Player, target_name: str) -> Dict:
+        """
+        Annoy a creature (makes it aggressive) or player (sends message)
+        Based on DEFPROCm (lines 3590-3640)
+        
+        Original logic:
+        3590: PROCG("ANNOY"):IFT=&A00ENDPROC
+        3620: IFT>&A00AND?T=BPROCJ(T,"A"):ENDPROC  : REM Set aggressive
+        3630: IFT>&A00OR?(T+9)<>BPRINT"But ";D$;" isn't here!!":VDU7:ENDPROC
+        3640: PROCC(1,?(T+8),E$+" is ANNOYing you!")  : REM Tell other player
+        """
+        if not target_name:
+            return {"message": "ANNOY what?"}
+        
+        target_name_lower = target_name.lower()
+        
+        # Check for creatures in room first
+        creatures = self.game_state.get_creatures_in_room(player.room_id)
+        for creature in creatures:
+            if target_name_lower in creature.name.lower():
+                # Found creature - make it aggressive
+                if creature.is_dead:
+                    return {"message": f"The {creature.name} is dead."}
+                
+                # Line 3620: PROCJ(T,"A") - make aggressive
+                creature.make_aggressive()
+                creature.target_player = player.name
+                
+                return {
+                    "message": f"The {creature.name} is now aggressive!",
+                    "annoyed_creature": True
+                }
+        
+        # Check for players in room
+        target_player = None
+        for p in self.game_state.players.values():
+            if p.name != player.name and p.room_id == player.room_id:
+                if target_name_lower in p.name.lower():
+                    target_player = p
+                    break
+        
+        if target_player:
+            # Line 3640: PROCC(1,?(T+8),E$+" is ANNOYing you!")
+            # Send message to player (appears in status area)
+            return {
+                "message": f"You annoy {target_player.name}",
+                "annoy_player": target_player.name,
+                "annoy_message": f"{player.name} is ANNOYing you!"
+            }
+        
+        # Not found
+        return {"message": f"But {target_name} isn't here!!", "beeps": 1}
 
     async def quit_game(self, player: Player) -> Dict:
         """
