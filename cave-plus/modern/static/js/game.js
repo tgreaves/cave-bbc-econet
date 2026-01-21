@@ -10,6 +10,7 @@ class CaveGame {
         // Login state
         this.loginState = 'name'; // 'name' or 'password'
         this.currentInput = '';
+        this.loginInputEnabled = true; // Flag to disable login input temporarily
         
         // CRT filter state (load from localStorage, default to ON)
         const savedFilter = localStorage.getItem('crtFilter');
@@ -147,6 +148,11 @@ class CaveGame {
     }
     
     handleLoginKey(e) {
+        // Check if login input is enabled
+        if (!this.loginInputEnabled) {
+            return;
+        }
+        
         if (e.key === 'Enter') {
             e.preventDefault();
             if (this.loginState === 'name') {
@@ -257,9 +263,14 @@ class CaveGame {
     handleMessage(data) {
         switch (data.type) {
             case 'disable_input':
-                // Disable command input (used during QUIT sequence)
+                // Disable command input (used during QUIT/death sequence)
                 this.commandInput.disabled = true;
                 this.commandInput.style.opacity = '0.5';
+                // Hide the prompt line
+                this.promptElement.style.display = 'none';
+                this.commandDisplay.style.display = 'none';
+                const cursor = this.messageLog.querySelector('.cursor');
+                if (cursor) cursor.style.display = 'none';
                 break;
             
             case 'disconnect':
@@ -433,32 +444,39 @@ class CaveGame {
     }
     
     addMessage(text, style = 'normal') {
-        // Add text to scrolling message log
+        // Get the prompt elements (they're at the end of messageLog)
+        const promptSpan = document.getElementById('prompt');
+        const commandDisplay = document.getElementById('command-display');
+        const cursor = this.messageLog.querySelector('.cursor');
+        
+        // Add text to scrolling message log (before the prompt)
         const lines = text.split('\n');
         
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             
             // Special handling for quit sequence dots - append to previous line
-            if ((line === '..' || line === '.') && this.messageLog.lastChild) {
-                // Append dots to the last text node
-                const lastNode = this.messageLog.lastChild;
-                if (lastNode.nodeType === Node.TEXT_NODE || lastNode.textContent) {
-                    // Find the last text content
-                    const walker = document.createTreeWalker(
-                        this.messageLog,
-                        NodeFilter.SHOW_TEXT,
-                        null,
-                        false
-                    );
-                    let lastTextNode = null;
-                    while (walker.nextNode()) {
-                        lastTextNode = walker.currentNode;
+            if ((line === '..' || line === '.') && this.messageLog.childNodes.length > 3) {
+                // Find the last text node before the prompt
+                const walker = document.createTreeWalker(
+                    this.messageLog,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
+                let lastTextNode = null;
+                let node;
+                while ((node = walker.nextNode())) {
+                    // Stop before the prompt elements
+                    if (node.parentNode === this.messageLog && 
+                        (node.nextSibling === promptSpan || node.nextSibling === commandDisplay)) {
+                        break;
                     }
-                    if (lastTextNode) {
-                        lastTextNode.textContent += line;
-                        continue;
-                    }
+                    lastTextNode = node;
+                }
+                if (lastTextNode) {
+                    lastTextNode.textContent += line;
+                    continue;
                 }
             }
             
@@ -466,17 +484,19 @@ class CaveGame {
             const span = document.createElement('span');
             span.className = `msg-${style}`;
             span.textContent = line;
-            this.messageLog.appendChild(span);
+            
+            // Insert before the prompt
+            this.messageLog.insertBefore(span, promptSpan);
             
             // Add newline except after last line
             if (i < lines.length - 1) {
-                this.messageLog.appendChild(document.createTextNode('\n'));
+                this.messageLog.insertBefore(document.createTextNode('\n'), promptSpan);
             }
         }
         
         // Add final newline only if not a dot continuation
         if (text !== '..' && text !== '.') {
-            this.messageLog.appendChild(document.createTextNode('\n'));
+            this.messageLog.insertBefore(document.createTextNode('\n'), promptSpan);
         }
         
         // Auto-scroll to bottom
@@ -631,13 +651,26 @@ class CaveGame {
         this.loginScreen.classList.add('active');
         this.gameScreen.classList.remove('active');
         
+        // Disable login input handler while on GOING screen
+        this.loginInputEnabled = false;
+        
         // Wait for any keypress to return to login
         const returnToLogin = (e) => {
+            // Prevent this key from being processed by login handler
+            e.preventDefault();
+            e.stopPropagation();
             document.removeEventListener('keydown', returnToLogin);
+            
+            // Reset login state
             this.loginState = 'name';
             this.currentInput = '';
             this.playerName = '';
             this.password = '';
+            
+            // Re-enable login input handler
+            this.loginInputEnabled = true;
+            
+            // Update display to show name entry screen
             this.updateLoginDisplay();
         };
         document.addEventListener('keydown', returnToLogin);
@@ -649,14 +682,26 @@ class CaveGame {
     }
     
     showGame() {
-        // Clear all previous messages
-        this.messageLog.textContent = '';
+        // Clear all previous messages but keep the prompt
+        // Remove all child nodes except the last 3 (prompt, command-display, cursor)
+        while (this.messageLog.childNodes.length > 3) {
+            this.messageLog.removeChild(this.messageLog.firstChild);
+        }
+        
         this.statusMessagesElement.textContent = '';
         this.statusMessages = [];
         
-        // Clear command input
+        // Clear command input and re-enable it
         this.commandInput.value = '';
+        this.commandInput.disabled = false;
+        this.commandInput.style.opacity = '1';
         this.commandDisplay.textContent = '';
+        
+        // Show the prompt elements (in case they were hidden)
+        this.promptElement.style.display = 'inline';
+        this.commandDisplay.style.display = 'inline';
+        const cursor = this.messageLog.querySelector('.cursor');
+        if (cursor) cursor.style.display = 'inline';
         
         // Switch screens
         this.loginScreen.classList.remove('active');

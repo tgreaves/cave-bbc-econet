@@ -204,7 +204,7 @@ rooms:
     name: "Wizard's Room"
     note: 'Central hub of wizard domain'
     description: |
-      Wizard's Room
+      This is the Wizard's Room. Magical energy fills the air.
     exits:
       east: 20
       west: 19

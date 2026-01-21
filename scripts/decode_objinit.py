@@ -27,9 +27,14 @@ def decode_objinit(filename):
     print("=" * 80)
     print()
     
-    # Read 4-byte little-endian integers
+    # First 4 bytes are header/metadata (load address)
+    header = struct.unpack('<I', data[0:4])[0]
+    print(f"Header/Load Address: 0x{header:08X}")
+    print()
+    
+    # Read 4-byte little-endian integers starting from offset 4
     values = []
-    for i in range(0, len(data), 4):
+    for i in range(4, len(data), 4):
         if i + 4 <= len(data):
             val = struct.unpack('<I', data[i:i+4])[0]
             values.append(val)

@@ -39,8 +39,9 @@ Information (3):
 System (1):
   QUIT/EXIT       - Save and quit game
 
-Wizard-Only Commands (5):
+Wizard-Only Commands (6):
   WIZ             - Teleport to room 16 (Wizard's domain)
+  ROOM <number>   - Teleport to specific room number (e.g., ROOM 21)
   SUMMON <target> - Summon object or creature to your location
   DEPLOY <target> - Resurrect creature from mortuary to your room
   REGEN           - Reset all objects and creatures to initial state
@@ -219,6 +220,10 @@ class CommandParser:
         # Wiz command (Wizard teleport to room 16)
         if cmd in ['wiz']:
             return await self.wiz(player)
+        
+        # Room command (Wizard teleport to specific room number)
+        if cmd in ['room']:
+            return await self.room(player, args)
         
         # Hello command (broadcast to room)
         if cmd in ['hello']:
@@ -1166,9 +1171,46 @@ Examples:
         
         return {
             "message": f"You vanish in a puff of smoke!\n\n{look_result['message']}",
-            "moved": True,
-            "old_room": old_room,
-            "direction": "magically"
+            "room_changed": True,
+            "teleport": True,
+            "old_room": old_room
+        }
+    
+    async def room(self, player: Player, room_number: str) -> Dict:
+        """
+        Wizard command to teleport to a specific room number
+        New command not in original game - for wizard convenience
+        Usage: ROOM 21
+        """
+        # Must be a wizard
+        if player.rank != "Wizard":
+            return {"message": "Only wizards can use this command!"}
+        
+        # Parse room number
+        if not room_number:
+            return {"message": "ROOM <number> - Teleport to room number"}
+        
+        try:
+            target_room = int(room_number)
+        except ValueError:
+            return {"message": "Invalid room number"}
+        
+        # Check if room exists
+        if target_room not in self.game_state.rooms:
+            return {"message": f"Room {target_room} does not exist"}
+        
+        # Teleport to the room (same messaging as TELEPORT)
+        old_room = player.room_id
+        player.room_id = target_room
+        
+        # Get room info for display
+        look_result = await self.look(player)
+        
+        return {
+            "message": f"You concentrate... and suddenly find yourself elsewhere!\n\n{look_result['message']}",
+            "room_changed": True,
+            "teleport": True,
+            "old_room": old_room
         }
     
     async def hello(self, player: Player) -> Dict:

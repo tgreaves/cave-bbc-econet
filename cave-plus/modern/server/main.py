@@ -44,6 +44,11 @@ async def handle_player_death(player: Player):
         
         print(f"🪦 Starting death sequence for {player.name}")
         
+        # Disable command input immediately
+        await send_to_player(player, {
+            "type": "disable_input"
+        })
+        
         # Line 1520: "Life is slipping away...You are going"
         # PRINT'"..." means: blank line, then the message
         # This appears in main screen area (PRINT, not PROCB)
@@ -554,20 +559,21 @@ async def handle_command(player: Player, data: dict):
     if result.get("moved"):
         await send_room_update(player)
         
-        # Announce to old room
-        if result.get("old_room"):
+        # Announce to old room (only if different from new room)
+        if result.get("old_room") and result["old_room"] != player.room_id:
             await broadcast_to_room(result["old_room"], {
                 "type": "message",
                 "text": f"{player.name} left {result.get('direction', '')}.",
                 "style": "action"
             })
         
-        # Announce to new room
-        await broadcast_to_room(player.room_id, {
-            "type": "message",
-            "text": f"{player.name} arrived.",
-            "style": "action"
-        }, exclude=player.name)
+        # Announce to new room (only if different from old room)
+        if result.get("old_room") != player.room_id:
+            await broadcast_to_room(player.room_id, {
+                "type": "message",
+                "text": f"{player.name} arrived.",
+                "style": "action"
+            }, exclude=player.name)
     
     # Broadcast chat messages
     if result.get("broadcast"):

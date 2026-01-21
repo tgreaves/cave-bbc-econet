@@ -216,20 +216,25 @@ CREATURE_DATA = {
     42: ("Caveman", "B10000505005002001H150"),
 }
 
-# Initial creature placement (from OBJINIT file)
+# Initial creature placement (from OBJINIT file - corrected with 4-byte header offset)
 INITIAL_CREATURE_PLACEMENT = {
-    1: [(16, 0)],  # Dragon (0 stamina - inactive?)
-    5: [(19, 48)],  # Maggot
-    8: [(41, 100)],  # Skeleton
-    13: [(37, 20), (38, 60)],  # Dwarf, Necromancer
-    20: [(22, 579), (25, 112), (30, 6), (34, 0)],  # Spider, Viper, Drunk, Guardian
-    26: [(26, 42), (27, 42), (28, 42), (29, 42)],  # Cobra, Python, Adder, Worm
-    37: [(39, 50)],  # Centipede
-    38: [(17, 784)],  # Troll
-    39: [(21, 34)],  # Author
-    46: [(24, 38)],  # Killer
-    55: [(35, 65)],  # Goblin
-    63: [(32, 48)],  # Toad
-    67: [(23, 49)],  # Coward
-    83: [(42, 100)],  # Caveman
+    3: [(35, 50)],  # Goblin
+    5: [(18, 48)],  # (unnamed)
+    8: [(40, 100)],  # (unnamed)
+    11: [(19, 67)],  # Maggot
+    13: [(36, 20), (37, 60)],  # (unnamed), Dwarf
+    14: [(39, 80)],  # (unnamed)
+    20: [(21, 579), (24, 112), (29, 6), (33, 0)],  # Author, Killer, Worm, (unnamed)
+    23: [(17, 87)],  # Troll
+    26: [(25, 42), (26, 42), (27, 42), (28, 42)],  # Viper, Cobra, Python, Adder
+    32: [(30, 55)],  # Drunk
+    37: [(38, 50)],  # Necromancer
+    38: [(16, 784)],  # Dragon (in Dragon's Lair!)
+    39: [(20, 34)],  # (unnamed)
+    46: [(23, 38)],  # Coward
+    55: [(34, 65535)],  # Guardian
+    63: [(31, 48), (32, 60)],  # (unnamed), Toad
+    67: [(22, 49)],  # Spider
+    83: [(41, 100)],  # Skeleton
+    85: [(42, 150)],  # Caveman
 }
