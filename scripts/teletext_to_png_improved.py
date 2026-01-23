@@ -134,6 +134,7 @@ def render_teletext_to_png(filepath, output_path, scale=16):
         bg_color = COLORS['BLACK']
         graphics_mode = False
         contiguous = True
+        flash = False
         
         for char_num, byte in enumerate(line):
             x = char_num * scale
@@ -157,6 +158,13 @@ def render_teletext_to_png(filepath, output_path, scale=16):
                     bg_color = fg_color
                 elif code == 'BLACK_BG':
                     bg_color = COLORS['BLACK']
+                elif code == 'BLACK_FG':
+                    fg_color = COLORS['BLACK']
+                # Ignore FLASH and STEADY - just preserve colors
+                elif code == 'FLASH':
+                    pass  # Don't change colors for flash
+                elif code == 'STEADY':
+                    pass  # Don't change colors for steady
                 elif code == 'CONTIGUOUS_GRAPHICS':
                     contiguous = True
                 elif code == 'SEPARATED_GRAPHICS':
@@ -165,13 +173,15 @@ def render_teletext_to_png(filepath, output_path, scale=16):
                 # Draw background for control code position
                 draw.rectangle([x, y, x + scale - 1, y + scale - 1], fill=bg_color)
                 
-            # Handle graphics characters (0xA0-0xBF)
-            elif 0xA0 <= byte <= 0xBF:
+            # Handle graphics characters (0xA0-0xBF and 0xC0-0xFF in graphics mode)
+            elif (0xA0 <= byte <= 0xBF) or (graphics_mode and byte >= 0xC0):
                 # Draw background
                 draw.rectangle([x, y, x + scale - 1, y + scale - 1], fill=bg_color)
                 
                 # Decode and draw blocks
-                blocks = decode_graphics_char(byte)
+                # For bytes >= 0xC0 in graphics mode, mask to 0xA0-0xBF range
+                graphics_byte = byte if byte <= 0xBF else (byte & 0x3F) | 0xA0
+                blocks = decode_graphics_char(graphics_byte)
                 if blocks:
                     # Each character is divided into 2x3 blocks
                     block_width = scale // 2
@@ -180,7 +190,7 @@ def render_teletext_to_png(filepath, output_path, scale=16):
                     # Add separation for separated graphics mode
                     sep = 1 if not contiguous else 0
                     
-                    # Draw each block
+                    # Draw each block (ignore flash state, preserve colors)
                     for i, filled in enumerate(blocks):
                         if filled:
                             col = i % 2
@@ -228,7 +238,7 @@ def render_teletext_to_png(filepath, output_path, scale=16):
                             font = None
                         
                         if font:
-                            # Center the character in the cell
+                            # Center the character in the cell (ignore flash, preserve colors)
                             bbox = draw.textbbox((0, 0), char, font=font)
                             text_width = bbox[2] - bbox[0]
                             text_height = bbox[3] - bbox[1]
