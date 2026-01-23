@@ -208,15 +208,53 @@ def render_teletext_to_png(filepath, output_path, scale=16):
                 # Draw background
                 draw.rectangle([x, y, x + scale - 1, y + scale - 1], fill=bg_color)
                 
-                # For non-space characters, draw a simple representation
-                # (We don't have the actual Teletext font, so just indicate text presence)
-                if byte != 0x20 and byte != 0xA0:  # Not space
-                    # Draw a simple filled area to represent text
-                    margin = scale // 6
-                    draw.rectangle(
-                        [x + margin, y + margin, x + scale - margin - 1, y + scale - margin - 1],
-                        fill=fg_color
-                    )
+                # Only render text if NOT in graphics mode
+                if not graphics_mode:
+                    # Handle BBC Micro lowercase encoding (0xC0-0xFF -> subtract 0x80)
+                    if byte >= 0xC0:
+                        char = chr(byte - 0x80)
+                    elif 0x20 <= byte < 0x7F:
+                        char = chr(byte)
+                    else:
+                        char = None
+                    
+                    # Draw text character if we have one
+                    if char and char != ' ':
+                        # Use PIL to draw text (simple monospace representation)
+                        # Calculate font size to fit in cell
+                        font_size = int(scale * 0.8)
+                        try:
+                            from PIL import ImageFont
+                            # Try to use a monospace font
+                            try:
+                                font = ImageFont.truetype("cour.ttf", font_size)
+                            except:
+                                try:
+                                    font = ImageFont.truetype("Courier New.ttf", font_size)
+                                except:
+                                    font = ImageFont.load_default()
+                        except:
+                            font = None
+                        
+                        if font:
+                            # Center the character in the cell
+                            bbox = draw.textbbox((0, 0), char, font=font)
+                            text_width = bbox[2] - bbox[0]
+                            text_height = bbox[3] - bbox[1]
+                            text_x = x + (scale - text_width) // 2
+                            text_y = y + (scale - text_height) // 2 - bbox[1]
+                            draw.text((text_x, text_y), char, fill=fg_color, font=font)
+                        else:
+                            # Fallback: draw a simple filled area
+                            margin = scale // 6
+                            draw.rectangle(
+                                [x + margin, y + margin, x + scale - margin - 1, y + scale - margin - 1],
+                                fill=fg_color
+                            )
+                else:
+                    # In graphics mode, treat high bytes as graphics characters
+                    # (some may be invalid graphics chars, just draw background)
+                    pass
     
     # Save the image
     img.save(output_path)
