@@ -474,6 +474,18 @@ class CaveGame {
         }
         
         this.addMessage(desc, 'normal');
+        
+        // BBC Micro: Picture loads AFTER text description (line 1190)
+        // Display graphic in scrolling area if room has one
+        if (room.has_graphic && room.graphic_url) {
+            const graphicsArea = document.getElementById('graphics-area');
+            const roomGraphic = document.getElementById('room-graphic');
+            roomGraphic.src = room.graphic_url;
+            graphicsArea.style.display = 'block';
+        } else {
+            const graphicsArea = document.getElementById('graphics-area');
+            graphicsArea.style.display = 'none';
+        }
     }
     
     addArticle(name) {

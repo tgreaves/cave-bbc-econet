@@ -960,13 +960,13 @@ async def broadcast_to_all(message: dict):
             print(f"Error broadcasting to {player_name}: {e}")
 
 # Serve static files
-app.mount("/graphics", StaticFiles(directory="static/graphics"), name="graphics")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/graphics", StaticFiles(directory="../static/graphics"), name="graphics")
+app.mount("/static", StaticFiles(directory="../static"), name="static")
 
 @app.get("/")
 async def root():
     """Serve the main game page"""
-    return FileResponse("static/index.html")
+    return FileResponse("../static/index.html")
 
 @app.get("/health")
 async def health():
