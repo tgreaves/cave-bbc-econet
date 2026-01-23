@@ -473,19 +473,22 @@ class CaveGame {
             }
         }
         
+        // Display room text (scrolls up)
         this.addMessage(desc, 'normal');
         
-        // BBC Micro: Picture loads AFTER text description (line 1190)
-        // Display graphic in scrolling area if room has one
+        // BBC Micro behavior: Display graphic as overlay on top of scrolled text
+        const graphicsOverlay = document.getElementById('graphics-overlay');
+        const roomGraphic = document.getElementById('room-graphic');
+        
         if (room.has_graphic && room.graphic_url) {
-            const graphicsArea = document.getElementById('graphics-area');
-            const roomGraphic = document.getElementById('room-graphic');
             roomGraphic.src = room.graphic_url;
-            graphicsArea.style.display = 'block';
+            graphicsOverlay.style.display = 'block';
         } else {
-            const graphicsArea = document.getElementById('graphics-area');
-            graphicsArea.style.display = 'none';
+            graphicsOverlay.style.display = 'none';
         }
+        
+        // Scroll to bottom to show prompt
+        this.messageLog.scrollTop = this.messageLog.scrollHeight;
     }
     
     addArticle(name) {

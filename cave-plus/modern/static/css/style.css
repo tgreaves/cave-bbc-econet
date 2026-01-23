@@ -243,21 +243,25 @@ body {
 }
 
 /* Graphics area - appears in scrolling content, not fixed height */
-.graphics-area {
+/* Graphics overlay - positioned absolutely over scrolled text */
+.graphics-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    padding: 0;
-    margin-bottom: calc(var(--char-height) * 1); /* One line spacing after graphic */
+    text-align: center;
+    z-index: 10;
+    pointer-events: none; /* Allow clicking through to text below */
 }
 
-#room-graphic {
+.graphics-overlay img {
     width: 100%;
     height: auto;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
+    display: block;
+}
 }
 
 /* Status area - rows 0-5 (6 rows) */

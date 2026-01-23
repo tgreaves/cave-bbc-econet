@@ -32,8 +32,8 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 def calculate_checksum(data: Dict) -> str:
     """Calculate checksum for data validation (like original game)"""
-    # Concatenate key fields like original: name+score+room+wizard+password
-    check_string = f"{data['name']}{data['score']}{data['room_id']}{data['rank']}{data['password_hash']}"
+    # Concatenate key fields like original: name+score+room+password
+    check_string = f"{data['name']}{data['score']}{data['room_id']}{data['password_hash']}"
     return hashlib.md5(check_string.encode()).hexdigest()
 
 def save_player(player_data: Dict) -> Tuple[bool, float]:

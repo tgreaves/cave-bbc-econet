@@ -7,7 +7,7 @@ services:
     ports:
       - "1985:8000"
     volumes:
-      - cave-player-data:/app/data
+      - cave-player-data:/app/player_data
     restart: unless-stopped
 
 volumes:

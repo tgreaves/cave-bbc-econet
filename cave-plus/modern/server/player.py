@@ -15,10 +15,12 @@ class Player:
         self.disconnect_timeout = 300  # 5 minutes in seconds
         
         if saved_data:
-            # Load from saved data (BBC Micro format: name, score, room, wizard flag)
+            # Load from saved data (BBC Micro format: name, score, room)
             self.room_id = saved_data.get('room_id', 1)
             self.score = saved_data.get('score', 0)
-            self.rank = saved_data.get('rank', 'Novice')
+            
+            # Calculate rank from score
+            self.update_rank()
             
             # Everything else starts fresh on login
             self.kills = 0
@@ -49,14 +51,13 @@ class Player:
     def to_save_dict(self):
         """
         Convert player to dictionary for saving to disk
-        BBC Micro only saves: name, score, room (B), wizard flag (G), password
-        Everything else is recalculated on login
+        BBC Micro only saves: name, score, room (B), password
+        Rank is calculated from score on login
         """
         return {
             'name': self.name,
             'room_id': self.room_id,
-            'score': self.score,
-            'rank': self.rank  # Derived from score, but saved for convenience
+            'score': self.score
         }
         
     def _calculate_max_inventory(self):
