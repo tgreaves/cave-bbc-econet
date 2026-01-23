@@ -481,8 +481,14 @@ class CaveGame {
         const roomGraphic = document.getElementById('room-graphic');
         
         if (room.has_graphic && room.graphic_url) {
+            // Hide overlay first to prevent old image from flashing
+            graphicsOverlay.style.display = 'none';
+            
+            // Load new image and show when ready
+            roomGraphic.onload = () => {
+                graphicsOverlay.style.display = 'block';
+            };
             roomGraphic.src = room.graphic_url;
-            graphicsOverlay.style.display = 'block';
         } else {
             graphicsOverlay.style.display = 'none';
         }
@@ -544,6 +550,14 @@ class CaveGame {
         const commandDisplay = document.getElementById('command-display');
         const cursor = this.messageLog.querySelector('.cursor');
         
+        // On first message, add padding to push content to bottom (BBC Micro style)
+        if (!this.messageLog.querySelector('.top-spacer')) {
+            const spacer = document.createElement('div');
+            spacer.className = 'top-spacer';
+            spacer.style.height = '100%'; // Will be reduced as content is added
+            this.messageLog.insertBefore(spacer, this.messageLog.firstChild);
+        }
+        
         // Add text to scrolling message log (before the prompt)
         const lines = text.split('\n');
         
@@ -592,6 +606,21 @@ class CaveGame {
         // Add final newline only if not a dot continuation
         if (text !== '..' && text !== '.') {
             this.messageLog.insertBefore(document.createTextNode('\n'), promptSpan);
+        }
+        
+        // Adjust spacer height to keep content at bottom until it fills the screen
+        const spacer = this.messageLog.querySelector('.top-spacer');
+        if (spacer) {
+            const logHeight = this.messageLog.clientHeight;
+            const contentHeight = this.messageLog.scrollHeight - spacer.offsetHeight;
+            
+            if (contentHeight < logHeight) {
+                // Content doesn't fill screen yet, adjust spacer
+                spacer.style.height = (logHeight - contentHeight) + 'px';
+            } else {
+                // Content fills screen, remove spacer
+                spacer.remove();
+            }
         }
         
         // Auto-scroll to bottom
