@@ -410,20 +410,10 @@ class GameState:
         # Calculate player damage (base 1-3, modified by weapon)
         base_damage = random.randint(1, 3)
         
-        # Weapon modifiers
+        # Weapon modifiers (only stick works with HIT, other weapons have dedicated commands)
         weapon_bonus = 0
-        if weapon:
-            weapon_lower = weapon.lower()
-            if "stick" in weapon_lower:
-                weapon_bonus = 3
-            elif "dagger" in weapon_lower or "knife" in weapon_lower:
-                weapon_bonus = random.randint(6, 9)
-            elif "flamethrower" in weapon_lower:
-                weapon_bonus = random.randint(50, 75)
-            elif "staff" in weapon_lower:
-                weapon_bonus = random.randint(50, 75)
-            elif "arrow" in weapon_lower:
-                weapon_bonus = random.randint(30, 40)
+        if weapon and "stick" in weapon.lower():
+            weapon_bonus = 3
         
         total_damage = base_damage + weapon_bonus
         

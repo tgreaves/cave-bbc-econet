@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  cave-plus:
+    image: bbc-econet-cave:latest
+    container_name: bbc-econet-cave
+    ports:
+      - "1985:8000"
+    volumes:
+      - cave-player-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  cave-player-data:

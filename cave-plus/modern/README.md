@@ -30,7 +30,25 @@ The core game is fully functional with real-time multiplayer, room navigation, i
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Option 1: Docker (Recommended)
+
+```bash
+# Build the container
+docker build -t bbc-econet-cave:latest .
+
+# Run with docker-compose (includes persistent player data)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+### Option 2: Local Python
+
+#### 1. Install Dependencies
 
 ```bash
 cd cave-plus/recreation
@@ -39,7 +57,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Start the Server
+#### 2. Start the Server
 
 ```bash
 ./start.sh
@@ -52,7 +70,7 @@ cd server
 python3 main.py
 ```
 
-### 3. Open in Browser
+### Open in Browser
 
 Navigate to **http://localhost:8000**
 
