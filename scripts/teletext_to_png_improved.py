@@ -23,21 +23,19 @@ CONTROL_CODES = {
     0x89: 'STEADY',
     0x8C: 'NORMAL_HEIGHT',
     0x8D: 'DOUBLE_HEIGHT',
-    # Background control
-    0x90: 'BLACK_BG',
-    0x91: 'NEW_BG',
-    # Graphics colors (0x91-0x97) - enable graphics mode
-    # Note: 0x91 is NEW_BG, but in graphics context acts as RED_GRAPHICS
+    # Graphics colors (0x91-0x97) - enable graphics mode  
+    0x91: 'RED_GRAPHICS',
     0x92: 'GREEN_GRAPHICS',
     0x93: 'YELLOW_GRAPHICS',
     0x94: 'BLUE_GRAPHICS',
     0x95: 'MAGENTA_GRAPHICS',
     0x96: 'CYAN_GRAPHICS',
     0x97: 'WHITE_GRAPHICS',
-    # Other control codes
-    0x9C: 'BLACK_FG',
-    0x9D: 'SEPARATED_GRAPHICS',
-    0x9E: 'CONTIGUOUS_GRAPHICS',
+    # Background and graphics control
+    0x9C: 'BLACK_BG',
+    0x9D: 'NEW_BG',
+    0x99: 'SEPARATED_GRAPHICS',
+    0x9A: 'CONTIGUOUS_GRAPHICS',
 }
 
 # Teletext colors (RGB) - BBC Micro palette
@@ -150,20 +148,13 @@ def render_teletext_to_png(filepath, output_path, scale=16):
                     fg_color = COLORS[code]
                     graphics_mode = False
                 # Graphics color codes (enable graphics mode)
-                elif code in ['GREEN_GRAPHICS', 'YELLOW_GRAPHICS', 'BLUE_GRAPHICS', 
+                elif code in ['RED_GRAPHICS', 'GREEN_GRAPHICS', 'YELLOW_GRAPHICS', 'BLUE_GRAPHICS', 
                               'MAGENTA_GRAPHICS', 'CYAN_GRAPHICS', 'WHITE_GRAPHICS']:
                     color_name = code.replace('_GRAPHICS', '')
                     fg_color = COLORS[color_name]
                     graphics_mode = True
-                # Special case: NEW_BG can also act as RED_GRAPHICS in graphics context
                 elif code == 'NEW_BG':
-                    # If we're already in graphics mode, treat as RED_GRAPHICS
-                    if graphics_mode:
-                        fg_color = COLORS['RED']
-                    else:
-                        bg_color = fg_color
-                elif code == 'BLACK_FG':
-                    fg_color = COLORS['BLACK']
+                    bg_color = fg_color
                 elif code == 'BLACK_BG':
                     bg_color = COLORS['BLACK']
                 elif code == 'CONTIGUOUS_GRAPHICS':
