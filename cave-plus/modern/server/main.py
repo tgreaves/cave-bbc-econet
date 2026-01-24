@@ -806,6 +806,52 @@ async def handle_command(player: Player, data: dict):
         for p in game_state.players.values():
             await send_room_update(p)
     
+    # Handle COLLAPSE command (line 2620: Wizard triggers cave collapse for all players)
+    if result.get("collapse"):
+        wizard_name = result.get("wizard_name")
+        print(f"💥 {wizard_name} triggered COLLAPSE - killing all players!")
+        
+        # Disable input for all players immediately
+        for p in list(game_state.players.values()):
+            await send_to_player(p, {
+                "type": "disable_input"
+            })
+        
+        # Send collapse event 10 times with 0.1s delay (matching BBC Micro line 2620)
+        import asyncio
+        for i in range(10):
+            # Broadcast "Cave collapses" to all players
+            await broadcast_to_all({
+                "type": "message",
+                "text": "Cave collapses",
+                "style": "normal",  # Main screen, not status
+                "beeps": 3  # Dramatic!
+            })
+            
+            # 0.1 second delay between each (INKEY$10 = 10 centiseconds)
+            await asyncio.sleep(0.1)
+        
+        # Small pause before death sequence
+        await asyncio.sleep(0.5)
+        
+        # Kill all players (matching line 1620: PROCF:*GOING)
+        for p in list(game_state.players.values()):
+            p.deaths += 1
+            
+            # Make all creatures forget about this player
+            game_state.reset_creatures_targeting_player(p.name)
+            
+            # Handle death sequence (save, show messages, GOING screen)
+            await handle_player_death(p)
+            
+            # Remove player from game state
+            game_state.remove_player(p)
+            if p.name in active_connections:
+                del active_connections[p.name]
+        
+        print(f"✅ COLLAPSE complete - all players removed from cave")
+        return
+    
     # Handle SUMMON player (line 2170: PROCC(8,?(T+8),CHR$B) - event 8 = teleport)
     if result.get("summon_player"):
         target_name = result.get("summon_player")

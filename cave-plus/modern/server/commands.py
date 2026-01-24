@@ -1,7 +1,7 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (29 total):
+IMPLEMENTED COMMANDS (30 total):
 =================================
 Movement (6):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
@@ -40,15 +40,16 @@ Information (3):
 System (1):
   QUIT/EXIT       - Save and quit game
 
-Wizard-Only Commands (6):
+Wizard-Only Commands (7):
   WIZ             - Teleport to room 16 (Wizard's domain)
   ROOM <number>   - Teleport to specific room number (e.g., ROOM 21)
   SUMMON <target> - Summon object or creature to your location
   DEPLOY <target> - Resurrect creature from mortuary to your room
   REGEN           - Reset all objects and creatures to initial state
   ACTIVITY <0-9>  - Set CCM activity level (0=passive, 9=maximum aggression)
+  COLLAPSE        - Trigger cave collapse - kills all players in the cave
 
-NOT YET IMPLEMENTED (20 commands):
+NOT YET IMPLEMENTED (19 commands):
 ===================================
 Basic Commands:
   EXORCISE        - Exorcise an object to the armoury (room 20)
@@ -65,7 +66,6 @@ Wizard-Only Commands (Not Implemented):
   SLOW            - Disable fast mode
   PACIFY          - Make creature passive
   ALIAS           - Change player name
-  COLLAPSE        - Trigger cave collapse for all players
   FORCE           - Force another player to execute a command
 
 COMMAND ALIASES:
@@ -101,6 +101,11 @@ IMPLEMENTATION NOTES:
   - When lights OFF and no Crystal Ball: "It is too dark to see"
   - When lights ON or player has Crystal Ball: Normal room description shown
   - Broadcasts to all players: "The Lights come ON" / "The Lights go OFF"
+- COLLAPSE: Wizard-only command that kills all players in the cave
+  - Sends "Cave collapses" message to all players
+  - Saves all player data
+  - Kicks everyone to GOING screen (game over)
+  - Cannot be used via FORCE command
 """
 
 import random
@@ -265,6 +270,10 @@ class CommandParser:
         # Lights command (room 12 only)
         if cmd in ['lights', 'power', 'switch']:
             return await self.lights(player, args)
+        
+        # Collapse command (Wizard-only)
+        if cmd in ['collapse']:
+            return await self.collapse(player)
             
         # Quit command (save and exit)
         if cmd in ['quit', 'exit']:
@@ -1555,6 +1564,31 @@ Examples:
             "message": "",  # No message to the player who flipped the switch
             "lights_broadcast": broadcast_message,
             "lights_changed": True
+        }
+    
+    async def collapse(self, player: Player) -> Dict:
+        """
+        Trigger cave collapse - kills all players in the cave
+        Based on line 2620 from original game (Wizard-only)
+        
+        Original logic:
+        2620: IFC$="COLLAPSE"ANDGFORX=1TO10:?&7700=3:PROCA(&7700,&7701):A$=INKEY$10:NEXT:PROCH:?&7700=0
+        
+        - Wizard-only command
+        - Sends event 3 (cave collapse) 10 times with 0.1s delay between each
+        - Shows player list after collapse
+        - Event 3 handler (line 1620): PRINT"Cave collapses":PROCF:*GOING
+        - All players see "Cave collapses", data is saved, kicked to GOING screen
+        """
+        # Must be a wizard
+        if player.rank != "Wizard":
+            return {"message": "Only wizards can collapse the cave!"}
+        
+        # Return collapse flag to trigger the multi-stage collapse sequence
+        # The server will handle broadcasting to all players and the death sequence
+        return {
+            "collapse": True,
+            "wizard_name": player.name
         }
 
     async def quit_game(self, player: Player) -> Dict:
