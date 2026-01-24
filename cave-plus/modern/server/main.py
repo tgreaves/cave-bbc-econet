@@ -34,34 +34,39 @@ async def startup_event():
     print("🎮 Cave-Plus server started!")
     print("📍 Navigate to http://localhost:8000")
 
-async def handle_player_death(player: Player):
+async def handle_player_death(player: Player, skip_death_message: bool = False):
     """
     Handle player death with authentic BBC Micro death sequence
     Based on line 1520: PRINT'"Life is slipping away...You are going";:PROCF:...:PRINT"..":*GOING
+    
+    Args:
+        player: The player who is dying
+        skip_death_message: If True, skip "Life is slipping away" message (for cave collapse, etc.)
     """
     try:
         # Save player data before death
         from player_data import save_player
         
-        print(f"🪦 Starting death sequence for {player.name}")
+        print(f"🪦 Starting death sequence for {player.name} (skip_message={skip_death_message})")
         
         # Disable command input immediately
         await send_to_player(player, {
             "type": "disable_input"
         })
         
-        # Line 1520: "Life is slipping away...You are going"
-        # PRINT'"..." means: blank line, then the message
-        # This appears in main screen area (PRINT, not PROCB)
-        await send_to_player(player, {
-            "type": "message",
-            "text": "\nLife is slipping away...You are going",
-            "style": "normal"  # Main screen, not status area
-        })
-        
-        print(f"   Sent 'Life is slipping away' message, waiting 1.5s...")
-        # Longer delay to let player process what's happening
-        await asyncio.sleep(1.5)
+        if not skip_death_message:
+            # Line 1520: "Life is slipping away...You are going"
+            # PRINT'"..." means: blank line, then the message
+            # This appears in main screen area (PRINT, not PROCB)
+            await send_to_player(player, {
+                "type": "message",
+                "text": "\nLife is slipping away...You are going",
+                "style": "normal"  # Main screen, not status area
+            })
+            
+            print(f"   Sent 'Life is slipping away' message, waiting 1.5s...")
+            # Longer delay to let player process what's happening
+            await asyncio.sleep(1.5)
         
         # Save player data (PROCF cleanup)
         save_data = player.to_save_dict()
@@ -82,16 +87,17 @@ async def handle_player_death(player: Player):
         # Small additional delay for visual effect
         await asyncio.sleep(0.3)
         
-        print(f"   Sending '..' message, waiting 1.5s...")
-        # Line 1520: ".." (appends to previous line)
-        await send_to_player(player, {
-            "type": "message",
-            "text": "..",
-            "style": "normal"  # Main screen, not status area
-        })
-        
-        # Longer final delay before GOING
-        await asyncio.sleep(1.5)
+        if not skip_death_message:
+            print(f"   Sending '..' message, waiting 1.5s...")
+            # Line 1520: ".." (appends to previous line)
+            await send_to_player(player, {
+                "type": "message",
+                "text": "..",
+                "style": "normal"  # Main screen, not status area
+            })
+            
+            # Longer final delay before GOING
+            await asyncio.sleep(1.5)
         
         print(f"   Sending disconnect message for GOING screen")
         # Send disconnect to trigger GOING screen
@@ -838,8 +844,9 @@ async def handle_command(player: Player, data: dict):
             # Make all creatures forget about this player
             game_state.reset_creatures_targeting_player(p.name)
             
-            # Handle death sequence (save, show messages, GOING screen)
-            await handle_player_death(p)
+            # Handle death sequence (save and GOING screen, but skip "Life is slipping away" message)
+            # Cave collapse goes straight to PROCF:*GOING without the death message
+            await handle_player_death(p, skip_death_message=True)
             
             # Remove player from game state
             game_state.remove_player(p)
