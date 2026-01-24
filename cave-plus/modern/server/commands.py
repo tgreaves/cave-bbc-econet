@@ -1,7 +1,7 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (28 total):
+IMPLEMENTED COMMANDS (29 total):
 =================================
 Movement (6):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
@@ -26,10 +26,11 @@ Combat (5):
   SHOOT           - Attack with arrow
   ZAP/STAFF       - Wizard-only: Attack with Staff of Merlin (requires wizard rank, staff + charges)
 
-Magic/Special (3):
+Magic/Special (4):
   TELEPORT/TELE   - Teleport to an object or creature (success based on rank, score, Shield)
   CHARGE          - Charge Staff of Merlin at altar (room 1)
   DRINK           - Drink vodka, poison, or medicine
+  LIGHTS/POWER/SWITCH - Toggle lights on/off (room 12 only)
   
 Information (3):
   SCORE/STATS/STATUS - Show score and stamina
@@ -47,7 +48,7 @@ Wizard-Only Commands (6):
   REGEN           - Reset all objects and creatures to initial state
   ACTIVITY <0-9>  - Set CCM activity level (0=passive, 9=maximum aggression)
 
-NOT YET IMPLEMENTED (21 commands):
+NOT YET IMPLEMENTED (20 commands):
 ===================================
 Basic Commands:
   EXORCISE        - Exorcise an object to the armoury (room 20)
@@ -55,7 +56,6 @@ Basic Commands:
   VIEW            - Use crystal ball to view remote location
   PULL            - Pull rope (portcullis in rooms 29/30)
   BITE            - Bite attack (creature-like)
-  LIGHTS/SWITCH/POWER - Toggle lights on/off (room 12)
   GO/WALK/RUN     - Alternative movement command
   DEBUG           - Debug command (shows error message)
   END             - End game (alternative to quit)
@@ -82,6 +82,7 @@ COMMAND ALIASES:
   ATTACK/FIGHT -> HIT
   L -> LOOK
   I/INV -> INVENTORY
+  POWER/SWITCH -> LIGHTS
 
 IMPLEMENTATION NOTES:
 =====================
@@ -96,6 +97,10 @@ IMPLEMENTATION NOTES:
 - Objects 11-15 (Crystal Ball, Staff, Amulet, Treasure, Guardian) spawn randomly on REGEN
 - TELL: Messages appear in status area (combat style), Wizards can broadcast to all
 - ANNOY: Makes creatures aggressive and target the player, or sends annoy message to players
+- LIGHTS: Toggle lights on/off in room 12 (Green room)
+  - When lights OFF and no Crystal Ball: "It is too dark to see"
+  - When lights ON or player has Crystal Ball: Normal room description shown
+  - Broadcasts to all players: "The Lights come ON" / "The Lights go OFF"
 """
 
 import random
@@ -256,6 +261,10 @@ class CommandParser:
         # Annoy command
         if cmd in ['annoy']:
             return await self.annoy(player, args)
+        
+        # Lights command (room 12 only)
+        if cmd in ['lights', 'power', 'switch']:
+            return await self.lights(player, args)
             
         # Quit command (save and exit)
         if cmd in ['quit', 'exit']:
@@ -281,11 +290,27 @@ class CommandParser:
         }
     
     async def look(self, player: Player) -> Dict:
-        """Look at current room (matching BBC Micro PROCK)"""
+        """
+        Look at current room (matching BBC Micro PROCK)
+        Line 1060: IF(?&A02AND1)=0OR!(&A00+4*12)=A*&100PRINT?&7840
+        Line 1060: IF(?&A02AND1)<>0AND!(&A00+4*12)<>A*&100PRINT"It is too dark to see"
+        
+        Lights check:
+        - If lights are ON OR player has Crystal Ball: show room
+        - If lights are OFF AND player doesn't have Crystal Ball: "It is too dark to see"
+        """
         room = self.game_state.get_room(player.room_id)
         
         if not room:
             return {"message": "You are nowhere."}
+        
+        # Check lighting (BBC Micro line 1060)
+        # Show room if: lights_on OR player has Crystal Ball
+        has_crystal_ball = any("crystal" in item.lower() and "ball" in item.lower() for item in player.inventory)
+        
+        if not self.game_state.lights_on and not has_crystal_ball:
+            # Too dark to see
+            return {"message": "It is too dark to see"}
         
         # Build description (just the room text, no exits)
         desc = room["description"]
@@ -1482,6 +1507,55 @@ Examples:
         
         # Not found
         return {"message": f"But {target_name} isn't here!!", "beeps": 1}
+    
+    async def lights(self, player: Player, args: str) -> Dict:
+        """
+        Toggle lights on/off in room 12 (Green room)
+        Based on PROC` (lines 2950-2990)
+        
+        Original logic:
+        2270: IF(C$="ON"ORC$="OFF")ANDC$=D$C$="LIGHTS"
+        2280: IF(C$="POWER"ORC$="SWITCH"ORLEFT$(C$,5)="LIGHT")ANDB=12PROC`:ENDPROC
+        2950: IF(D$="On"AND?&A02=0)OR(D$="Off"AND?&A02=1)PRINT"The switch is already in that position"
+        2970: IFD$="On"?&A02=?&A02-1:PROCA(&A02,&A03):?&7700=1:?&7701=I:$&7702="The Lights come ON"
+        2980: IFD$="Off"?&A02=?&A02+1:PROCA(&A02,&A03):?&7700=1:?&7701=I:$&7702="The Lights go OFF"
+        2990: PRINT"I can only switch the lights On or Off"
+        
+        Commands: LIGHTS ON/OFF, POWER ON/OFF, SWITCH ON/OFF
+        """
+        # Must be in room 12 (Green room)
+        if player.room_id != 12:
+            return {"message": "There is no light switch here."}
+        
+        # Parse argument (ON or OFF)
+        if not args:
+            return {"message": "I can only switch the lights On or Off"}
+        
+        args_upper = args.upper()
+        
+        # Check if already in that position
+        if args_upper == "ON" and self.game_state.lights_on:
+            return {"message": "The switch is already in that position"}
+        
+        if args_upper == "OFF" and not self.game_state.lights_on:
+            return {"message": "The switch is already in that position"}
+        
+        # Toggle lights
+        if args_upper == "ON":
+            self.game_state.lights_on = True
+            broadcast_message = "The Lights come ON"
+        elif args_upper == "OFF":
+            self.game_state.lights_on = False
+            broadcast_message = "The Lights go OFF"
+        else:
+            return {"message": "I can only switch the lights On or Off"}
+        
+        # Broadcast to all players
+        return {
+            "message": "",  # No message to the player who flipped the switch
+            "lights_broadcast": broadcast_message,
+            "lights_changed": True
+        }
 
     async def quit_game(self, player: Player) -> Dict:
         """

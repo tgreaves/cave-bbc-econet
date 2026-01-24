@@ -793,6 +793,19 @@ async def handle_command(player: Player, data: dict):
                 "style": "combat"  # PROCC type 1 = status area
             })
     
+    # Handle LIGHTS broadcast (line 2970/2980: "The Lights come ON/OFF")
+    if result.get("lights_broadcast"):
+        # Broadcast to all players (not just room)
+        await broadcast_to_all({
+            "type": "message",
+            "text": result.get("lights_broadcast"),
+            "style": "action"  # Status area
+        })
+        
+        # Refresh room display for all players (lighting changed)
+        for p in game_state.players.values():
+            await send_room_update(p)
+    
     # Handle SUMMON player (line 2170: PROCC(8,?(T+8),CHR$B) - event 8 = teleport)
     if result.get("summon_player"):
         target_name = result.get("summon_player")
@@ -889,7 +902,12 @@ async def handle_command(player: Player, data: dict):
                         del active_connections[target_player.name]
 
 async def send_room_update(player: Player):
-    """Send complete room state to player"""
+    """
+    Send complete room state to player
+    Checks lighting state (BBC Micro line 1060):
+    - If lights OFF AND player doesn't have Crystal Ball: show "It is too dark to see"
+    - Otherwise: show normal room description
+    """
     room = game_state.get_room(player.room_id)
     
     if not room:
@@ -905,6 +923,30 @@ async def send_room_update(player: Player):
     import asyncio
     await asyncio.sleep(0.15)  # Short delay for room loading
     
+    # Check lighting (BBC Micro line 1060)
+    # Show room if: lights_on OR player has Crystal Ball
+    has_crystal_ball = any("crystal" in item.lower() and "ball" in item.lower() for item in player.inventory)
+    
+    if not game_state.lights_on and not has_crystal_ball:
+        # Too dark to see - send minimal room info
+        await send_to_player(player, {
+            "type": "room",
+            "room": {
+                "id": room["id"],
+                "name": room.get("name", f"Room {room['id']}"),
+                "description": "It is too dark to see",
+                "exits": room["exits"],
+                "has_graphic": False,  # No graphics in darkness
+                "graphic_url": None
+            },
+            "players": [],  # Can't see other players in darkness
+            "objects": [],  # Can't see objects in darkness
+            "creatures": [],  # Can't see creatures in darkness
+            "player": player.to_dict()
+        })
+        return
+    
+    # Normal room display (lights on or has Crystal Ball)
     # Get other players in room
     other_players = [
         p.name for p in game_state.get_players_in_room(player.room_id)
