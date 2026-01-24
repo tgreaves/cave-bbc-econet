@@ -427,8 +427,14 @@ class CaveGame {
                     this.playBeep(beeps);
                 }
                 
-                // Combat and important messages go to status area
-                if (style === 'combat' || style === 'death' || style === 'action') {
+                // Check if there's a separate status message (for commands like BURN, SHOOT, STAB)
+                if (data.status_message) {
+                    // Main message goes to main window
+                    this.addMessage(text, style);
+                    // Status message goes to status bar
+                    this.addStatusMessage(data.status_message);
+                } else if (style === 'combat' || style === 'death' || style === 'action') {
+                    // Combat and important messages go to status area
                     this.addStatusMessage(text);
                 } else {
                     // Other messages go to main scrolling log

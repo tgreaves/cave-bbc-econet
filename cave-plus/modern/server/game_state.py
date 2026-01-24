@@ -82,16 +82,17 @@ class GameState:
             32, 37, 49, 50, 51, 55, 60, 99, 141, 148, 150
         }
         
-        # Fixed object placement (objects 1-10 from OBJINIT)
+        # Fixed object placement (objects 1-15 from OBJINIT - corrected mapping)
+        # The decoder was off by one starting at object 5 (Bow)
         fixed_placement = {
-            2: ["Vodka"],
-            5: ["Poison", "Dagger"],
-            11: ["Medicine"],
-            15: ["Knife"],
-            20: ["Ruby", "Shield"],
-            25: ["Flamethrower"],
-            30: ["Arrow"],
-            32: ["Stick"],
+            32: ["Vodka"],           # Object 1
+            5: ["Stick", "Poison"],  # Objects 2, 3
+            30: ["Dagger"],          # Object 4
+            11: ["Bow"],             # Object 5 (was incorrectly labeled "Arrow")
+            15: ["Arrow"],           # Object 6 (was incorrectly labeled "Medicine")
+            25: ["Medicine"],        # Object 7 (was incorrectly labeled "Knife")
+            20: ["Knife", "Flamethrower"],  # Objects 8, 9 (was "Flamethrower", "Ruby")
+            37: ["Ruby"],            # Object 10 (was incorrectly labeled "Shield")
         }
         
         for room_id, objects in fixed_placement.items():
@@ -100,14 +101,15 @@ class GameState:
             self.objects[room_id] = list(objects)  # Replace with fresh copy
         
         # Random object placement (objects 11-15 from OBJINIT)
+        # These all start in room 1 and are randomly placed by DEFPROCU
         # DEFPROCU: REPEATT=RND(b):UNTILT>20ORT<16
         # This places objects in random rooms excluding wizard's domain (16-20)
         random_objects = [
-            "Crystal Ball",    # Object 11
-            "Staff of Merlin", # Object 12
-            "Amulet",          # Object 13
-            "Treasure",        # Object 14
-            "Guardian"         # Object 15
+            "Shield",          # Object 11 (was incorrectly labeled "Crystal")
+            "Crystal Ball",    # Object 12 (was incorrectly labeled "Staff")
+            "Staff of Merlin", # Object 13 (was incorrectly labeled "Amulet")
+            "Amulet",          # Object 14 (was incorrectly labeled "Treasure")
+            "Treasure",        # Object 15 (was incorrectly labeled "Guardian")
         ]
         
         max_room = max(self.rooms.keys())
@@ -407,15 +409,23 @@ class GameState:
     
     async def player_attack_creature(self, player: Player, creature: Creature, weapon: Optional[str] = None) -> Dict:
         """Player attacks a creature"""
-        # Calculate player damage (base 1-3, modified by weapon)
-        base_damage = random.randint(1, 3)
-        
-        # Weapon modifiers (only stick works with HIT, other weapons have dedicated commands)
-        weapon_bonus = 0
-        if weapon and "stick" in weapon.lower():
-            weapon_bonus = 3
-        
-        total_damage = base_damage + weapon_bonus
+        # Calculate damage based on weapon
+        if weapon and "flamethrower" in weapon.lower():
+            # BBC Micro: RND(10)+50 = 51-60 damage
+            total_damage = random.randint(51, 60)
+        elif weapon and "arrow" in weapon.lower():
+            # BBC Micro: RND(10)+30 = 31-40 damage
+            total_damage = random.randint(31, 40)
+        elif weapon and ("knife" in weapon.lower() or "dagger" in weapon.lower()):
+            # BBC Micro: RND(10)+20 = 21-30 damage
+            total_damage = random.randint(21, 30)
+        elif weapon and "stick" in weapon.lower():
+            # Base damage + stick bonus
+            base_damage = random.randint(1, 3)
+            total_damage = base_damage + 3
+        else:
+            # Base unarmed damage (1-3)
+            total_damage = random.randint(1, 3)
         
         # Apply damage to creature
         creature_died = creature.take_damage(total_damage)
@@ -429,6 +439,7 @@ class GameState:
             print(f"DEBUG: {creature.name} attack_chance={creature.attack_chance}, secondary_attack={creature.secondary_attack}")
         
         # Award points if creature died
+        points = 0
         if creature_died:
             points = creature.max_stamina // 10  # 1 point per 10 stamina
             player.score += points
@@ -449,5 +460,5 @@ class GameState:
             "damage": total_damage,
             "creature_died": creature_died,
             "creature_name": creature.name,
-            "points_awarded": points if creature_died else 0
+            "points_awarded": points
         }

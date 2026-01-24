@@ -5,23 +5,25 @@ OBJINIT FILE DECODER - Initial Object/Creature Placement
 Header/Load Address: 0x00000002
 
 Total entries: 63
-Expected: 42 objects + creatures
+Expected: 15 objects + 27 creatures = 42 total
+
+CORRECTED OBJECT MAPPING (decoder was off by one starting at object 5):
 
  1. Vodka                = 0x00000020 -> Room 32
  2. Stick                = 0x00000005 -> Room 5
  3. Poison               = 0x00000005 -> Room 5
  4. Dagger               = 0x0000001E -> Room 30
- 5. Arrow                = 0x0000000B -> Room 11
- 6. Medicine             = 0x0000000F -> Room 15
- 7. Knife                = 0x00000019 -> Room 25
- 8. Flamethrower         = 0x00000014 -> Room 20
- 9. Ruby                 = 0x00000014 -> Room 20
-10. Shield               = 0x00000025 -> Room 37
-11. Crystal              = 0x00000001 -> Room 1
-12. Staff                = 0x00000001 -> Room 1
-13. Amulet               = 0x00000001 -> Room 1
-14. Treasure             = 0x00000001 -> Room 1
-15. Guardian             = 0x00000001 -> Room 1
+ 5. Bow                  = 0x0000000B -> Room 11
+ 6. Arrow                = 0x0000000F -> Room 15
+ 7. Medicine             = 0x00000019 -> Room 25
+ 8. Knife                = 0x00000014 -> Room 20
+ 9. Flamethrower         = 0x00000014 -> Room 20
+10. Ruby                 = 0x00000025 -> Room 37
+11. Shield               = 0x00000001 -> Room 1 (randomly placed by DEFPROCU)
+12. Crystal              = 0x00000001 -> Room 1 (randomly placed by DEFPROCU)
+13. Staff                = 0x00000001 -> Room 1 (randomly placed by DEFPROCU)
+14. Amulet               = 0x00000001 -> Room 1 (randomly placed by DEFPROCU)
+15. Treasure             = 0x00000001 -> Room 1 (randomly placed by DEFPROCU)
 16. Dragon               = 0x00031026 -> Room 38 (stamina: 784)
 17. Troll                = 0x00005717 -> Room 23 (stamina: 87)
 18. (unnamed)            = 0x00003005 -> Room 5 (stamina: 48)
@@ -40,7 +42,7 @@ Expected: 42 objects + creatures
 31. (unnamed)            = 0x0000303F -> Room 63 (stamina: 48)
 32. Toad                 = 0x00003C3F -> Room 63 (stamina: 60)
 33. (unnamed)            = 0x00000014 -> Room 20
-34. Guardian             = 0x00FFFF37 -> Room 55 (stamina: 65535)
+34. Guardian             = 0x00FFFF37 -> Room 55 (stamina: 65535) [CREATURE, not object]
 35. Goblin               = 0x00003203 -> Room 3 (stamina: 50)
 36. (unnamed)            = 0x0000140D -> Room 13 (stamina: 20)
 37. Dwarf                = 0x00003C0D -> Room 13 (stamina: 60)
@@ -56,4 +58,8 @@ NOTES:
 - Room 20 = Armoury
 - Room 56 = Bank (for treasure deposit)
 - High bytes for creatures = initial stamina/health
+- Objects 11-15 (Shield, Crystal, Staff, Amulet, Treasure) start in room 1
+  and are randomly placed by DEFPROCU in rooms excluding wizard's domain (16-20)
+- There is NO "Guardian" object - Guardian is a creature (entry 34)
+- The original decoder was off by one starting at object 5 (Bow was missing)
 ================================================================================

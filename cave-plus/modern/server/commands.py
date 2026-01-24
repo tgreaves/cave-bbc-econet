@@ -565,13 +565,10 @@ Examples:
         if target_creature.is_dead:
             return {"message": f"The {target_creature.name} is already dead."}
         
-        # Determine weapon (check inventory for best weapon)
+        # HIT command only uses bare hands or stick (not other weapons)
         weapon = None
-        weapon_priority = ["Flamethrower", "Staff", "Dagger", "Knife", "Stick"]
-        for w in weapon_priority:
-            if any(w.lower() in item.lower() for item in player.inventory):
-                weapon = w
-                break
+        if any("stick" in item.lower() for item in player.inventory):
+            weapon = "Stick"
         
         # Perform attack
         result = await self.game_state.player_attack_creature(player, target_creature, weapon)
@@ -688,18 +685,21 @@ Examples:
         if target_creature.is_dead:
             return {"message": f"The {target_creature.name} is already dead."}
         
-        # Stab attack (6-9 damage)
+        # Stab attack (21-30 damage matching BBC Micro)
         result = await self.game_state.player_attack_creature(player, target_creature, weapon)
         
-        # BBC Micro format: "The [creature]'s Stamina=[X]"
-        message = f"The {result['creature_name']}'s Stamina={target_creature.stamina}"
+        # BBC Micro: PROCG displays "STABbing <target>" in main window
+        main_message = f"STABbing {target_creature.name}"
+        
+        # BBC Micro: PROCM displays stamina in status bar
+        status_message = f"The {result['creature_name']}'s Stamina={target_creature.stamina}"
         
         if result['creature_died']:
-            message = f"The {result['creature_name']} is dead! You gain {result['points_awarded']} points."
+            status_message = f"The {result['creature_name']} is dead!"
         
         return {
-            "message": message,
-            "combat": True,
+            "message": main_message,  # Main window (no combat flag!)
+            "status_message": status_message,  # Status bar
             "creature_died": result['creature_died']
         }
     
@@ -712,7 +712,7 @@ Examples:
         has_flamethrower = any("flamethrower" in item.lower() for item in player.inventory)
         
         if not has_flamethrower:
-            return {"message": "With what? You need a flamethrower!"}
+            return {"message": "With what?", "beeps": 1}
         
         # Get creatures in room
         creatures = self.game_state.get_creatures_in_room(player.room_id)
@@ -735,18 +735,21 @@ Examples:
         if target_creature.is_dead:
             return {"message": f"The {target_creature.name} is already dead."}
         
-        # Burn attack (50-75 damage)
+        # Burn attack (51-60 damage matching BBC Micro)
         result = await self.game_state.player_attack_creature(player, target_creature, "Flamethrower")
         
-        # BBC Micro format
-        message = f"The {result['creature_name']}'s Stamina={target_creature.stamina}"
+        # BBC Micro: PROCG displays "BURNing <target>" in main window
+        main_message = f"BURNing {target_creature.name}"
+        
+        # BBC Micro: PROCM displays stamina in status bar
+        status_message = f"The {result['creature_name']}'s Stamina={target_creature.stamina}"
         
         if result['creature_died']:
-            message = f"The {result['creature_name']} is incinerated! You gain {result['points_awarded']} points."
+            status_message = f"The {result['creature_name']} is Frazzled!"
         
         return {
-            "message": message,
-            "combat": True,
+            "message": main_message,  # Main window (no combat flag!)
+            "status_message": status_message,  # Status bar
             "creature_died": result['creature_died']
         }
     
@@ -755,11 +758,17 @@ Examples:
         if not target_name:
             return {"message": "Shoot what?"}
         
-        # Check if player has arrow
+        # Check if player has bow (BBC Micro line 4620)
+        has_bow = any("bow" in item.lower() for item in player.inventory)
+        
+        if not has_bow:
+            return {"message": "You have nothing to SHOOT with.", "beeps": 1}
+        
+        # Check if player has arrow (BBC Micro line 4640)
         has_arrow = any("arrow" in item.lower() for item in player.inventory)
         
         if not has_arrow:
-            return {"message": "You have no Arrow!"}
+            return {"message": "You have no Arrow", "beeps": 1}
         
         # First check if target is a player
         target_player = None
@@ -824,7 +833,7 @@ Examples:
         if target_creature.is_dead:
             return {"message": f"The {target_creature.name} is already dead."}
         
-        # Shoot attack (30-40 damage) - Arrow is dropped in current room
+        # Shoot attack (31-40 damage matching BBC Micro) - Arrow is dropped in current room
         result = await self.game_state.player_attack_creature(player, target_creature, "Arrow")
         
         # Remove arrow from inventory and drop it in the current room
@@ -841,15 +850,18 @@ Examples:
             if arrow_item not in room.objects:
                 room.objects.append(arrow_item)
         
-        # BBC Micro format: "The [creature] is SHOT stamina now [X]"
-        message = f"The {result['creature_name']} is SHOT stamina now {target_creature.stamina}"
+        # BBC Micro: PROCG displays "SHOOTing <target>" in main window
+        main_message = f"SHOOTing {target_creature.name}"
+        
+        # BBC Micro: PROCB displays result in status bar
+        status_message = f"The {result['creature_name']} is SHOT stamina now {target_creature.stamina}"
         
         if result['creature_died']:
-            message = f"The {result['creature_name']} is dead! You gain {result['points_awarded']} points."
+            status_message = f"The {result['creature_name']} is dead!"
         
         return {
-            "message": message,
-            "combat": True,
+            "message": main_message,  # Main window (no combat flag!)
+            "status_message": status_message,  # Status bar
             "creature_died": result['creature_died'],
             "inventory_changed": True
         }
