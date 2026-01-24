@@ -792,10 +792,11 @@ Examples:
                     break
             
             # Add arrow to current room's objects
-            if arrow_item and player.current_room in self.game_state.rooms:
-                room = self.game_state.rooms[player.current_room]
-                if arrow_item not in room.objects:
-                    room.objects.append(arrow_item)
+            if arrow_item:
+                if player.room_id not in self.game_state.objects:
+                    self.game_state.objects[player.room_id] = []
+                if arrow_item not in self.game_state.objects[player.room_id]:
+                    self.game_state.objects[player.room_id].append(arrow_item)
             
             message = f"You SHOOT {result['target_name']} with your Arrow for {result['damage']} damage!"
             message += "\nYour arrow falls to the ground."
@@ -845,10 +846,11 @@ Examples:
                 break
         
         # Add arrow to current room's objects
-        if arrow_item and player.current_room in self.game_state.rooms:
-            room = self.game_state.rooms[player.current_room]
-            if arrow_item not in room.objects:
-                room.objects.append(arrow_item)
+        if arrow_item:
+            if player.room_id not in self.game_state.objects:
+                self.game_state.objects[player.room_id] = []
+            if arrow_item not in self.game_state.objects[player.room_id]:
+                self.game_state.objects[player.room_id].append(arrow_item)
         
         # BBC Micro: PROCG displays "SHOOTing <target>" in main window
         main_message = f"SHOOTing {target_creature.name}"
