@@ -102,9 +102,10 @@ IMPLEMENTATION NOTES:
   - When lights ON or player has Crystal Ball: Normal room description shown
   - Broadcasts to all players: "The Lights come ON" / "The Lights go OFF"
 - COLLAPSE: Wizard-only command that kills all players in the cave
-  - Sends "Cave collapses" message to all players
+  - Sends "Cave collapses" message to all players (once)
   - Saves all player data
-  - Kicks everyone to GOING screen (game over)
+  - Kicks everyone except the wizard to GOING screen (game over)
+  - The wizard who issues the command survives
   - Cannot be used via FORCE command
 """
 
@@ -1568,23 +1569,24 @@ Examples:
     
     async def collapse(self, player: Player) -> Dict:
         """
-        Trigger cave collapse - kills all players in the cave
+        Trigger cave collapse - kills all OTHER players in the cave
         Based on line 2620 from original game (Wizard-only)
         
         Original logic:
         2620: IFC$="COLLAPSE"ANDGFORX=1TO10:?&7700=3:PROCA(&7700,&7701):A$=INKEY$10:NEXT:PROCH:?&7700=0
         
         - Wizard-only command
-        - Sends event 3 (cave collapse) 10 times with 0.1s delay between each
-        - Shows player list after collapse
+        - Sends "Cave collapses" message once to all players
+        - Shows player list after collapse (PROCH)
         - Event 3 handler (line 1620): PRINT"Cave collapses":PROCF:*GOING
-        - All players see "Cave collapses", data is saved, kicked to GOING screen
+        - All OTHER players see "Cave collapses", data is saved, kicked to GOING screen
+        - The wizard who issues the command survives
         """
         # Must be a wizard
         if player.rank != "Wizard":
             return {"message": "Only wizards can collapse the cave!"}
         
-        # Return collapse flag to trigger the multi-stage collapse sequence
+        # Return collapse flag to trigger the collapse sequence
         # The server will handle broadcasting to all players and the death sequence
         return {
             "collapse": True,
