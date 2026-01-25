@@ -16,6 +16,6 @@ For Cave-Plus, a lot of the code has been fully annotated which explains how the
 
 Some years back, I ported a version of Cave to run via telnet under the Ranvier MUD system: https://github.com/tgreaves/ranviermud-cave
 
-More recently, I have created an 'authentic' edition that can be played via a web browser.  This edition more accurately simulates running on an actual BBC Micro (including the use of MODE 7 graphics and floppy disk sound effects). https://github.com/tgreaves/ranviermud-cave
+More recently, I have created an 'authentic' edition that can be played via a web browser.  This edition more accurately simulates running on an actual BBC Micro (including the use of MODE 7 graphics and floppy disk sound effects). https://github.com/tgreaves/cave-bbc-econet/tree/master/cave-plus/modern
 
-You can play the latter version directly by visiting: http://cave.extricae.org:1985
+You can play the latter version directly by visiting: http://cave.extricate.org:1985
