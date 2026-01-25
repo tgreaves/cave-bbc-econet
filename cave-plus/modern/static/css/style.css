@@ -492,3 +492,33 @@ body {
 .room-graphic, .header, .room-info, .status-bar, .inventory-area, .power-led {
     display: none !important;
 }
+
+/* BBC Micro Teletext Color Classes */
+/* Based on MODE 7 Teletext palette */
+.teletext-red {
+    color: #ff0000;
+}
+
+.teletext-green {
+    color: #00ff00;
+}
+
+.teletext-yellow {
+    color: #ffff00;
+}
+
+.teletext-blue {
+    color: #0000ff;
+}
+
+.teletext-magenta {
+    color: #ff00ff;
+}
+
+.teletext-cyan {
+    color: #00ffff;
+}
+
+.teletext-white {
+    color: #ffffff;
+}

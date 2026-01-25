@@ -1,0 +1,1077 @@
+rooms:
+  1:
+    description: "This is the Main Entrance. The cave     extends down to the south.\
+      \ The hall of  knowledge is to the east. A small stone,with the name<color:cyan>MERLIN<color:white>on\
+      \ it, glows.\n'     \ne only exit is down through a"
+    has_colors: true
+  2:
+    description: "There is a way up to the north which    leads out into sunlight\
+      \ and a west/east tunnel.\ne is to the east. A small stone,with the name<color:cyan>MERLIN<color:white>on\
+      \ it, glows.\n'     \ne only exit is down through a"
+    has_colors: true
+  3:
+    description: 'You are in a smooth narrow tunnel. A    shaft of light is to the
+      west and more  tunnel to the east.
+
+      east.
+
+      ut you could  try to talk someone into leaving you    alone using the ''SAY''
+      command.'
+    has_colors: false
+  4:
+    description: "You are in a smooth walled tunnel. Thereis some light to the east\
+      \ and a small   room to the north.\n\neast. A small stone,with the name<color:cyan>MERLIN<color:white>on\
+      \ it, glows.\n'     \n                           \n8"
+    has_colors: true
+  5:
+    description: "You are in a small room.\nd tunnel. Thereis some light to the east\
+      \ and a small   room to the north.\n\neast. A small stone,with the name<color:cyan>MERLIN<color:white>on\
+      \ it, glows.\n'     \n                           \n8"
+    has_colors: true
+  6:
+    description: "ss. A rope hangs   down from a hole in the roof.\nerver The tunnel\
+      \ leads east/west. A message isscrawled on the wall :-                  'If\
+      \ you are confused seek the hall of    knowledge near the main entrance.'  \
+      \   \none using the 'SAY' command."
+    has_colors: false
+  7:
+    description: "There are exits in all directions\nage isscrawled on the wall :-\
+      \                  'If you are confused seek the hall of    knowledge near the\
+      \ main entrance.'     \none using the 'SAY' command."
+    has_colors: false
+  8:
+    description: "This is an east/west passage\nions\nage isscrawled on the wall :-\
+      \                  'If you are confused seek the hall of    knowledge near the\
+      \ main entrance.'     \none using the 'SAY' command."
+    has_colors: false
+  9:
+    description: "There are coloured rooms in all         directions except south\n\
+      \                 'If you are confused seek the hall of    knowledge near the\
+      \ main entrance.'     \none using the 'SAY' command."
+    has_colors: false
+  10:
+    description: "There are exits in all directions!\n      'If you are confused seek\
+      \ the hall of    knowledge near the main entrance.'     \none using the 'SAY'\
+      \ command."
+    has_colors: false
+  11:
+    description: "You are in the<color:red>Red<color:white>room\nges all alike...There\
+      \ are exits in all directions!\n      'If you are confused seek the hall of\
+      \    knowledge near the main entrance.'     \none using the 'SAY' command."
+    has_colors: true
+  12:
+    description: "You are in the<color:green>Green<color:white>room. There is a  \
+      \ switch at the entrance labelled LIGHTS\n  'If you are confused seek the hall\
+      \ of    knowledge near the main entrance.'     \none using the 'SAY' command."
+    has_colors: true
+  13:
+    description: "You are in the<color:blue>Blue<color:white>room\n. There is a  \
+      \ switch at the entrance labelled LIGHTS\n  'If you are confused seek the hall\
+      \ of    knowledge near the main entrance.'     \none using the 'SAY' command."
+    has_colors: true
+  14:
+    description: "There are exits in all directions!\nHTS\n  'If you are confused\
+      \ seek the hall of    knowledge near the main entrance.'     \none using the\
+      \ 'SAY' command."
+    has_colors: false
+  15:
+    description: "There are exits in all directions!\nHTS\n  'If you are confused\
+      \ seek the hall of    knowledge near the main entrance.'     \none using the\
+      \ 'SAY' command."
+    has_colors: false
+  16:
+    description: "There are exits in all directions!\nHTS\n  'If you are confused\
+      \ seek the hall of    knowledge near the main entrance.'     \none using the\
+      \ 'SAY' command."
+    has_colors: false
+  17:
+    description: "You are in limbo - There is no natural  way out.\n exits in all\
+      \ directions!\nHTS\n  'If you are confused seek the hall of    knowledge near\
+      \ the main entrance.'     \none using the 'SAY' command."
+    has_colors: false
+  18:
+    description: "You are in the Wizard's Dungeon - There are no exits!\ns in all\
+      \ directions!\nHTS\n  'If you are confused seek the hall of    knowledge near\
+      \ the main entrance.'     \n                           \n8"
+    has_colors: false
+  19:
+    description: "This is the Mortuary\n's Dungeon - There are no exits!\ns in all\
+      \ directions!\nHTS\n  'If you are confused seek the hall of    knowledge near\
+      \ the main entrance.'     \n                           \n8"
+    has_colors: false
+  20:
+    description: "There are no exits!\ns in all directions!\nHTS\n  'If you are confused\
+      \ seek the hall of    knowledge near the main entrance.'     \n            \
+      \               \n8"
+    has_colors: false
+  21:
+    description: "There are no exits!\ns in all directions!\nHTS\n  'If you are confused\
+      \ seek the hall of    knowledge near the main entrance.'     \n            \
+      \               \n8"
+    has_colors: false
+  22:
+    description: "There are no exits!\ns in all directions!\nHTS\n  'If you are confused\
+      \ seek the hall of    knowledge near the main entrance.'     \n            \
+      \               \n8"
+    has_colors: false
+  23:
+    description: "There are no exits!\ns in all directions!\nHTS\n  'If you are confused\
+      \ seek the hall of    knowledge near the main entrance.'     \n            \
+      \               \n8"
+    has_colors: false
+  24:
+    description: "N25S26E27W23\n17S17\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  25:
+    description: "You are in a sparsely-decorated doctor'ssurgery\north,with DANGER\
+      \ to the South   and East\nare confused seek the hall of    knowledge near the\
+      \ main entrance.'     \n                           \n8"
+    has_colors: false
+  26:
+    description: "orth,with DANGER to the South   and East\nare confused seek the\
+      \ hall of    knowledge near the main entrance.'     \none using the 'SAY' command."
+    has_colors: false
+  27:
+    description: 'W24S28E29
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  28:
+    description: 'N27S31
+
+      29
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  29:
+    description: "There is a strange smell to the West. A Rope     hangs down from\
+      \ a hole in the roof.\nof    knowledge near the main entrance.'     \nit west.\n\
+      \ the 'SAY' command."
+    has_colors: false
+  30:
+    description: 'This is the demon''s room. The only exitsare via a portcullis to
+      the West or     through a hole to the east to the caves of torture and madness.
+      A rope hangs   down from a hole in the roof.
+
+      .'
+    has_colors: false
+  31:
+    description: "E32N28S33\n23\n17S17\nassageway. A glow    comes from the West.\n\
+      idoA well-lit bar is off to the East. From here there are exits North and South.\n\
+      \  through a hole to the east to the caves of torture and madness. A rope hangs\
+      \   down from a hole in the roof.\n."
+    has_colors: false
+  32:
+    description: 'There is a unbelievable stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  33:
+    description: 'There is a unbelievable stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  34:
+    description: 'There is a unbelievable stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  35:
+    description: 'There is a unbelievable stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  36:
+    description: 'There are small caves to the North and  South.
+
+      rom the West.
+
+      idor
+
+      s             Superior Magical Power."                There is a unbelievable
+      stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  37:
+    description: 'This is Merlin''s room (Merlin is locked up somewhere outside the
+      CAVE). Charts  and weird symbols adorn the jagged walls
+
+      here is a unbelievable stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  38:
+    description: 'N36
+
+      39
+
+      34
+
+      23
+
+      17S17
+
+      assageway. A glow    comes from the West.
+
+      idoThe Dragon''s Lair
+
+      oom (Merlin is locked up somewhere outside the CAVE). Charts  and weird symbols
+      adorn the jagged walls
+
+      here is a unbelievable stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  39:
+    description: 'D37
+
+      39
+
+      34
+
+      23
+
+      17S17
+
+      assageway. A glow    comes from the West.
+
+      idoYou have climbed up onto a narrow ledge and Merlin''s room is visible down
+      below
+
+      and weird symbols adorn the jagged walls
+
+      here is a unbelievable stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  40:
+    description: 'This is the East end of the Large CAVERNThe walls glow with a strange
+      green     phosphoresence. A bottomless chasm stopspassage to the west.
+
+      le stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  41:
+    description: 'S40W42
+
+      35
+
+      23
+
+      17S17
+
+      assageway. A glow    comes from the West.
+
+      idoThe North-East corner of the Large      Cavern.
+
+      s glow with a strange green     phosphoresence. A bottomless chasm stopspassage
+      to the west.
+
+      le stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  42:
+    description: 'This is the North Edge of the Grand     Cavern
+
+
+      s glow with a strange green     phosphoresence. A bottomless chasm stopspassage
+      to the west.
+
+      le stench in here.
+
+      own from a hole in the roof.
+
+      .'
+    has_colors: false
+  43:
+    description: 'S44E42
+
+      35
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  44:
+    description: "There   is a bottomless chasm to the East\nn     phosphoresence.\
+      \ A bottomless chasm stopspassage to the west.\nle stench in here.\n \none using\
+      \ the 'SAY' command."
+    has_colors: false
+  45:
+    description: 'N44E46
+
+      48
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  46:
+    description: 'W45E47
+
+      48
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  47:
+    description: 'N40W46
+
+      48
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  48:
+    description: 'W54E44
+
+      48
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  49:
+    description: "You are in the<color:cyan>cyan<color:white>room,with exits to  the\
+      \ east and south\ne-way exit to the    West.\noresence. A bottomless chasm stopspassage\
+      \ to the west.\nle stench in here.\n \none using the 'SAY' command."
+    has_colors: true
+  50:
+    description: "You are in the<color:yellow>yellow<color:white>room,with exits tothe\
+      \ east and north_a magic cubicle lies to the south\ne. A bottomless chasm stopspassage\
+      \ to the west.\nle stench in here.\n \none using the 'SAY' command."
+    has_colors: true
+  51:
+    description: "You are in the<color:magenta>magenta<color:white>room,with exits\
+      \  to the west and north\nagic cubicle lies to the south\ne. A bottomless chasm\
+      \ stopspassage to the west.\nle stench in here.\n \none using the 'SAY' command."
+    has_colors: true
+  52:
+    description: 'N51D9
+
+      S52
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  53:
+    description: 'W15
+
+      9
+
+      S52
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  54:
+    description: 'U55
+
+      9
+
+      S52
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  55:
+    description: 'U56W57E57
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  56:
+    description: "This is the top - you go no higher.     A sign says 'DEPOSIT' treasre\
+      \ here.\ntopspassage to the west.\nle stench in here.\n \n                 \
+      \    ACCEPT\nT"
+    has_colors: false
+  57:
+    description: 'D58S55U56
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  58:
+    description: 'D60
+
+      55U56
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  59:
+    description: 'U55
+
+      55U56
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  60:
+    description: 'E54W62S61
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  61:
+    description: 'S63N60
+
+      61
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  62:
+    description: 'W60
+
+      60
+
+      61
+
+      23
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  63:
+    description: 'S63N64E65W66
+
+      17S17
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  64:
+    description: 'N63S63E63W63D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  65:
+    description: 'E14W63
+
+      63W63D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  66:
+    description: 'W67E63
+
+      63W63D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  67:
+    description: 'E66N68
+
+      63W63D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  68:
+    description: 'N69S67
+
+      63W63D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  69:
+    description: 'U70S68
+
+      63W63D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  70:
+    description: 'U71D69
+
+      63W63D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  71:
+    description: 'U39D70
+
+      63W63D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  72:
+    description: "There is an exit to the    west.\ne to the west.\nle stench in here.\n\
+      \ \none using the 'SAY' command."
+    has_colors: false
+  73:
+    description: 'S72
+
+      3E74S75
+
+      D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  74:
+    description: 'W72
+
+      3E74S75
+
+      D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  75:
+    description: 'N72
+
+      3E74S75
+
+      D63U63
+
+      not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  76:
+    description: "D15\n3E74S75\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  77:
+    description: "N78S88W30\n5\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  78:
+    description: "E89N79S77\n5\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  79:
+    description: "E80S78\n77\n5\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  80:
+    description: "W79E81\n77\n5\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  81:
+    description: "E82W80\n77\n5\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  82:
+    description: "E91W81S83\n5\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  83:
+    description: "N82S84\n83\n5\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  84:
+    description: "There is an  exit west.\n the 'SAY' command."
+    has_colors: false
+  85:
+    description: "You are in a small cavern, where there  are a few bones lying about\
+      \ on the      floor. Exits are south, and east.\n      saying, 'Queue this side'.\
+      \ There is an  exit west.\n the 'SAY' command."
+    has_colors: false
+  86:
+    description: "There is an  exit west.\n the 'SAY' command."
+    has_colors: false
+  87:
+    description: "You are in an east/west corridor, which slopes gently down to the\
+      \ east.\n steeplyto the north. Exits are north, and west\nsaying, 'Queue this\
+      \ side'. There is an  exit west.\n the 'SAY' command."
+    has_colors: false
+  88:
+    description: "There is an  exit west.\n the 'SAY' command."
+    has_colors: false
+  89:
+    description: "You are in a dank musty room, with a    large bookcase set into\
+      \ the most        easterly wall.\nxits are north, and west\nsaying, 'Queue this\
+      \ side'. There is an  exit west.\n the 'SAY' command."
+    has_colors: false
+  90:
+    description: "N81\n90\n83\n5\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  91:
+    description: "U91D91W82\n5\nD63U63\nerly side of the     island. This part of\
+      \ theYou are a certain distance down a       staircase. You can see stairs upwards,\
+      \  and downwards.\n, and you find yourself  in a room with a oneway exit north.\n\
+      an  exit west.\n the 'SAY' command."
+    has_colors: false
+  92:
+    description: "You are in a dimly lit tunnel.          A network of stalactites\
+      \ & stalagmites  blocks the way East and West.\nyourself  in a room with a oneway\
+      \ exit north.\nan  exit west.\n the 'SAY' command."
+    has_colors: false
+  93:
+    description: "You are in a dimly lit tunnel.          Narrow openings can be seen\
+      \ to the      North, South and West.\n West.\nyourself  in a room with a oneway\
+      \ exit north.\nan  exit west.\n the 'SAY' command."
+    has_colors: false
+  94:
+    description: "You are in a narrow corridor hewn out   of the living rock. A light\
+      \ glows       faintly in the West and a gloomy        tunnel can be seen in\
+      \ the East.\nth.\nan  exit west.\n the 'SAY' command."
+    has_colors: false
+  95:
+    description: "You are in a narrow corridor hewn out   of the living rock. A light\
+      \ glows       brightly in the West. The way East      is sombre with shadows.\n\
+      e East.\nth.\nan  exit west.\n the 'SAY' command."
+    has_colors: false
+  96:
+    description: "You are in a strange room which glows   with a green light.  Doorways\
+      \ lead      South, East and West.\nThe way East      is sombre with shadows.\n\
+      e East.\nth.\nan  exit west.\n the 'SAY' command."
+    has_colors: false
+  97:
+    description: "There is a gap in the rock wall  leading West.\nd West.\nThe way\
+      \ East      is sombre with shadows.\ne East.\nth.\nan  exit west.\n the 'SAY'\
+      \ command."
+    has_colors: false
+  98:
+    description: "You are inside a crevice. Around you is evidence that a large carnivore\
+      \ has     been living there. You bang your toes   on a human skull. OUCH!\n\
+      e East.\nth.\nan  exit west.\n the 'SAY' command."
+    has_colors: false
+  99:
+    description: "You are in a dark room, dimly lit by a  green glow coming from the\
+      \ East. Warm   air wafts gently through an opening to  the West and a dark doorway\
+      \ looms to    the North.\n the 'SAY' command."
+    has_colors: false
+  100:
+    description: "N105S101E99\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  101:
+    description: "N100W102\n99\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  102:
+    description: "N103E101\n99\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  103:
+    description: "N104S102\n99\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  104:
+    description: "S103E105\n99\nD63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  105:
+    description: "N106S100W104\n63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  106:
+    description: "There are also exits North  and West.  An enticing aroma beckons\
+      \    from the West.\ndark doorway looms to    the North.\n the 'SAY' command."
+    has_colors: false
+  107:
+    description: 'You are in a strange room. The floor is covered with rush mats and
+      home-made    candles smoulder, spilling their wax.   An exotic smell pervades
+      the air. The   door is now shut and locked.
+
+      .'
+    has_colors: false
+  108:
+    description: "S106E109\n108\n63U63\n do not have<color:cyan>a !BOOT file.<color:white>"
+    has_colors: true
+  109:
+    description: 'You are in an East/West corridor. There is a gap in the North wall.
+
+      irection    and South in the other.
+
+      ng their wax.   An exotic smell pervades the air. The   door is now shut and
+      locked.
+
+      .'
+    has_colors: false
+  110:
+    description: 'There   are exits South, East and West.
+
+      tion    and South in the other.
+
+      ng their wax.   An exotic smell pervades the air. The   door is now shut and
+      locked.
+
+      .'
+    has_colors: false
+  111:
+    description: 'You are in a narrow corridor which      twists Eastwards in one
+      direction and   to the North in the other.
+
+      their wax.   An exotic smell pervades the air. The   door is now shut and locked.
+
+      .'
+    has_colors: false
+  112:
+    description: 'You are in an East/West corridor
+
+      h      twists Eastwards in one direction and   to the North in the other.
+
+      their wax.   An exotic smell pervades the air. The   door is now shut and locked.
+
+      .'
+    has_colors: false
+  113:
+    description: 'You are in a narrow corridor which      twists Westwards in one
+      direction and   to the North in the other.
+
+      their wax.   An exotic smell pervades the air. The   door is now shut and locked.
+
+      .'
+    has_colors: false
+  114:
+    description: 'You are in a narrow corridor which      twists Westwards in one
+      direction and   to the South in the other.
+
+      their wax.   An exotic smell pervades the air. The   door is now shut and locked.
+
+      .'
+    has_colors: false
+  115:
+    description: 'You are in an East/West corridor
+
+      h      twists Westwards in one direction and   to the South in the other.
+
+      their wax.   An exotic smell pervades the air. The   door is now shut and locked.
+
+      .'
+    has_colors: false
+  116:
+    description: "You are in a North/South corridor\n      twists Westwards in one\
+      \ direction and   to the South in the other.\ntheir wax.   An exotic smell pervades\
+      \ the air. The   door is now shut and locked.\n."
+    has_colors: false
+  117:
+    description: 'You are in a cavern where a spiral      staircase leads upwards.
+      A sign reads:    <color:cyan>''Go Up not Down to win the crown;    North, South,
+      East or West may still   prove best!
+
+      hut and locked.
+
+      .'
+    has_colors: true
+  118:
+    description: 'You are in a small room with an exit    East.
+
+      ase leads upwards. A sign reads:    <color:cyan>''Go Up not Down to win the
+      crown;    North, South, East or West may still   prove best!
+
+      hut and locked.
+
+      .'
+    has_colors: true
+  119:
+    description: 'You are in an East/West corridor
+
+      xit    East.
+
+      ase leads upwards. A sign reads:    <color:cyan>''Go Up not Down to win the
+      crown;    North, South, East or West may still   prove best!
+
+      hut and locked.
+
+      .'
+    has_colors: true
+  120:
+    description: 'N121W119
+
+      116E119W118
+
+      o not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  121:
+    description: 'S120E130W122
+
+      119W118
+
+      o not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  122:
+    description: 'N123E121
+
+      122
+
+      119W118
+
+      o not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  123:
+    description: 'S122E128W124
+
+      119W118
+
+      o not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  124:
+    description: 'There are dark openings South and East.
+
+      wn to win the crown;    <color:cyan>North, South, East or West may still   prove
+      best!
+
+      hut and locked.
+
+      .'
+    has_colors: true
+  125:
+    description: 'You are in a North/South corridor
+
+      and   West are rooms. There are dark openings South and East.
+
+      wn to win the crown;    <color:cyan>North, South, East or West may still   prove
+      best!
+
+      hut and locked.
+
+      .'
+    has_colors: true
+  126:
+    description: 'You are in a small room carved into the rock. It is lit by a bright
+      light and   there is a table fixed to the floor. A  door slammed shut when you
+      entered.     There is no visible way out!
+
+      .'
+    has_colors: false
+  127:
+    description: You are in a large chamber adorned with silk screens and cushions.
+      Perfume      fills the air and faint singing can be  heard. Large men with high
+      voices block all exits but the South door.
+    has_colors: false
+  131:
+    description: 'You are in a North/South corridor.
+
+      un   South, North and West.
+
+      ns. Perfume      fills the air and faint singing can be  heard. Large men with
+      high voices block all exits but the South door.'
+    has_colors: false
+  132:
+    description: 'You are in a cavern with a ladder fixed against one wall. You can
+      go Up, North, East or West.
+
+      and faint singing can be  heard. Large men with high voices block all exits
+      but the South door.'
+    has_colors: false
+  133:
+    description: "You are in an East/West corridor\n fixed against one wall. You can\
+      \ go Up, North, East or West.\nand faint singing can be  heard. Large men with\
+      \ high voices block all exits but the South door."
+    has_colors: false
+  134:
+    description: 'You are in a fairly horrible place. Why did you bother coming here?
+      You can     only go East.
+
+      and faint singing can be  heard. Large men with high voices block all exits
+      but the South door.'
+    has_colors: false
+  135:
+    description: '118
+
+      o not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  136:
+    description: '118
+
+      o not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  137:
+    description: "You are in a North/South corridor.\n     corridor.\n You can go\
+      \ North, South or   West.\no East.\nand faint singing can be  heard. Large men\
+      \ with high voices block all exits but the South door."
+    has_colors: false
+  138:
+    description: "You are in a North/South corridor.\n     corridor.\n You can go\
+      \ North, South or   West.\no East.\nand faint singing can be  heard. Large men\
+      \ with high voices block all exits but the South door."
+    has_colors: false
+  139:
+    description: '118
+
+      o not have<color:cyan>a !BOOT file.<color:white>'
+    has_colors: true
+  140:
+    description: 'You are in a dimly-lit tunnel. A light  comes from the North and
+      there are also exits South and West.
+
+      t singing can be  heard. Large men with high voices block all exits but the
+      South door.'
+    has_colors: false
+  141:
+    description: "You are in a small room lit by a       strobe-light. There is an\
+      \ exit South.\n exits South and West.\nt singing can be  heard. Large men with\
+      \ high voices block all exits but the South door."
+    has_colors: false
+  142:
+    description: "You are in an East/West corridor\n       strobe-light. There is\
+      \ an exit South.\n exits South and West.\nt singing can be  heard. Large men\
+      \ with high voices block all exits but the South door."
+    has_colors: false
+  143:
+    description: "You are in an East/West corridor\n       strobe-light. There is\
+      \ an exit South.\n exits South and West.\nt singing can be  heard. Large men\
+      \ with high voices block all exits but the South door."
+    has_colors: false
+  144:
+    description: "You are in an East/West corridor\n       strobe-light. There is\
+      \ an exit South.\n exits South and West.\nt singing can be  heard. Large men\
+      \ with high voices block all exits but the South door."
+    has_colors: false
+  145:
+    description: 'There is a gap in the tunnel  wall to the South.
+
+      t.
+
+      t singing can be  heard. Large men with high voices block all exits but the
+      South door.'
+    has_colors: false
+  146:
+    description: 'You are in the maze of Rassalas. There  is a hole in the floor and
+      a dark       tunnel is visible East.
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false
+  147:
+    description: "You are in the maze of Rassalas. You    may go North, East or West.\n\
+      \ dark       tunnel is visible East.\nsinging can be  heard. Large men with\
+      \ high voices block all exits but the South door."
+    has_colors: false
+  148:
+    description: 'You are in the maze of Rassalas. A dark tunnel stretches into the
+      West.
+
+      k       tunnel is visible East.
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false
+  149:
+    description: 'You are in the maze of Rassalas. Exits  are seen in all directions!
+
+      st.
+
+      k       tunnel is visible East.
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false
+  150:
+    description: 'You are in the maze of Rassalas. A dark tunnel stretches into the
+      West.
+
+      k       tunnel is visible East.
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false
+  151:
+    description: 'You are in the maze of Rassalas. A dark tunnel stretches into the
+      East.
+
+      k       tunnel is visible East.
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false
+  152:
+    description: 'You are in the maze of Rassalas. This   is the tricky bit!
+
+      to the East.
+
+      k       tunnel is visible East.
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false
+  153:
+    description: 'You are in the maze of Rassalas. This   is the tricky bit!
+
+      to the East.
+
+      k       tunnel is visible East.
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false
+  154:
+    description: 'You are in the maze of Rassalas. This   is the tricky bit!
+
+      to the East.
+
+      k       tunnel is visible East.
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false
+  155:
+    description: singing can be  heard. Large men with high voices block all exits
+      but the South door.
+    has_colors: false
+  156:
+    description: 'You are in an East/West tunnel.
+
+      alas.   The maze lies to the South and a tunnel stretches to the East.
+
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false
+  157:
+    description: 'There is a trap door in the     ground.
+
+      s to the East.
+
+
+      singing can be  heard. Large men with high voices block all exits but the South
+      door.'
+    has_colors: false

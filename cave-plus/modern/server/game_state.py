@@ -4,9 +4,67 @@ Game State Management for Cave-Plus
 
 import yaml
 import random
+import re
 from typing import Dict, List, Optional
 from player import Player
 from creature import Creature, CREATURE_DATA, INITIAL_CREATURE_PLACEMENT
+
+def convert_color_markup_to_html(text: str) -> str:
+    """
+    Convert BBC Micro Teletext color markup to HTML spans
+    Format: <color:red>text<color:white> -> <span class="teletext-red">text</span>
+    """
+    if '<color:' not in text:
+        return text
+    
+    # Replace color tags with HTML spans
+    result = text
+    color_map = {
+        'red': 'teletext-red',
+        'green': 'teletext-green',
+        'yellow': 'teletext-yellow',
+        'blue': 'teletext-blue',
+        'magenta': 'teletext-magenta',
+        'cyan': 'teletext-cyan',
+        'white': 'teletext-white',
+    }
+    
+    # Track open spans
+    parts = []
+    current_pos = 0
+    open_span = False
+    
+    # Find all color tags
+    pattern = r'<color:(\w+)>'
+    for match in re.finditer(pattern, result):
+        # Add text before this tag
+        if current_pos < match.start():
+            parts.append(result[current_pos:match.start()])
+        
+        color = match.group(1)
+        if color in color_map:
+            # Close previous span if open
+            if open_span:
+                parts.append('</span>')
+            
+            # Open new span (unless it's white, which is default)
+            if color != 'white':
+                parts.append(f'<span class="{color_map[color]}">')
+                open_span = True
+            else:
+                open_span = False
+        
+        current_pos = match.end()
+    
+    # Add remaining text
+    if current_pos < len(result):
+        parts.append(result[current_pos:])
+    
+    # Close final span if open
+    if open_span:
+        parts.append('</span>')
+    
+    return ''.join(parts)
 
 class GameState:
     def __init__(self):
@@ -35,18 +93,37 @@ class GameState:
         print(f"✅ Spawned {len(self.creatures)} creatures")
     
     async def load_rooms(self):
-        """Load room data from YAML"""
+        """Load room data from YAML with color support"""
         try:
+            # Try to load rooms with color codes first
+            try:
+                with open("../rooms-with-colors.yml", "r", encoding='utf-8') as f:
+                    color_data = yaml.safe_load(f)
+                color_rooms = color_data.get("rooms", {})
+                print(f"✅ Loaded {len(color_rooms)} rooms with color support")
+            except FileNotFoundError:
+                color_rooms = {}
+                print("⚠️  rooms-with-colors.yml not found, colors will not be available")
+            
+            # Load main room data
             with open("../rooms-parsed.yml", "r") as f:
                 data = yaml.safe_load(f)
                 
             rooms_data = data.get("rooms", {})
             
             for room_id, room_info in rooms_data.items():
+                # Use colored description if available, otherwise use regular
+                if room_id in color_rooms and color_rooms[room_id].get('has_colors'):
+                    description = color_rooms[room_id]['description']
+                    # Convert color markup to HTML
+                    description_html = convert_color_markup_to_html(description)
+                else:
+                    description_html = room_info.get("description", "").strip()
+                
                 self.rooms[room_id] = {
                     "id": room_id,
                     "name": room_info.get("name", f"Room {room_id}"),
-                    "description": room_info.get("description", "").strip(),
+                    "description": description_html,
                     "exits": room_info.get("exits", {}),
                     "note": room_info.get("note", "")
                 }

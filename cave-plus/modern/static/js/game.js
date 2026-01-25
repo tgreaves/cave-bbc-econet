@@ -598,7 +598,15 @@ class CaveGame {
             // Create span for styled text
             const span = document.createElement('span');
             span.className = `msg-${style}`;
-            span.textContent = line;
+            
+            // Check if line contains HTML color markup (from Teletext colors)
+            if (line.includes('<span class="teletext-')) {
+                // Use innerHTML for colored text
+                span.innerHTML = line;
+            } else {
+                // Use textContent for plain text (safer)
+                span.textContent = line;
+            }
             
             // Insert before the prompt
             this.messageLog.insertBefore(span, promptSpan);

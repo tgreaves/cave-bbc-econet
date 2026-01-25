@@ -10,18 +10,12 @@ This repository contains original dumps of the source code (from a few different
 
 The original BBC BASIC files have been detokenised, thanks to ```BBCBasicToText.py``` which is in the scripts directory.  Please note that this needs Python2 to work correctly.
 
-# The remake
+For Cave-Plus, a lot of the code has been fully annotated which explains how the game actually works.
 
-You don't need the original hardware (including Econet!) to enjoy Cave.  I put together a remodelling using the Ranvier MUD system: https://github.com/tgreaves/ranviermud-cave
+# The remakes
 
-# Code notes
+Some years back, I ported a version of Cave to run via telnet under the Ranvier MUD system: https://github.com/tgreaves/ranviermud-cave
 
-## Cave initialisation / locations
+More recently, I have created an 'authentic' edition that can be played via a web browser.  This edition more accurately simulates running on an actual BBC Micro (including the use of MODE 7 graphics and floppy disk sound effects). https://github.com/tgreaves/ranviermud-cave
 
-When the first player enters the Cave, OBJINIT is loaded which sets object locations.
-
-In Cave-Plus, certain magic items items (Shield, Crystal, Staff, Amulet and Treasure) are then placed in random locations, but not areas 16-20 (Wizard's Room and surrounding areas).
-
-```DEFPROCU:FORN=(k+1)TOZ:REPEATT=RND(b):UNTILT>20ORT<16:!(&A00+(N*4))=T:NEXT:ENDPROC```
-
-Note that in both versions, mobs are placed in pre-determined initial locations as defined in the DATA file.
+You can play the latter version directly by visiting: http://cave.extricae.org:1985
