@@ -1,7 +1,7 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (30 total):
+IMPLEMENTED COMMANDS (32 total):
 =================================
 Movement (6):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
@@ -19,12 +19,14 @@ Interaction (11):
   TELL            - Send message to specific player or all (Wizard only for all)
   ANNOY           - Make creature aggressive or annoy a player
   
-Combat (5):
+Combat (7):
   HIT/ATTACK/FIGHT - Attack with bare hands or stick
   STAB            - Attack with dagger/knife
   BURN            - Attack with flamethrower
   SHOOT           - Attack with arrow
   ZAP/STAFF       - Wizard-only: Attack with Staff of Merlin (requires wizard rank, staff + charges)
+  BITE            - Bite target (3-6 damage, transfers poison if you're poisoned)
+  POISON          - Poison a player (requires poison item, creatures thrive on it)
 
 Magic/Special (4):
   TELEPORT/TELE   - Teleport to an object or creature (success based on rank, score, Shield)
@@ -49,14 +51,12 @@ Wizard-Only Commands (7):
   ACTIVITY <0-9>  - Set CCM activity level (0=passive, 9=maximum aggression)
   COLLAPSE        - Trigger cave collapse - kills all players in the cave
 
-NOT YET IMPLEMENTED (19 commands):
+NOT YET IMPLEMENTED (17 commands):
 ===================================
 Basic Commands:
   EXORCISE        - Exorcise an object to the armoury (room 20)
-  POISON          - Poison another player
   VIEW            - Use crystal ball to view remote location
   PULL            - Pull rope (portcullis in rooms 29/30)
-  BITE            - Bite attack (creature-like)
   GO/WALK/RUN     - Alternative movement command
   DEBUG           - Debug command (shows error message)
   END             - End game (alternative to quit)
@@ -107,6 +107,19 @@ IMPLEMENTATION NOTES:
   - Kicks everyone except the wizard to GOING screen (game over)
   - The wizard who issues the command survives
   - Cannot be used via FORCE command
+- BITE: Bite attack that can transfer poison
+  - Against creatures: 3-6 damage, 2/3 chance creature dodges
+  - Against players: 3-5 damage, 2/3 chance player dodges
+  - If biter is poisoned, poison transfers to victim
+  - Victim receives: "You are BITEn by [attacker]" (with poison warning if transferred)
+- POISON: Poison a player with poison item
+  - Requires poison item in inventory
+  - Can only target players (not creatures)
+  - Creatures display: "The cave [creature] thrives on POISON!!"
+  - Successfully poisons target player (sets poisoned flag)
+  - Poison causes 0.05 stamina damage per tick
+  - "I am poisoned" message when stamina crosses whole number boundary
+  - "You are almost dead" message (1/20 chance per tick when stamina < 5)
 """
 
 import random
@@ -207,6 +220,14 @@ class CommandParser:
         # Shoot command (Arrow)
         if cmd in ['shoot']:
             return await self.shoot(player, args)
+        
+        # Bite command
+        if cmd in ['bite']:
+            return await self.bite(player, args)
+        
+        # Poison command
+        if cmd in ['poison']:
+            return await self.poison(player, args)
         
         # Teleport command
         if cmd in ['teleport', 'tele']:
@@ -485,7 +506,7 @@ class CommandParser:
     async def score(self, player: Player) -> Dict:
         """Show player score and stats"""
         stats = f"""Score is {player.score}
-Stamina is {player.stamina}
+Stamina is {int(player.stamina)}
 Stamina limit is {player.max_stamina}"""
         
         return {"message": stats}
@@ -507,6 +528,8 @@ Combat:
   burn <target>  - Burn with flamethrower
   zap <target>   - Zap with Staff of Merlin
   shoot <target> - Shoot with arrow (consumed)
+  bite <target>  - Bite target (poisons if you're poisoned)
+  poison <target> - Poison player (requires poison item)
 
 Social: say <message>
 Who: who, players
@@ -901,6 +924,189 @@ Examples:
             "status_message": status_message,  # Status bar
             "creature_died": result['creature_died'],
             "inventory_changed": True
+        }
+
+    async def bite(self, player: Player, target_name: str) -> Dict:
+        """
+        Bite target (can poison if player is poisoned)
+        BBC Micro lines 5470-5540 (PROCAA)
+        """
+        if not target_name:
+            return {"message": "Bite what?"}
+        
+        # Line 5470: PROCG("BITEing")
+        # First check if target is a creature
+        creatures = self.game_state.get_creatures_in_room(player.room_id)
+        target_creature = None
+        
+        for creature in creatures:
+            if target_name.lower() in creature.name.lower():
+                target_creature = creature
+                break
+        
+        # Line 5470: IFT>&A00PROCr:ENDPROC (if creature, use PROCr - bite creature)
+        if target_creature:
+            if target_creature.is_dead:
+                return {"message": f"The {target_creature.name} is already dead."}
+            
+            # Line 5580: IFRND(3)<>1PRINT"The ";D$;" dodges away":ENDPROC
+            import random
+            if random.randint(1, 3) != 1:
+                return {"message": f"The {target_creature.name} dodges away"}
+            
+            # Line 5600: S=!TAND&FFFF00:S=S-((3+RND(3))*&100)
+            # Damage is 3-6 (3+RND(3) where RND(3) is 0-2)
+            damage = 3 + random.randint(0, 2)
+            
+            # Apply damage manually
+            creature_died = target_creature.take_damage(damage)
+            
+            # Make creature aggressive if it wasn't already
+            if not creature_died:
+                target_creature.make_aggressive()
+                target_creature.target_player = player.name
+            
+            # Award points if creature died
+            if creature_died:
+                points = target_creature.max_stamina // 10
+                player.score += points
+                player.kills += 1
+                
+                # Move creature to mortuary (room 19)
+                if target_creature.room_id in self.game_state.creatures_by_room:
+                    if target_creature.obj_id in self.game_state.creatures_by_room[target_creature.room_id]:
+                        self.game_state.creatures_by_room[target_creature.room_id].remove(target_creature.obj_id)
+                
+                # Add to mortuary
+                target_creature.room_id = 19
+                if 19 not in self.game_state.creatures_by_room:
+                    self.game_state.creatures_by_room[19] = []
+                self.game_state.creatures_by_room[19].append(target_creature.obj_id)
+            
+            # Line 5610: PROCM (display stamina)
+            main_message = f"BITEing {target_creature.name}"
+            status_message = f"The {target_creature.name}'s Stamina={target_creature.stamina}"
+            
+            if creature_died:
+                status_message = f"The {target_creature.name} is dead!"
+            
+            return {
+                "message": main_message,
+                "status_message": status_message,
+                "creature_died": creature_died
+            }
+        
+        # Otherwise check for players
+        target_player = None
+        for p in self.game_state.players.values():
+            if p.player_id != player.player_id and p.room_id == player.room_id:
+                if target_name.lower() in p.name.lower():
+                    target_player = p
+                    break
+        
+        if not target_player:
+            return {"message": f"There is no '{target_name}' here to bite."}
+        
+        # Line 5500: IFFNA(T)ENDPROC (check if target exists)
+        # Line 5510: IFRND(3)<>1PROCC(1,?(T+8),E$+" tries to BITE you!")
+        # Line 5510: PRINTD$;" dodges away":ENDPROC
+        import random
+        if random.randint(1, 3) != 1:
+            # Target dodges - send message to target
+            return {
+                "message": f"{target_player.name} dodges away",
+                "tell_target": target_player.name,
+                "tell_message": f"{player.name} tries to BITE you!"
+            }
+        
+        # Line 5520: PROCB(E$+" is BITEn")
+        # Line 5540: PROCC(10,?(T+8),CHR$3+RND(3))+E$)
+        # Damage is 3-5 (CHR$3+RND(3) where RND(3) is 0-2)
+        damage = 3 + random.randint(0, 2)
+        target_player.take_damage(damage)
+        
+        # Line 5520: IFMPROCC(5,?(T+8),E$):ENDPROC
+        # If biter is poisoned (M=TRUE), poison the target (event 5)
+        poison_transferred = False
+        if player.poisoned:
+            target_player.poisoned = True
+            poison_transferred = True
+        
+        # Check if target died
+        target_died = target_player.stamina <= 0
+        if target_died:
+            target_player.deaths += 1
+            player.kills += 1
+            player.add_score(10)  # Points for kill
+        
+        # Message for attacker
+        message = f"{target_player.name} is BITEn"
+        
+        # Message for victim (event 10: "You are BITEn by <attacker>")
+        victim_message = f"You are BITEn by {player.name}"
+        if poison_transferred:
+            victim_message += " - You are poisoned!"
+        
+        return {
+            "message": message,
+            "combat": True,
+            "beeps": 1,
+            "pvp": True,
+            "target_player": target_player.name,
+            "target_died": target_died,
+            "poison_transferred": poison_transferred,
+            "victim_message": victim_message
+        }
+
+    async def poison(self, player: Player, target_name: str) -> Dict:
+        """
+        Poison another player or creature
+        BBC Micro lines 5380-5450 (PROCe)
+        """
+        # Line 5380: IF!&A0C<>A*&100PRINT"You do not have the poison":VDU7:ENDPROC
+        has_poison = any("poison" in item.lower() for item in player.inventory)
+        
+        if not has_poison:
+            return {"message": "You do not have the poison", "beeps": 1}
+        
+        # Line 5400: IFD$=C$D$=R$:PRINT"POISONing ";D$
+        if not target_name:
+            return {"message": "Poison what?"}
+        
+        # Line 5410: R$=D$:T=FND(D$):IFT>&A00PRINT"The cave ";D$;" thrives on POISON!!":VDU7:ENDPROC
+        # First check if target is a creature
+        creatures = self.game_state.get_creatures_in_room(player.room_id)
+        target_creature = None
+        
+        for creature in creatures:
+            if target_name.lower() in creature.name.lower():
+                target_creature = creature
+                break
+        
+        if target_creature:
+            # Creatures thrive on poison!
+            return {"message": f"The cave {target_creature.name} thrives on POISON!!", "beeps": 1}
+        
+        # Otherwise check for players
+        target_player = None
+        for p in self.game_state.players.values():
+            if p.player_id != player.player_id and p.room_id == player.room_id:
+                if target_name.lower() in p.name.lower():
+                    target_player = p
+                    break
+        
+        if not target_player:
+            return {"message": f"There is no '{target_name}' here to poison."}
+        
+        # Line 5440: IFFNA(T)ENDPROC (check if target exists)
+        # Line 5450: PROCC(5,?(T+8),E$):ENDPROC (event 5 = poison target)
+        target_player.poisoned = True
+        
+        return {
+            "message": f"POISONing {target_player.name}",
+            "tell_target": target_player.name,
+            "tell_message": f"{player.name} has poisoned you!",
+            "beeps": 1
         }
 
     async def teleport(self, player: Player, target_name: str) -> Dict:

@@ -564,6 +564,9 @@ class CaveGame {
             this.messageLog.insertBefore(spacer, this.messageLog.firstChild);
         }
         
+        // Check if text contains HTML color markup (from Teletext colors)
+        const hasColorMarkup = text.includes('<span class="teletext-');
+        
         // Add text to scrolling message log (before the prompt)
         const lines = text.split('\n');
         
@@ -599,8 +602,8 @@ class CaveGame {
             const span = document.createElement('span');
             span.className = `msg-${style}`;
             
-            // Check if line contains HTML color markup (from Teletext colors)
-            if (line.includes('<span class="teletext-')) {
+            // Use innerHTML if the entire message has color markup, otherwise use textContent
+            if (hasColorMarkup) {
                 // Use innerHTML for colored text
                 span.innerHTML = line;
             } else {

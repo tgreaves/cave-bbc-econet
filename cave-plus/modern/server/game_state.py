@@ -95,35 +95,23 @@ class GameState:
     async def load_rooms(self):
         """Load room data from YAML with color support"""
         try:
-            # Try to load rooms with color codes first
-            try:
-                with open("../rooms-with-colors.yml", "r", encoding='utf-8') as f:
-                    color_data = yaml.safe_load(f)
-                color_rooms = color_data.get("rooms", {})
-                print(f"✅ Loaded {len(color_rooms)} rooms with color support")
-            except FileNotFoundError:
-                color_rooms = {}
-                print("⚠️  rooms-with-colors.yml not found, colors will not be available")
-            
-            # Load main room data
-            with open("../rooms-parsed.yml", "r") as f:
+            # Load room data (now includes color markup)
+            with open("../rooms-parsed.yml", "r", encoding='utf-8') as f:
                 data = yaml.safe_load(f)
                 
             rooms_data = data.get("rooms", {})
             
             for room_id, room_info in rooms_data.items():
-                # Use colored description if available, otherwise use regular
-                if room_id in color_rooms and color_rooms[room_id].get('has_colors'):
-                    description = color_rooms[room_id]['description']
+                # Get description and convert color markup to HTML if present
+                description = room_info.get("description", "").strip()
+                if room_info.get('has_colors', False):
                     # Convert color markup to HTML
-                    description_html = convert_color_markup_to_html(description)
-                else:
-                    description_html = room_info.get("description", "").strip()
+                    description = convert_color_markup_to_html(description)
                 
                 self.rooms[room_id] = {
                     "id": room_id,
                     "name": room_info.get("name", f"Room {room_id}"),
-                    "description": description_html,
+                    "description": description,
                     "exits": room_info.get("exits", {}),
                     "note": room_info.get("note", "")
                 }
@@ -490,7 +478,10 @@ class GameState:
     async def player_attack_creature(self, player: Player, creature: Creature, weapon: Optional[str] = None) -> Dict:
         """Player attacks a creature"""
         # Calculate damage based on weapon
-        if weapon and "flamethrower" in weapon.lower():
+        if weapon and "staff" in weapon.lower():
+            # BBC Micro line 5000: RND(40)+100 = 101-140 damage
+            total_damage = random.randint(101, 140)
+        elif weapon and "flamethrower" in weapon.lower():
             # BBC Micro: RND(10)+50 = 51-60 damage
             total_damage = random.randint(51, 60)
         elif weapon and "arrow" in weapon.lower():

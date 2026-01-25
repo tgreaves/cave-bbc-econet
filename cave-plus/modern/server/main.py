@@ -256,9 +256,29 @@ async def game_loop():
                 # Sober up gradually (line 1460)
                 player.update_vodka_level()
                 
-                # Apply poison damage (line 1480)
+                # Apply poison damage (line 1480: OH=D:IFM D=D-0.05)
                 if player.poisoned:
+                    # Store old stamina before applying damage (line 1480: OH=D)
+                    old_stamina = player.stamina
+                    
+                    # Apply poison damage (line 1480: IFM D=D-0.05)
                     player.update_poison_damage()
+                    
+                    # Line 1500: IFMANDINTD<INTOHPROCB("I am poisoned")
+                    # Show "I am poisoned" when stamina crosses whole number boundary
+                    if int(player.stamina) < int(old_stamina):
+                        await send_to_player(player, {
+                            "type": "message",
+                            "text": "I am poisoned",
+                            "style": "combat",
+                            "beeps": 1
+                        })
+                        
+                        # Update player stats
+                        await send_to_player(player, {
+                            "type": "player_update",
+                            "player": player.to_dict()
+                        })
                     
                     # Check if player died from poison
                     if player.stamina <= 0:
@@ -281,6 +301,20 @@ async def game_loop():
                         game_state.remove_player(player)
                         if player.name in active_connections:
                             del active_connections[player.name]
+                        
+                        continue  # Skip low stamina check for dead player
+                
+                # Line 1510: IFD<5ANDRND(20)=1PROCB("You are almost dead"):SOUND1,-10,0,1
+                # 1/20 chance per tick to show "You are almost dead" when stamina < 5
+                import random
+                if player.stamina < 5 and random.randint(1, 20) == 1:
+                    await send_to_player(player, {
+                        "type": "message",
+                        "text": "You are almost dead",
+                        "style": "combat",
+                        "beeps": 1  # SOUND1,-10,0,1 = beep
+                    })
+
                 
         except Exception as e:
             print(f"Game loop error: {e}")
@@ -903,30 +937,40 @@ async def handle_command(player: Player, data: dict):
         if target_name:
             target_player = game_state.get_player(target_name)
             if target_player:
-                # BBC Micro line 1610: 
-                # Victim receives: PROCB(H$(RND(3))+" by "+attacker) - status bar
-                # Attacker receives: PROCC sends back "victim IS HIT! stamina down to X"
-                
-                import random
-                hit_messages = ["I am hit", "I am struck", "I am thumped"]
-                hit_message = random.choice(hit_messages)
-                
-                # Message for victim: Status bar message
-                await send_to_player(target_player, {
-                    "type": "message",
-                    "text": f"{hit_message} by {player.name}",
-                    "style": "combat",
-                    "beeps": 2  # Being hit = 2 beeps (VDU7,7)
-                })
-                
-                # Message for attacker: Stamina feedback (status bar)
-                # Line 1580: PROCB(?&7702) - received PROCC message displayed via PROCB
-                await send_to_player(player, {
-                    "type": "message",
-                    "text": f"{target_player.name} IS HIT! stamina down to {target_player.stamina}",
-                    "style": "combat",
-                    "beeps": 1  # Notification beep for attacker
-                })
+                # Check if this is a BITE command with custom victim message
+                if result.get("victim_message"):
+                    # BITE command: custom message for victim
+                    await send_to_player(target_player, {
+                        "type": "message",
+                        "text": result.get("victim_message"),
+                        "style": "combat",
+                        "beeps": 2  # Being bitten = 2 beeps
+                    })
+                else:
+                    # BBC Micro line 1610: 
+                    # Victim receives: PROCB(H$(RND(3))+" by "+attacker) - status bar
+                    # Attacker receives: PROCC sends back "victim IS HIT! stamina down to X"
+                    
+                    import random
+                    hit_messages = ["I am hit", "I am struck", "I am thumped"]
+                    hit_message = random.choice(hit_messages)
+                    
+                    # Message for victim: Status bar message
+                    await send_to_player(target_player, {
+                        "type": "message",
+                        "text": f"{hit_message} by {player.name}",
+                        "style": "combat",
+                        "beeps": 2  # Being hit = 2 beeps (VDU7,7)
+                    })
+                    
+                    # Message for attacker: Stamina feedback (status bar)
+                    # Line 1580: PROCB(?&7702) - received PROCC message displayed via PROCB
+                    await send_to_player(player, {
+                        "type": "message",
+                        "text": f"{target_player.name} IS HIT! stamina down to {target_player.stamina}",
+                        "style": "combat",
+                        "beeps": 1  # Notification beep for attacker
+                    })
                 
                 # Update target's stats
                 await send_to_player(target_player, {

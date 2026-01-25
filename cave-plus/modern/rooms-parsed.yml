@@ -1,60 +1,30 @@
 # ============================================================================
-# CAVE-PLUS ROOM DATA
+# CAVE-PLUS ROOM DATA WITH TELETEXT COLORS
 # ============================================================================
-# Parsed from original BBC Micro room files in cave-plus/original/R/
+# Parsed from original BBC Micro room files with color codes preserved
+# Color markup format: <color:red>text<color:white>
 # 
-# This file contains complete room data for the Cave-Plus multiplayer game:
-# - Room descriptions
-# - Exit connections (north, south, east, west, up, down)
-# - Special room annotations (Altar, Bank, Armoury, etc.)
-# - Initial object and creature placement from OBJINIT file
-# 
-# GAME STATISTICS:
-#   Total Rooms:     157
-#   Items:           15 (Vodka, Stick, Poison, Dagger, Arrow, Medicine, etc.)
-#   Creatures:       27 (Dragon, Troll, Spider, Snakes, Author, etc.)
-#   Special Rooms:   12 (Altar, Bank, Armoury, Mortuary, etc.)
-# 
-# KEY LOCATIONS:
-#   Room 1:  Main Entrance / Altar - Dragon boss, Staff of Merlin
-#   Room 12: Green Room - Light switch
-#   Room 19: Mortuary - Where dead creatures go
-#   Room 20: Armoury - Defensive items (Ruby, Shield)
-#   Room 26: Snake Pit - Multiple snakes
-#   Room 30: Demon's Room - Portcullis, leads to torture caves
-#   Room 56: Bank - Deposit treasure for points
-#   Room 72: Hall of Knowledge - Tutorial area
-# 
+# BBC Micro Teletext colors:
+#   0x81 = Red
+#   0x82 = Green
+#   0x83 = Yellow
+#   0x84 = Blue
+#   0x85 = Magenta
+#   0x86 = Cyan
+#   0x87 = White
 # ============================================================================
-
-metadata:
-  total_rooms: 157
-  game: 'Cave-Plus'
-  version: '1.00'
-  notes: 'Parsed from original BBC Micro room files'
-  parser_version: '2.0'
-  includes_initial_objects: true
-  includes_special_annotations: true
 
 rooms:
   1:
-    name: 'Main Entrance / Altar'
-    note: 'Staff of Merlin can be charged here. Dragon boss starts here.'
     description: |
       This is the Main Entrance. The cave extends down to the south. The
-      hall of knowledge is to the east. A small stone,with the
-      name�MERLIN�on it, glows.
+      hall of knowledge is to the east. A small stone,with the name
+      <color:cyan>MERLIN <color:white>on it, glows.
     exits:
       south: 2
       east: 72
       down: 2
-    initial_objects:
-      - 'Dragon'
-      - 'Staff of Merlin'
-      - 'Amulet'
-      - 'Treasure'
-      - 'Guardian (item)'
-      - 'Guardian (creature)'
+    has_colors: true
 
   2:
     description: |
@@ -65,8 +35,7 @@ rooms:
       east: 3
       west: 4
       up: 1
-    initial_objects:
-      - 'Vodka'
+    has_colors: false
 
   3:
     description: |
@@ -75,8 +44,7 @@ rooms:
     exits:
       east: 6
       west: 2
-    initial_objects:
-      - '(unnamed creature 36)'
+    has_colors: false
 
   4:
     description: |
@@ -86,6 +54,7 @@ rooms:
       north: 5
       east: 2
       west: 49
+    has_colors: false
 
   5:
     description: |
@@ -93,10 +62,7 @@ rooms:
     exits:
       north: 92
       south: 4
-    initial_objects:
-      - 'Poison'
-      - 'Dagger'
-      - 'Maggot'
+    has_colors: false
 
   6:
     description: |
@@ -105,6 +71,7 @@ rooms:
     exits:
       east: 7
       west: 3
+    has_colors: false
 
   7:
     description: |
@@ -114,6 +81,7 @@ rooms:
       south: 10
       east: 8
       west: 6
+    has_colors: false
 
   8:
     description: |
@@ -121,8 +89,7 @@ rooms:
     exits:
       east: 21
       west: 7
-    initial_objects:
-      - 'Skeleton'
+    has_colors: false
 
   9:
     description: |
@@ -132,6 +99,7 @@ rooms:
       south: 7
       east: 13
       west: 11
+    has_colors: false
 
   10:
     description: |
@@ -144,33 +112,29 @@ rooms:
       west: 14
       up: 14
       down: 14
+    has_colors: false
 
   11:
     description: |
-      You are in the�Red�room
+      You are in the <color:red>Red <color:white>room
     exits:
       east: 9
-    initial_objects:
-      - 'Medicine'
-      - '(unnamed creature 20)'
+    has_colors: true
 
   12:
-    name: 'Green Room'
-    note: 'Light switch location'
     description: |
-      You are in the�Green�room. There is a switch at the entrance labelled
-      LIGHTS
+      You are in the <color:green>Green <color:white>room. There is a switch
+      at the entrance labelled LIGHTS
     exits:
       south: 9
+    has_colors: true
 
   13:
     description: |
-      You are in the�Blue�room
+      You are in the <color:blue>Blue <color:white>room
     exits:
       west: 9
-    initial_objects:
-      - 'Dwarf'
-      - 'Necromancer'
+    has_colors: true
 
   14:
     description: |
@@ -183,8 +147,7 @@ rooms:
       west: 14
       up: 15
       down: 14
-    initial_objects:
-      - '(unnamed creature 40)'
+    has_colors: false
 
   15:
     description: |
@@ -197,23 +160,19 @@ rooms:
       west: 10
       up: 14
       down: 14
-    initial_objects:
-      - 'Knife'
+    has_colors: false
 
   16:
-    name: "Wizard's Room"
-    note: 'Central hub of wizard domain'
     description: |
-      This is the Wizard's Room. Magical energy fills the air.
+      Wizard's Room
     exits:
       east: 20
       west: 19
       up: 17
       down: 18
+    has_colors: false
 
   17:
-    name: 'Limbo'
-    note: 'No natural way out - teleport trap'
     description: |
       You are in limbo - There is no natural way out.
     exits:
@@ -223,36 +182,27 @@ rooms:
       west: 17
       up: 17
       down: 17
+    has_colors: false
 
   18:
-    name: "Wizard's Dungeon"
-    note: 'No exits - prison'
     description: |
       You are in the Wizard's Dungeon - There are no exits!
     exits: {}
+    has_colors: false
 
   19:
-    name: 'Mortuary'
-    note: 'Where dead creatures go'
     description: |
       This is the Mortuary
     exits:
       east: 16
+    has_colors: false
 
   20:
-    name: 'Armoury'
-    note: 'Where exorcised objects are moved. Contains defensive items.'
     description: |
       Armoury
     exits:
       west: 16
-    initial_objects:
-      - 'Ruby'
-      - 'Shield'
-      - 'Spider'
-      - 'Viper'
-      - 'Drunk'
-      - 'Guardian'
+    has_colors: false
 
   21:
     description: |
@@ -261,6 +211,7 @@ rooms:
       east: 22
       west: 8
       down: 53
+    has_colors: false
 
   22:
     description: |
@@ -268,6 +219,7 @@ rooms:
     exits:
       east: 23
       west: 21
+    has_colors: false
 
   23:
     description: |
@@ -275,8 +227,7 @@ rooms:
     exits:
       east: 24
       west: 22
-    initial_objects:
-      - '(unnamed creature 18)'
+    has_colors: false
 
   24:
     description: |
@@ -287,27 +238,21 @@ rooms:
       south: 26
       east: 27
       west: 23
+    has_colors: false
 
   25:
     description: |
       You are in a sparsely-decorated doctor'ssurgery
     exits:
       south: 24
-    initial_objects:
-      - 'Flamethrower'
+    has_colors: false
 
   26:
-    name: 'Snake Pit'
-    note: 'Multiple snakes spawn here'
     description: |
       A venomous snake-pit looms out of the fog...
     exits:
       north: 24
-    initial_objects:
-      - 'Cobra'
-      - 'Python'
-      - 'Adder'
-      - 'Worm'
+    has_colors: false
 
   27:
     description: |
@@ -316,6 +261,7 @@ rooms:
       south: 28
       east: 29
       west: 24
+    has_colors: false
 
   28:
     description: |
@@ -323,20 +269,18 @@ rooms:
     exits:
       north: 27
       south: 31
+    has_colors: false
 
   29:
-    name: 'Portcullis West'
-    note: 'Portcullis entrance'
     description: |
       A portcullis lies to the East. There is a strange smell to the West. A
       Rope hangs down from a hole in the roof.
     exits:
       east: 30
       west: 27
+    has_colors: false
 
   30:
-    name: "Demon's Room / Portcullis East"
-    note: 'Portcullis exit, leads to torture caves'
     description: |
       This is the demon's room. The only exitsare via a portcullis to the
       West or through a hole to the east to the caves of torture and
@@ -344,8 +288,7 @@ rooms:
     exits:
       east: 77
       west: 29
-    initial_objects:
-      - 'Arrow'
+    has_colors: false
 
   31:
     description: |
@@ -355,6 +298,7 @@ rooms:
       north: 28
       south: 33
       east: 32
+    has_colors: false
 
   32:
     description: |
@@ -362,9 +306,7 @@ rooms:
       Superior Magical Power." There is a unbelievable stench in here.
     exits:
       west: 31
-    initial_objects:
-      - 'Stick'
-      - '(unnamed creature 31)'
+    has_colors: false
 
   33:
     description: |
@@ -372,6 +314,7 @@ rooms:
     exits:
       north: 31
       south: 34
+    has_colors: false
 
   34:
     description: |
@@ -380,6 +323,7 @@ rooms:
       north: 33
       east: 36
       west: 35
+    has_colors: false
 
   35:
     description: |
@@ -387,6 +331,7 @@ rooms:
     exits:
       east: 34
       west: 40
+    has_colors: false
 
   36:
     description: |
@@ -395,6 +340,7 @@ rooms:
       north: 37
       south: 38
       west: 34
+    has_colors: false
 
   37:
     description: |
@@ -403,17 +349,14 @@ rooms:
     exits:
       south: 36
       up: 39
-    initial_objects:
-      - 'Crystal Ball'
-      - 'Centipede'
+    has_colors: false
 
   38:
     description: |
       The Dragon's Lair
     exits:
       north: 36
-    initial_objects:
-      - 'Troll'
+    has_colors: false
 
   39:
     description: |
@@ -421,8 +364,7 @@ rooms:
       down below
     exits:
       down: 37
-    initial_objects:
-      - 'Author (easter egg)'
+    has_colors: false
 
   40:
     description: |
@@ -432,6 +374,7 @@ rooms:
       north: 41
       south: 47
       east: 35
+    has_colors: false
 
   41:
     description: |
@@ -439,6 +382,7 @@ rooms:
     exits:
       south: 40
       west: 42
+    has_colors: false
 
   42:
     description: |
@@ -446,6 +390,7 @@ rooms:
     exits:
       east: 41
       west: 43
+    has_colors: false
 
   43:
     description: |
@@ -453,6 +398,7 @@ rooms:
     exits:
       south: 44
       east: 42
+    has_colors: false
 
   44:
     description: |
@@ -462,6 +408,7 @@ rooms:
       north: 43
       south: 45
       west: 48
+    has_colors: false
 
   45:
     description: |
@@ -469,6 +416,7 @@ rooms:
     exits:
       north: 44
       east: 46
+    has_colors: false
 
   46:
     description: |
@@ -476,8 +424,7 @@ rooms:
     exits:
       east: 47
       west: 45
-    initial_objects:
-      - 'Killer'
+    has_colors: false
 
   47:
     description: |
@@ -485,6 +432,7 @@ rooms:
     exits:
       north: 40
       west: 46
+    has_colors: false
 
   48:
     description: |
@@ -493,29 +441,35 @@ rooms:
     exits:
       east: 44
       west: 54
+    has_colors: false
 
   49:
     description: |
-      You are in the�cyan�room,with exits to the east and south
+      You are in the <color:cyan>cyan <color:white>room,with exits to the
+      east and south
     exits:
       south: 50
       east: 4
+    has_colors: true
 
   50:
     description: |
-      You are in the�yellow�room,with exits tothe east and north_a magic
-      cubicle lies to the south
+      You are in the <color:yellow>yellow <color:white>room,with exits tothe
+      east and north_a magic cubicle lies to the south
     exits:
       north: 49
       south: 52
       east: 51
+    has_colors: true
 
   51:
     description: |
-      You are in the�magenta�room,with exits to the west and north
+      You are in the <color:magenta>magenta <color:white>room,with exits to
+      the west and north
     exits:
       north: 4
       west: 50
+    has_colors: true
 
   52:
     description: |
@@ -524,18 +478,21 @@ rooms:
     exits:
       north: 51
       down: 9
+    has_colors: false
 
   53:
     description: |
       You tumble into a dark cellar_there is only one way out...
     exits:
       west: 15
+    has_colors: false
 
   54:
     description: |
       You are carried aloft on a sulphurous updraft
     exits:
       up: 55
+    has_colors: false
 
   55:
     description: |
@@ -544,17 +501,15 @@ rooms:
       east: 57
       west: 57
       up: 56
-    initial_objects:
-      - 'Goblin (65535 HP bug)'
+    has_colors: false
 
   56:
-    name: 'Bank / Crystal Tower Top'
-    note: 'Deposit treasure here for points'
     description: |
       Above your head a crystal spire This is the top - you go no higher. A
       sign says 'DEPOSIT' treasre here.
     exits:
       down: 55
+    has_colors: false
 
   57:
     description: |
@@ -564,12 +519,14 @@ rooms:
       south: 55
       up: 56
       down: 58
+    has_colors: false
 
   58:
     description: |
       Leaving the Tower for darker places down below is where your fate is
     exits:
       down: 60
+    has_colors: false
 
   59:
     description: |
@@ -577,6 +534,7 @@ rooms:
       plaintive song.
     exits:
       up: 55
+    has_colors: false
 
   60:
     description: |
@@ -585,19 +543,23 @@ rooms:
       south: 61
       east: 54
       west: 62
+    has_colors: false
 
   61:
     description: |
-      The sound of rushing�water�is heard to the south
+      The sound of rushing <color:blue>water <color:white>is heard to the
+      south
     exits:
       north: 60
       south: 63
+    has_colors: true
 
   62:
     description: |
       You are faced with an impenetrable wall of rock
     exits:
       west: 60
+    has_colors: false
 
   63:
     description: |
@@ -607,9 +569,7 @@ rooms:
       south: 63
       east: 65
       west: 66
-    initial_objects:
-      - 'Toad'
-      - '(unnamed creature 33)'
+    has_colors: false
 
   64:
     description: |
@@ -621,6 +581,7 @@ rooms:
       west: 63
       up: 63
       down: 63
+    has_colors: false
 
   65:
     description: |
@@ -628,6 +589,7 @@ rooms:
     exits:
       east: 14
       west: 63
+    has_colors: false
 
   66:
     description: |
@@ -635,6 +597,7 @@ rooms:
     exits:
       east: 63
       west: 67
+    has_colors: false
 
   67:
     description: |
@@ -642,8 +605,7 @@ rooms:
     exits:
       north: 68
       east: 66
-    initial_objects:
-      - 'Coward'
+    has_colors: false
 
   68:
     description: |
@@ -651,6 +613,7 @@ rooms:
     exits:
       north: 69
       south: 67
+    has_colors: false
 
   69:
     description: |
@@ -658,6 +621,7 @@ rooms:
     exits:
       south: 68
       up: 70
+    has_colors: false
 
   70:
     description: |
@@ -665,6 +629,7 @@ rooms:
     exits:
       up: 71
       down: 69
+    has_colors: false
 
   71:
     description: |
@@ -672,10 +637,9 @@ rooms:
     exits:
       up: 39
       down: 70
+    has_colors: false
 
   72:
-    name: 'Hall of Knowledge'
-    note: 'Tutorial area with instruction rooms'
     description: |
       You now stand in the hallowed hall of knowledge. All around you are
       rooms of instruction. There is an exit to the west.
@@ -684,6 +648,7 @@ rooms:
       south: 75
       east: 74
       west: 1
+    has_colors: false
 
   73:
     description: |
@@ -691,6 +656,7 @@ rooms:
       type the initial letter of each direction i.e. N,E,S,W,U,D.
     exits:
       south: 72
+    has_colors: false
 
   74:
     description: |
@@ -698,6 +664,7 @@ rooms:
       use the command 'GET' and to put one down use 'DROP'.
     exits:
       west: 72
+    has_colors: false
 
   75:
     description: |
@@ -706,13 +673,16 @@ rooms:
       leaving you alone using the 'SAY' command.
     exits:
       north: 72
+    has_colors: false
 
   76:
     description: |
-      This room is ��Hewick's Hollow,�� probably the most pointless room in
-      the whole of existence. The only exit is down through a black hole.
+      This room is <color:cyan>Hewick's Hollow, <color:white> probably the
+      most pointless room in the whole of existence. The only exit is down
+      through a black hole.
     exits:
       down: 15
+    has_colors: true
 
   77:
     description: |
@@ -722,6 +692,7 @@ rooms:
       north: 78
       south: 88
       west: 30
+    has_colors: false
 
   78:
     description: |
@@ -731,6 +702,7 @@ rooms:
       north: 79
       south: 77
       east: 89
+    has_colors: false
 
   79:
     description: |
@@ -739,6 +711,7 @@ rooms:
     exits:
       south: 78
       east: 80
+    has_colors: false
 
   80:
     description: |
@@ -746,6 +719,7 @@ rooms:
     exits:
       east: 81
       west: 79
+    has_colors: false
 
   81:
     description: |
@@ -754,6 +728,7 @@ rooms:
     exits:
       east: 82
       west: 80
+    has_colors: false
 
   82:
     description: |
@@ -763,6 +738,7 @@ rooms:
       south: 83
       east: 91
       west: 81
+    has_colors: false
 
   83:
     description: |
@@ -772,8 +748,7 @@ rooms:
     exits:
       north: 82
       south: 84
-    initial_objects:
-      - 'Caveman'
+    has_colors: false
 
   84:
     description: |
@@ -783,6 +758,7 @@ rooms:
     exits:
       north: 83
       west: 85
+    has_colors: false
 
   85:
     description: |
@@ -791,6 +767,7 @@ rooms:
     exits:
       south: 86
       east: 84
+    has_colors: false
 
   86:
     description: |
@@ -799,6 +776,7 @@ rooms:
     exits:
       north: 85
       west: 87
+    has_colors: false
 
   87:
     description: |
@@ -807,6 +785,7 @@ rooms:
     exits:
       east: 86
       west: 88
+    has_colors: false
 
   88:
     description: |
@@ -815,6 +794,7 @@ rooms:
     exits:
       north: 77
       east: 87
+    has_colors: false
 
   89:
     description: |
@@ -823,6 +803,7 @@ rooms:
     exits:
       east: 90
       west: 78
+    has_colors: false
 
   90:
     description: |
@@ -831,6 +812,7 @@ rooms:
       north.
     exits:
       north: 81
+    has_colors: false
 
   91:
     description: |
@@ -840,6 +822,7 @@ rooms:
       west: 82
       up: 91
       down: 91
+    has_colors: false
 
   92:
     description: |
@@ -848,6 +831,7 @@ rooms:
     exits:
       north: 93
       south: 5
+    has_colors: false
 
   93:
     description: |
@@ -857,6 +841,7 @@ rooms:
       north: 140
       south: 92
       west: 94
+    has_colors: false
 
   94:
     description: |
@@ -865,6 +850,7 @@ rooms:
     exits:
       east: 93
       west: 95
+    has_colors: false
 
   95:
     description: |
@@ -873,6 +859,7 @@ rooms:
     exits:
       east: 94
       west: 96
+    has_colors: false
 
   96:
     description: |
@@ -882,6 +869,7 @@ rooms:
       south: 97
       east: 95
       west: 99
+    has_colors: false
 
   97:
     description: |
@@ -890,6 +878,7 @@ rooms:
     exits:
       north: 96
       west: 98
+    has_colors: false
 
   98:
     description: |
@@ -898,6 +887,7 @@ rooms:
       OUCH!
     exits:
       east: 97
+    has_colors: false
 
   99:
     description: |
@@ -908,6 +898,7 @@ rooms:
       north: 145
       east: 96
       west: 100
+    has_colors: false
 
   100:
     description: |
@@ -917,6 +908,7 @@ rooms:
       north: 105
       south: 101
       east: 99
+    has_colors: false
 
   101:
     description: |
@@ -924,6 +916,7 @@ rooms:
     exits:
       north: 100
       west: 102
+    has_colors: false
 
   102:
     description: |
@@ -931,6 +924,7 @@ rooms:
     exits:
       north: 103
       east: 101
+    has_colors: false
 
   103:
     description: |
@@ -939,6 +933,7 @@ rooms:
     exits:
       north: 104
       south: 102
+    has_colors: false
 
   104:
     description: |
@@ -946,6 +941,7 @@ rooms:
     exits:
       south: 103
       east: 105
+    has_colors: false
 
   105:
     description: |
@@ -955,6 +951,7 @@ rooms:
       north: 106
       south: 100
       west: 104
+    has_colors: false
 
   106:
     description: |
@@ -964,6 +961,7 @@ rooms:
       north: 108
       south: 105
       west: 107
+    has_colors: false
 
   107:
     description: |
@@ -972,6 +970,7 @@ rooms:
       pervades the air. The door is now shut and locked.
     exits:
       up: 146
+    has_colors: false
 
   108:
     description: |
@@ -980,6 +979,7 @@ rooms:
     exits:
       south: 106
       east: 109
+    has_colors: false
 
   109:
     description: |
@@ -988,6 +988,7 @@ rooms:
       north: 116
       east: 110
       west: 108
+    has_colors: false
 
   110:
     description: |
@@ -996,6 +997,7 @@ rooms:
       south: 111
       east: 115
       west: 109
+    has_colors: false
 
   111:
     description: |
@@ -1004,6 +1006,7 @@ rooms:
     exits:
       north: 110
       east: 112
+    has_colors: false
 
   112:
     description: |
@@ -1011,6 +1014,7 @@ rooms:
     exits:
       east: 113
       west: 111
+    has_colors: false
 
   113:
     description: |
@@ -1019,6 +1023,7 @@ rooms:
     exits:
       north: 114
       west: 112
+    has_colors: false
 
   114:
     description: |
@@ -1027,6 +1032,7 @@ rooms:
     exits:
       south: 113
       west: 115
+    has_colors: false
 
   115:
     description: |
@@ -1034,6 +1040,7 @@ rooms:
     exits:
       east: 114
       west: 110
+    has_colors: false
 
   116:
     description: |
@@ -1041,24 +1048,27 @@ rooms:
     exits:
       north: 117
       south: 109
+    has_colors: false
 
   117:
     description: |
       You are in a cavern where a spiral staircase leads upwards. A sign
-      reads: �'Go Up not Down to win the crown; �North, South, East or West
-      may still �prove best!
+      reads: <color:cyan>'Go Up not Down to win the crown; North, South,
+      East or West may still prove best!
     exits:
       north: 125
       south: 116
       east: 119
       west: 118
       up: 157
+    has_colors: true
 
   118:
     description: |
       You are in a small room with an exit East.
     exits:
       east: 117
+    has_colors: false
 
   119:
     description: |
@@ -1066,6 +1076,7 @@ rooms:
     exits:
       east: 120
       west: 117
+    has_colors: false
 
   120:
     description: |
@@ -1073,6 +1084,7 @@ rooms:
     exits:
       north: 121
       west: 119
+    has_colors: false
 
   121:
     description: |
@@ -1082,6 +1094,7 @@ rooms:
       south: 120
       east: 130
       west: 122
+    has_colors: false
 
   122:
     description: |
@@ -1089,6 +1102,7 @@ rooms:
     exits:
       north: 123
       east: 121
+    has_colors: false
 
   123:
     description: |
@@ -1098,6 +1112,7 @@ rooms:
       south: 122
       east: 128
       west: 124
+    has_colors: false
 
   124:
     description: |
@@ -1108,6 +1123,7 @@ rooms:
       south: 125
       east: 123
       west: 126
+    has_colors: false
 
   125:
     description: |
@@ -1115,6 +1131,7 @@ rooms:
     exits:
       north: 124
       south: 117
+    has_colors: false
 
   126:
     description: |
@@ -1122,6 +1139,7 @@ rooms:
       light and there is a table fixed to the floor. A door slammed shut
       when you entered. There is no visible way out!
     exits: {}
+    has_colors: false
 
   127:
     description: |
@@ -1130,6 +1148,7 @@ rooms:
       high voices block all exits but the South door.
     exits:
       south: 124
+    has_colors: false
 
   128:
     description: |
@@ -1137,6 +1156,7 @@ rooms:
     exits:
       east: 129
       west: 123
+    has_colors: false
 
   129:
     description: |
@@ -1145,6 +1165,7 @@ rooms:
       south: 130
       east: 139
       west: 128
+    has_colors: false
 
   130:
     description: |
@@ -1153,6 +1174,7 @@ rooms:
       north: 129
       south: 131
       west: 121
+    has_colors: false
 
   131:
     description: |
@@ -1160,6 +1182,7 @@ rooms:
     exits:
       north: 130
       south: 132
+    has_colors: false
 
   132:
     description: |
@@ -1170,6 +1193,7 @@ rooms:
       east: 135
       west: 133
       up: 54
+    has_colors: false
 
   133:
     description: |
@@ -1177,6 +1201,7 @@ rooms:
     exits:
       east: 132
       west: 134
+    has_colors: false
 
   134:
     description: |
@@ -1184,6 +1209,7 @@ rooms:
       You can only go East.
     exits:
       east: 133
+    has_colors: false
 
   135:
     description: |
@@ -1193,12 +1219,14 @@ rooms:
       north: 137
       south: 136
       west: 132
+    has_colors: false
 
   136:
     description: |
       You are at the South end of a long corridor.
     exits:
       north: 135
+    has_colors: false
 
   137:
     description: |
@@ -1206,6 +1234,7 @@ rooms:
     exits:
       north: 138
       south: 135
+    has_colors: false
 
   138:
     description: |
@@ -1213,6 +1242,7 @@ rooms:
     exits:
       north: 139
       south: 137
+    has_colors: false
 
   139:
     description: |
@@ -1220,6 +1250,7 @@ rooms:
     exits:
       south: 138
       west: 129
+    has_colors: false
 
   140:
     description: |
@@ -1229,13 +1260,14 @@ rooms:
       north: 141
       south: 93
       west: 142
+    has_colors: false
 
   141:
     description: |
-      �You are in a small room lit by a �strobe-light. There is an exit
-      South.
+      You are in a small room lit by a strobe-light. There is an exit South.
     exits:
       south: 140
+    has_colors: false
 
   142:
     description: |
@@ -1243,6 +1275,7 @@ rooms:
     exits:
       east: 140
       west: 143
+    has_colors: false
 
   143:
     description: |
@@ -1250,6 +1283,7 @@ rooms:
     exits:
       east: 142
       west: 144
+    has_colors: false
 
   144:
     description: |
@@ -1257,6 +1291,7 @@ rooms:
     exits:
       east: 143
       west: 145
+    has_colors: false
 
   145:
     description: |
@@ -1265,6 +1300,7 @@ rooms:
     exits:
       south: 99
       east: 144
+    has_colors: false
 
   146:
     description: |
@@ -1273,6 +1309,7 @@ rooms:
     exits:
       east: 147
       down: 107
+    has_colors: false
 
   147:
     description: |
@@ -1281,6 +1318,7 @@ rooms:
       north: 149
       east: 148
       west: 146
+    has_colors: false
 
   148:
     description: |
@@ -1288,6 +1326,7 @@ rooms:
       West.
     exits:
       west: 147
+    has_colors: false
 
   149:
     description: |
@@ -1297,6 +1336,7 @@ rooms:
       south: 148
       east: 150
       west: 151
+    has_colors: false
 
   150:
     description: |
@@ -1304,6 +1344,7 @@ rooms:
       West.
     exits:
       west: 149
+    has_colors: false
 
   151:
     description: |
@@ -1311,6 +1352,7 @@ rooms:
       East.
     exits:
       east: 149
+    has_colors: false
 
   152:
     description: |
@@ -1319,12 +1361,14 @@ rooms:
       south: 149
       east: 154
       west: 152
+    has_colors: false
 
   153:
     description: |
       You are in the maze of Rassalas. This is the tricky bit!
     exits:
       west: 152
+    has_colors: false
 
   154:
     description: |
@@ -1332,6 +1376,7 @@ rooms:
     exits:
       north: 155
       east: 153
+    has_colors: false
 
   155:
     description: |
@@ -1340,6 +1385,7 @@ rooms:
     exits:
       south: 154
       east: 156
+    has_colors: false
 
   156:
     description: |
@@ -1347,6 +1393,7 @@ rooms:
     exits:
       east: 157
       west: 155
+    has_colors: false
 
   157:
     description: |
@@ -1355,4 +1402,5 @@ rooms:
     exits:
       west: 156
       down: 117
+    has_colors: false
 

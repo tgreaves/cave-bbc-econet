@@ -108,7 +108,7 @@ class Player:
         return {
             "name": self.name,
             "room_id": self.room_id,
-            "stamina": self.stamina,
+            "stamina": int(self.stamina),  # Round to whole number for display
             "max_stamina": self.max_stamina,
             "inventory": self.inventory,
             "max_inventory": self.max_inventory,
