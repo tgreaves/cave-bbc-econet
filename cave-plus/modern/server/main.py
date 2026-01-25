@@ -829,7 +829,17 @@ async def handle_command(player: Player, data: dict):
                 "style": "action"
             }, exclude=player.name)
     
-    # Broadcast chat messages
+    # Broadcast to all players (HELP command - BBC Micro PROCA(&7700,&77FE))
+    if result.get("broadcast_all"):
+        message_text = result.get("broadcast_all")
+        await broadcast_to_all({
+            "type": "message",
+            "text": message_text,
+            "style": "action",  # Goes to status area
+            "beeps": result.get("beeps", 0)
+        })
+    
+    # Broadcast chat messages (to room only)
     if result.get("broadcast"):
         # Check if this is a raw broadcast (like HELLO command)
         if result.get("broadcast_raw"):
@@ -1134,6 +1144,11 @@ async def send_room_update(player: Player):
         portcullis_status = "UP" if game_state.portcullis_up else "DOWN"
         description = f"{description}\n\nThe Portcullis is {portcullis_status}"
     
+    # Check fast mode (BBC Micro line 1080: IFjORn=B n=B:ENDPROC)
+    # When fast mode is enabled (j=TRUE), skip graphics display
+    has_graphic = room["id"] in game_state.rooms_with_graphics and not player.fast_mode
+    graphic_url = f"/graphics/room_{room['id']}.png" if has_graphic else None
+    
     await send_to_player(player, {
         "type": "room",
         "room": {
@@ -1141,8 +1156,8 @@ async def send_room_update(player: Player):
             "name": room.get("name", f"Room {room['id']}"),
             "description": description,
             "exits": room["exits"],
-            "has_graphic": room["id"] in game_state.rooms_with_graphics,
-            "graphic_url": f"/graphics/room_{room['id']}.png" if room["id"] in game_state.rooms_with_graphics else None
+            "has_graphic": has_graphic,
+            "graphic_url": graphic_url
         },
         "players": other_players,
         "objects": objects,

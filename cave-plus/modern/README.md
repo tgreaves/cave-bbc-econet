@@ -8,7 +8,7 @@ A modern web-based multiplayer recreation of the classic BBC Micro game Cave-Plu
 
 The game is feature-complete with authentic BBC Micro behavior, real-time multiplayer, combat, creatures, and original Teletext graphics!
 
-## ✅ Implemented Features (32 Commands)
+## ✅ Implemented Features (41 Commands)
 
 ### Core Systems
 - **Real-time Multiplayer** - WebSocket-based with instant updates
@@ -64,9 +64,10 @@ The game is feature-complete with authentic BBC Micro behavior, real-time multip
 - `who/players` - List all online players
 - `annoy` - Make creatures aggressive or annoy players
 
-### Game Management (3 commands)
+### Game Management (4 commands)
 - `score/stats` - Show score, stamina, kills, deaths
 - `deposit` - Deposit treasure at bank (room 56) for 20-40 points
+- `exorcise` - Remove ghost (disconnected) players, move objects to armoury
 - `quit/exit` - Save and quit (with authentic BBC Micro sequence)
 
 ### Wizard Commands (7 commands)
@@ -90,6 +91,23 @@ The game is feature-complete with authentic BBC Micro behavior, real-time multip
 - **GOING screen** - Authentic exit screen on quit/death
 - **Disk activity** - Visual indicators for save/load operations
 - **Beep sounds** - VDU7 simulation for alerts
+- **HELP command** - Player shouts for help (broadcasts to ALL players in game, no help text shown)
+- **Invalid directions** - Random error messages: "I am sorry, but I cannot go in that direction.", "I cannot see how I can go that way."
+- **Invalid commands** - Random error messages: "I don't understand", "Could you re-phrase that?"
+- **EXORCISE command** - Remove ghost (disconnected) players from game
+  - Wizards always succeed
+  - Players with < 500 points fail ("Insufficient Experience")
+  - Other players have 1/5 chance to succeed
+  - Moves ghost players' objects to armoury (room 20)
+  - Broadcasts "The ground trembles!!" to all players
+- **FAST/SLOW commands** - Fast mode toggle (Wizard-only for FAST)
+  - FAST: Skip room entry delays and graphics display for faster navigation
+  - SLOW: Restore normal delays and graphics display
+  - Useful for experienced players who want to move quickly through the cave
+- **PACIFY command** - Make creature passive (Wizard-only, opposite of ANNOY)
+  - Removes aggressive behavior from creatures
+  - Cannot be used on players (shows: "SORRY- You'll have to talk/TELL [player] out of it")
+  - No confirmation message shown
 
 ## Quick Start
 
@@ -174,7 +192,11 @@ annoy <target>     - Make creature aggressive
 ### Information
 ```
 score, stats    - Show your stats
-help            - Show commands
+who, players    - List all players
+help            - Shout for help (broadcasts to all players)
+exorcise        - Remove ghost (disconnected) players
+fast            - Enable fast mode (Wizard-only, skip graphics/delays)
+slow            - Disable fast mode
 quit, exit      - Save and quit
 ```
 
@@ -187,6 +209,7 @@ deploy <creature>  - Resurrect from mortuary
 regen              - Reset objects/creatures
 activity <0-9>     - Set creature activity
 collapse           - Kill all other players
+pacify <target>    - Make creature passive
 ```
 
 ## Testing Multiplayer

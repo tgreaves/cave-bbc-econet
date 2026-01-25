@@ -1,12 +1,15 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (33 total):
+IMPLEMENTED COMMANDS (41 total):
 =================================
-Movement (6):
+Movement (9):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
+  GO <direction>   - Alternative movement (e.g., GO NORTH)
+  WALK <direction> - Alternative movement (e.g., WALK EAST)
+  RUN <direction>  - Alternative movement (e.g., RUN SOUTH)
 
-Interaction (12):
+Interaction (14):
   LOOK/L          - Look at current room
   GET/TAKE/PICKUP - Pick up an object (prevents picking up creatures)
   DROP/LEAVE      - Drop an object
@@ -19,6 +22,8 @@ Interaction (12):
   TELL            - Send message to specific player or all (Wizard only for all)
   ANNOY           - Make creature aggressive or annoy a player
   PULL            - Pull rope to raise portcullis (rooms 29/30, auto-lowers after 10 seconds)
+  DEBUG           - Easter egg command (shows "MODBITESSTEPDEERRORBOTTOM : MODOW!!")
+  EXORCISE        - Remove ghost (disconnected) players, move their objects to armoury (room 20)
   
 Combat (7):
   HIT/ATTACK/FIGHT - Attack with bare hands or stick
@@ -38,12 +43,14 @@ Magic/Special (4):
 Information (3):
   SCORE/STATS/STATUS - Show score and stamina
   WHO/PLAYERS/LIST   - List all players in game
-  HELP/COMMANDS/?    - Show help
+  HELP/COMMANDS/?    - Shout for help (broadcasts to all players, does NOT show help text)
 
-System (1):
+System (3):
   QUIT/EXIT       - Save and quit game
+  FAST            - Enable fast mode - skip delays and graphics (Wizard-only)
+  SLOW            - Disable fast mode - restore normal delays and graphics
 
-Wizard-Only Commands (7):
+Wizard-Only Commands (8):
   WIZ             - Teleport to room 16 (Wizard's domain)
   ROOM <number>   - Teleport to specific room number (e.g., ROOM 21)
   SUMMON <target> - Summon object or creature to your location
@@ -51,20 +58,15 @@ Wizard-Only Commands (7):
   REGEN           - Reset all objects and creatures to initial state
   ACTIVITY <0-9>  - Set CCM activity level (0=passive, 9=maximum aggression)
   COLLAPSE        - Trigger cave collapse - kills all players in the cave
+  PACIFY <target> - Make creature passive (opposite of ANNOY)
 
-NOT YET IMPLEMENTED (16 commands):
+NOT YET IMPLEMENTED (8 commands):
 ===================================
 Basic Commands:
-  EXORCISE        - Exorcise an object to the armoury (room 20)
   VIEW            - Use crystal ball to view remote location
-  GO/WALK/RUN     - Alternative movement command
-  DEBUG           - Debug command (shows error message)
-  END             - End game (alternative to quit)
+  END             - End game (alternative to quit) - NOT IMPLEMENTING (negative UX)
 
 Wizard-Only Commands (Not Implemented):
-  FAST            - Enable fast mode (skip graphics/delays)
-  SLOW            - Disable fast mode
-  PACIFY          - Make creature passive
   ALIAS           - Change player name
   FORCE           - Force another player to execute a command
 
@@ -127,6 +129,39 @@ IMPLEMENTATION NOTES:
   - Broadcasts "The portcullis goes UP" / "The portcullis FALLS" to both rooms
   - Room descriptions show "The Portcullis is UP" or "The Portcullis is DOWN"
   - Exits are dynamically blocked/unblocked based on portcullis state
+- GO/WALK/RUN: Alternative movement commands (BBC Micro line 2290)
+  - Takes direction as second word: GO NORTH, WALK EAST, RUN SOUTH
+  - Functionally identical to direct direction commands (N, S, E, W, U, D)
+  - Calls PROCt (process direction) then PROCK (display room)
+- HELP: Player shouts for help (BBC Micro line 2570)
+  - Broadcasts "[PlayerName] is calling for help!" to ALL players in game
+  - Does NOT show help text - that's a modern convention
+  - Original behavior: ?&7700=1:?&7701=?I:$&7702=E$+" is calling for help!":PROCA(&7700,&77FE)
+- Invalid directions: Show random error message (BBC Micro line 2230: PRINTG$(RND(3)))
+  - "I am sorry, but I cannot go in that direction."
+  - "I cannot see how I can go that way."
+- Invalid commands: Show random error message (BBC Micro line 2670: PRINTE$(RND(3)))
+  - "I don't understand"
+  - "Could you re-phrase that?"
+- EXORCISE: Remove ghost (disconnected) players from game (BBC Micro lines 3000-3100)
+  - Wizards always succeed
+  - Players with < 500 points fail ("Insufficient Experience")
+  - Other players have 1/5 chance to succeed (4/5 fail with "Concentrate!!")
+  - Moves ghost players' objects to armoury (room 20)
+  - Broadcasts "The ground trembles!!" to all players
+  - Saves ghost player data before removal
+- FAST/SLOW: Fast mode toggle (BBC Micro lines 2370, 2390)
+  - FAST (Wizard-only): j=TRUE - skips room entry delays and graphics display
+  - SLOW (anyone): j=FALSE - restores normal delays and graphics
+  - Line 1050: IFj=FALSEREPEATUNTILTIME>s+100+20*V (skip delay when j=TRUE)
+  - Line 1080: IFjORn=B n=B:ENDPROC (skip graphics when j=TRUE)
+  - No confirmation message shown
+- PACIFY: Make creature passive (BBC Micro lines 3650-3690)
+  - Wizard-only command (opposite of ANNOY)
+  - Line 3650: PROCG("PACIFY"):IFT=&A00ENDPROC (check if target exists)
+  - Line 3680: IFT<&A00PRINT"SORRY- You'll have to talk/TELL ";D$;" out of it" (error if player)
+  - Line 3690: PROCJ(T,"B") (set creature to passive behavior "B")
+  - No confirmation message shown
 """
 
 import random
@@ -147,6 +182,22 @@ class CommandParser:
             'u': 'up', 'up': 'up',
             'd': 'down', 'down': 'down'
         }
+        
+        # Invalid direction messages (from OBJINIT/DATA file)
+        # BBC Micro line 200: G$(1-3) loaded from DATA file
+        # Used when player tries to go in a blocked direction (line 2230: PRINTG$(RND(3)))
+        self.invalid_direction_messages = [
+            "I am sorry, but I cannot go in that direction.",
+            "I cannot see how I can go that way."
+        ]
+        
+        # Invalid command messages (from OBJINIT/DATA file)
+        # BBC Micro line 200: E$(1-3) loaded from DATA file
+        # Note: Using only semantically appropriate messages for unknown commands
+        self.invalid_messages = [
+            "I don't understand",
+            "Could you re-phrase that?"
+        ]
     
     @staticmethod
     def add_article(name: str) -> str:
@@ -171,6 +222,18 @@ class CommandParser:
         # Movement commands
         if cmd in self.directions:
             return await self.move(player, self.directions[cmd])
+        
+        # GO/WALK/RUN commands (BBC Micro line 2290: IFC$="GO"ORC$="WALK"ORC$="RUN"PROCt:PROCK)
+        # These take a direction as the second word: GO NORTH, WALK EAST, RUN SOUTH
+        if cmd in ['go', 'walk', 'run']:
+            if not args:
+                return {"message": f"{cmd.upper()} where?"}
+            # Try to parse the direction from args
+            direction_word = args.lower()
+            if direction_word in self.directions:
+                return await self.move(player, self.directions[direction_word])
+            else:
+                return {"message": f"You can't {cmd} {args}"}
         
         # Look command
         if cmd in ['look', 'l']:
@@ -200,7 +263,8 @@ class CommandParser:
         if cmd in ['score', 'stats', 'status']:
             return await self.score(player)
         
-        # Help command
+        # Help command (BBC Micro line 2570: player shouts for help)
+        # IFC$="HELP"?&7700=1:?&7701=?I:$&7702=E$+" is calling for help!":PROCA(&7700,&77FE):ENDPROC
         if cmd in ['help', 'commands', '?']:
             return await self.help(player)
         
@@ -280,6 +344,10 @@ class CommandParser:
         if cmd in ['pull']:
             return await self.pull(player, args)
         
+        # Debug command (BBC Micro line 2300: easter egg message)
+        if cmd in ['debug']:
+            return {"message": "MODBITESSTEPDEERRORBOTTOM : MODOW!!"}
+        
         # Release command (internal - triggered by pressing RETURN while holding rope)
         if cmd in ['release', '']:
             return await self.release(player)
@@ -304,6 +372,10 @@ class CommandParser:
         if cmd in ['annoy']:
             return await self.annoy(player, args)
         
+        # Pacify command (Wizard-only - opposite of ANNOY)
+        if cmd in ['pacify']:
+            return await self.pacify(player, args)
+        
         # Lights command (room 12 only)
         if cmd in ['lights', 'power', 'switch']:
             return await self.lights(player, args)
@@ -311,20 +383,38 @@ class CommandParser:
         # Collapse command (Wizard-only)
         if cmd in ['collapse']:
             return await self.collapse(player)
+        
+        # Exorcise command (remove ghost/disconnected players)
+        if cmd in ['exorcise']:
+            return await self.exorcise(player)
+        
+        # Fast command (Wizard-only - skip delays and graphics)
+        if cmd in ['fast']:
+            return await self.fast(player)
+        
+        # Slow command (disable fast mode)
+        if cmd in ['slow']:
+            return await self.slow(player)
             
         # Quit command (save and exit)
         if cmd in ['quit', 'exit']:
             return await self.quit_game(player)
         
-        # Unknown command
-        return {"message": f"Unknown command: {cmd}. Type 'help' for available commands."}
+        # Unknown command (BBC Micro line 2670: PRINTE$(RND(3)))
+        # Show random error message from E$() array
+        return {"message": random.choice(self.invalid_messages)}
     
     async def move(self, player: Player, direction: str) -> Dict:
-        """Move player in a direction"""
+        """
+        Move player in a direction
+        BBC Micro line 2230: IFLENC$=1ANDINSTR(F$,C$)=0PRINTG$(RND(3)):ENDPROC
+        Shows random invalid direction message if can't move
+        """
         can_move, next_room = self.game_state.can_move(player, direction)
         
         if not can_move:
-            return {"message": f"You can't go {direction} from here.", "beeps": 1}
+            # BBC Micro: PRINTG$(RND(3)) - random invalid direction message
+            return {"message": random.choice(self.invalid_direction_messages), "beeps": 1}
         
         old_room = player.room_id
         player.room_id = next_room
@@ -527,39 +617,19 @@ Stamina limit is {player.max_stamina}"""
         return {"message": stats}
     
     async def help(self, player: Player) -> Dict:
-        """Show help message"""
-        help_text = """
-Available Commands:
-
-Movement: n, s, e, w, u, d (or north, south, east, west, up, down)
-Look: look, l
-Inventory: inventory, i
-Get: get <item>, take <item>
-Drop: drop <item>
-
-Combat:
-  hit <target>   - Hit with bare hands or stick
-  stab <target>  - Stab with dagger or knife
-  burn <target>  - Burn with flamethrower
-  zap <target>   - Zap with Staff of Merlin
-  shoot <target> - Shoot with arrow (consumed)
-  bite <target>  - Bite target (poisons if you're poisoned)
-  poison <target> - Poison player (requires poison item)
-
-Social: say <message>
-Who: who, players
-Score: score, stats
-Help: help, ?
-
-Examples:
-  n              - Move north
-  get dagger     - Pick up the dagger
-  stab dragon    - Stab the dragon with dagger
-  burn troll     - Burn the troll with flamethrower
-  hit Bob        - Hit player Bob (PvP)
-        """.strip()
+        """
+        Help command - player shouts for help
+        BBC Micro line 2570: IFC$="HELP"?&7700=1:?&7701=?I:$&7702=E$+" is calling for help!":PROCA(&7700,&77FE):ENDPROC
         
-        return {"message": help_text}
+        This broadcasts to ALL players in the game that the player is calling for help
+        It does NOT show a help text - that's a modern convention
+        PROCA(&7700,&77FE) = broadcast to all players
+        """
+        return {
+            "message": "HELP!!",
+            "broadcast_all": f"{player.name} is calling for help!",
+            "beeps": 1
+        }
     
     async def hit(self, player: Player, target_name: str) -> Dict:
         """Hit a creature or player (bare hands or stick)"""
@@ -1801,6 +1871,60 @@ Examples:
         # Not found
         return {"message": f"But {target_name} isn't here!!", "beeps": 1}
     
+    async def pacify(self, player: Player, target_name: str) -> Dict:
+        """
+        Pacify a creature (makes it passive) - opposite of ANNOY
+        Based on DEFPROCc (lines 3650-3690)
+        
+        Original logic:
+        3650: PROCG("PACIFY"):IFT=&A00ENDPROC (print "PACIFY", check if target exists)
+        3680: IFT<&A00PRINT"SORRY- You'll have to talk/TELL ";D$;" out of it":ENDPROC (error if player)
+        3690: PROCJ(T,"B"):ENDPROC (set creature to passive behavior)
+        
+        Wizard-only command
+        """
+        # Must be a wizard
+        if player.rank != "Wizard":
+            return {"message": "Only wizards can pacify creatures!"}
+        
+        if not target_name:
+            return {"message": "PACIFY what?"}
+        
+        target_name_lower = target_name.lower()
+        
+        # Line 3650: PROCG("PACIFY") - print the command
+        # Line 3650: IFT=&A00ENDPROC - check if target exists
+        
+        # Check for players first (line 3680: IFT<&A00)
+        target_player = None
+        for p in self.game_state.players.values():
+            if target_name_lower in p.name.lower():
+                target_player = p
+                break
+        
+        if target_player:
+            # Line 3680: PRINT"SORRY- You'll have to talk/TELL ";D$;" out of it"
+            return {"message": f"SORRY- You'll have to talk/TELL {target_player.name} out of it"}
+        
+        # Check for creatures in room
+        creatures = self.game_state.get_creatures_in_room(player.room_id)
+        target_creature = None
+        
+        for creature in creatures:
+            if target_name_lower in creature.name.lower():
+                target_creature = creature
+                break
+        
+        if not target_creature:
+            return {"message": f"But {target_name} isn't here!!", "beeps": 1}
+        
+        # Line 3690: PROCJ(T,"B") - set creature to passive (behavior "B")
+        target_creature.is_aggressive = False
+        target_creature.target_player = None
+        
+        # No message in original - just sets the flag
+        return {"message": ""}
+    
     async def lights(self, player: Player, args: str) -> Dict:
         """
         Toggle lights on/off in room 12 (Green room)
@@ -1850,6 +1974,83 @@ Examples:
             "lights_changed": True
         }
     
+    async def exorcise(self, player: Player) -> Dict:
+        """
+        Exorcise ghost (disconnected) players from the game
+        Based on PROCR from original game (lines 3000-3100)
+        
+        Original logic:
+        3000: IFGGOTO3040 (Wizards always succeed)
+        3020: IFH<500PRINT"Insufficient Experience":ENDPROC (Need 500+ points)
+        3030: IFRND(5)<>1PRINT"Concentrate!!":VDU7:ENDPROC (1/5 chance to succeed)
+        3040: PROCH:PRINT"Beware of the one called ECONET"
+        3060: Check for ghost players and remove them (silently)
+        3070: PRINT"You incant the ritual words"
+        3070: PRINT"The ghosts are EXORCISEd?"
+        3070: Broadcast "The ground trembles!!" to all players (always)
+        3070: Move ghost players' objects to armoury (room 20)
+        3100: PRINT"And their objects moved to the Armoury"
+        
+        Note: Messages are always shown, regardless of whether ghosts were found
+        """
+        import random
+        
+        # Check success conditions
+        is_wizard = (player.rank == "Wizard")
+        
+        # Line 3000: Wizards always succeed
+        if not is_wizard:
+            # Line 3020: Need 500+ points
+            if player.score < 500:
+                return {"message": "Insufficient Experience"}
+            
+            # Line 3030: 1/5 chance to succeed (RND(5)<>1 means 4/5 fail)
+            if random.randint(1, 5) != 1:
+                return {"message": "Concentrate!!", "beeps": 1}
+        
+        # Line 3040: PROCH (show player list) - we'll skip this for now
+        # Line 3040: Always print this message
+        message = "Beware of the one called ECONET\n"
+        
+        # Find and remove ghost (disconnected) players
+        ghost_players = []
+        for p in list(self.game_state.players.values()):
+            if p.is_disconnected:
+                ghost_players.append(p)
+        
+        # Remove ghosts silently (lines 3040-3070)
+        for ghost in ghost_players:
+            # Move all their objects to the armoury (room 20)
+            for item in ghost.inventory[:]:
+                ghost.remove_item(item)
+                if 20 not in self.game_state.objects:
+                    self.game_state.objects[20] = []
+                self.game_state.objects[20].append(item)
+            
+            # Save their data before removing
+            from player_data import save_player
+            save_data = ghost.to_save_dict()
+            if hasattr(ghost, 'password_hash'):
+                save_data['password_hash'] = ghost.password_hash
+            save_player(save_data)
+            
+            # Remove from game
+            self.game_state.remove_player(ghost)
+        
+        # Line 3070: Always print these messages (regardless of ghosts found)
+        message += "You incant the ritual words\n"
+        message += "The ghosts are EXORCISEd?\n"
+        # Line 3100: Always print this
+        message += "And their objects moved to the Armoury"
+        
+        # Line 3070: Always broadcast "The ground trembles!!" to all players
+        return {
+            "message": message,
+            "exorcise_success": True,
+            "broadcast_all": "The ground trembles!!",
+            "beeps": 1
+        }
+    
     async def collapse(self, player: Player) -> Dict:
         """
         Trigger cave collapse - kills all OTHER players in the cave
@@ -1875,6 +2076,36 @@ Examples:
             "collapse": True,
             "wizard_name": player.name
         }
+
+    async def fast(self, player: Player) -> Dict:
+        """
+        Enable fast mode - skip delays and graphics
+        BBC Micro line 2370: IFC$="FAST"ANDG j=TRUE:ENDPROC
+        
+        Wizard-only command
+        When enabled (j=TRUE):
+        - Line 1050: Skips room entry delay (REPEATUNTILTIME>s+100+20*V)
+        - Line 1080: Skips graphics display (IFjORn=B n=B:ENDPROC)
+        
+        No message shown - just sets the flag
+        """
+        # Must be a wizard
+        if player.rank != "Wizard":
+            return {"message": "Only wizards can use fast mode!"}
+        
+        player.fast_mode = True
+        return {"message": ""}  # No message in original
+    
+    async def slow(self, player: Player) -> Dict:
+        """
+        Disable fast mode - restore normal delays and graphics
+        BBC Micro line 2390: IFC$="SLOW"j=FALSE:ENDPROC
+        
+        Anyone can use this command
+        No message shown - just sets the flag
+        """
+        player.fast_mode = False
+        return {"message": ""}  # No message in original
 
     async def quit_game(self, player: Player) -> Dict:
         """

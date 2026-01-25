@@ -29,6 +29,7 @@ class Player:
             self.staff_charges = 0
             self.vodka_level = 0
             self.poisoned = False
+            self.fast_mode = False  # BBC Micro: j=FALSE (line 200)
             self.max_inventory = self._calculate_max_inventory()
         else:
             # New player
@@ -41,6 +42,7 @@ class Player:
             self.staff_charges = 0
             self.vodka_level = 0
             self.poisoned = False
+            self.fast_mode = False  # BBC Micro: j=FALSE (line 200)
             self.max_inventory = 3
         
         # Calculate stamina based on score (always fresh on login)
