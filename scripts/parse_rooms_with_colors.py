@@ -5,6 +5,7 @@ Converts color codes to HTML-style markup for web display
 """
 
 import os
+import re
 import yaml
 
 # BBC Micro Teletext color codes
@@ -18,32 +19,54 @@ COLOR_CODES = {
     0x87: 'white',
 }
 
+def parse_exits(exits_data):
+    """Parse exits from first 64 bytes"""
+    try:
+        exits_text = exits_data.decode('ascii', errors='ignore')
+    except:
+        exits_text = exits_data.decode('latin-1', errors='ignore')
+    
+    # First line before \r contains exits
+    exits_line = exits_text.split('\r')[0] if '\r' in exits_text else exits_text.split('\n')[0]
+    
+    # Parse exits (format: D2S3E72 = Down to 2, South to 3, East to 72)
+    exits = {}
+    direction_map = {
+        'N': 'north',
+        'S': 'south', 
+        'E': 'east',
+        'W': 'west',
+        'U': 'up',
+        'D': 'down'
+    }
+    
+    # Find all direction codes
+    for direction, full_name in direction_map.items():
+        # Look for pattern like D2 or D72 or D123
+        pattern = direction + r'(\d+)'
+        matches = re.findall(pattern, exits_line)
+        if matches:
+            exits[full_name] = int(matches[0])
+    
+    return exits
+
 def parse_room_file(filepath):
     """Parse a BBC Micro room file and convert color codes to markup"""
     with open(filepath, 'rb') as f:
         data = f.read()
     
-    # Find the room description (starts after the exits data)
-    # Format: exits data, then 0x0D (carriage return), then description
+    # First part (before 0x40) contains exits and metadata
+    # Description starts at 0x40 (64 bytes in)
+    exits_data = data[:64]
+    desc_data = data[64:] if len(data) > 64 else b''
     
-    # Skip the first part (exits) - look for the description text
-    # Room descriptions typically start after "You are in"
-    desc_start = data.find(b'You are in')
-    if desc_start == -1:
-        # Try other common starts
-        desc_start = data.find(b'This is')
-        if desc_start == -1:
-            desc_start = data.find(b'There')
-            if desc_start == -1:
-                # Just take everything after first 0x0D 0x0D
-                double_cr = data.find(b'\r\r')
-                if double_cr != -1:
-                    desc_start = double_cr + 2
-                else:
-                    desc_start = 0
+    # Parse exits
+    exits = parse_exits(exits_data)
     
-    # Extract description part
-    desc_data = data[desc_start:]
+    # Find first carriage return in description data to avoid reading next room
+    cr_pos = desc_data.find(b'\r')
+    if cr_pos != -1:
+        desc_data = desc_data[:cr_pos]
     
     # Convert to string with color markup
     result = []
@@ -56,15 +79,19 @@ def parse_room_file(filepath):
             if new_color != current_color:
                 result.append(f'<color:{new_color}>')
                 current_color = new_color
-        elif byte == 0x0D:  # Carriage return
-            result.append('\n')
         elif byte == 0x00:  # Null terminator
             break
         elif 0x20 <= byte <= 0x7E:  # Printable ASCII
             result.append(chr(byte))
-        # Skip other control codes
+        # Skip other control codes (but not carriage returns - already handled above)
     
-    return ''.join(result).strip()
+    description = ''.join(result).strip()
+    
+    return {
+        'exits': exits,
+        'description': description,
+        'has_colors': '<color:' in description
+    }
 
 def parse_all_rooms(room_dir, output_file):
     """Parse all room files and create YAML with color markup"""
@@ -75,20 +102,67 @@ def parse_all_rooms(room_dir, output_file):
         room_file = os.path.join(room_dir, str(i))
         if os.path.exists(room_file):
             try:
-                description = parse_room_file(room_file)
-                if description:
-                    rooms[i] = {
-                        'description': description,
-                        'has_colors': '<color:' in description
-                    }
-                    if rooms[i]['has_colors']:
+                room_data = parse_room_file(room_file)
+                if room_data['description'] or room_data['exits']:
+                    rooms[i] = room_data
+                    if room_data['has_colors']:
                         print(f"Room {i}: Found color codes")
             except Exception as e:
                 print(f"Error parsing room {i}: {e}")
     
     # Write to YAML
     with open(output_file, 'w', encoding='utf-8') as f:
-        yaml.dump({'rooms': rooms}, f, default_flow_style=False, allow_unicode=True)
+        f.write("# ============================================================================\n")
+        f.write("# CAVE-PLUS ROOM DATA WITH TELETEXT COLORS\n")
+        f.write("# ============================================================================\n")
+        f.write("# Parsed from original BBC Micro room files with color codes preserved\n")
+        f.write("# Color markup format: <color:red>text<color:white>\n")
+        f.write("# \n")
+        f.write("# BBC Micro Teletext colors:\n")
+        f.write("#   0x81 = Red\n")
+        f.write("#   0x82 = Green\n")
+        f.write("#   0x83 = Yellow\n")
+        f.write("#   0x84 = Blue\n")
+        f.write("#   0x85 = Magenta\n")
+        f.write("#   0x86 = Cyan\n")
+        f.write("#   0x87 = White\n")
+        f.write("# ============================================================================\n\n")
+        
+        f.write("rooms:\n")
+        for room_num in sorted(rooms.keys()):
+            room_data = rooms[room_num]
+            f.write(f"  {room_num}:\n")
+            
+            f.write(f"    description: |\n")
+            desc = room_data['description']
+            if desc:
+                # Split into lines of ~70 chars
+                words = desc.split()
+                line = "      "
+                for word in words:
+                    if len(line) + len(word) + 1 > 76:
+                        f.write(line + "\n")
+                        line = "      " + word
+                    else:
+                        if line == "      ":
+                            line += word
+                        else:
+                            line += " " + word
+                if line.strip():
+                    f.write(line + "\n")
+            else:
+                f.write("      (No description)\n")
+            
+            if room_data['exits']:
+                f.write(f"    exits:\n")
+                for direction in ['north', 'south', 'east', 'west', 'up', 'down']:
+                    if direction in room_data['exits']:
+                        f.write(f"      {direction}: {room_data['exits'][direction]}\n")
+            else:
+                f.write(f"    exits: {{}}\n")
+            
+            f.write(f"    has_colors: {str(room_data['has_colors']).lower()}\n")
+            f.write("\n")
     
     print(f"\nParsed {len(rooms)} rooms")
     colored_rooms = sum(1 for r in rooms.values() if r.get('has_colors'))
