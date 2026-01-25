@@ -2,8 +2,8 @@ version: '3.8'
 
 services:
   cave-plus:
-    image: bbc-econet-cave:latest
-    container_name: bbc-econet-cave
+    image: cave-bbc-econet:latest
+    container_name: cave-bbc-econet
     ports:
       - "1985:8000"
     volumes:

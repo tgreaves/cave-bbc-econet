@@ -1524,13 +1524,20 @@ async def broadcast_to_all(message: dict):
             print(f"Error broadcasting to {player_name}: {e}")
 
 # Serve static files
-app.mount("/graphics", StaticFiles(directory="../static/graphics"), name="graphics")
-app.mount("/static", StaticFiles(directory="../static"), name="static")
+import os
+from pathlib import Path
+
+# Get the directory containing this file
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = BASE_DIR / "static"
+
+app.mount("/graphics", StaticFiles(directory=str(STATIC_DIR / "graphics")), name="graphics")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/")
 async def root():
     """Serve the main game page"""
-    return FileResponse("../static/index.html")
+    return FileResponse(str(STATIC_DIR / "index.html"))
 
 @app.get("/health")
 async def health():

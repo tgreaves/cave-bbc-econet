@@ -100,7 +100,9 @@ class GameState:
         """Load room data from YAML with color support"""
         try:
             # Load room data (now includes color markup)
-            with open("../rooms-parsed.yml", "r", encoding='utf-8') as f:
+            from pathlib import Path
+            rooms_file = Path(__file__).resolve().parent.parent / "rooms-parsed.yml"
+            with open(rooms_file, "r", encoding='utf-8') as f:
                 data = yaml.safe_load(f)
                 
             rooms_data = data.get("rooms", {})
