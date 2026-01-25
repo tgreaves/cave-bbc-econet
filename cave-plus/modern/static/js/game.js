@@ -10,6 +10,9 @@ class CaveGame {
         // Rope holding state (for portcullis)
         this.holdingRope = false;
         
+        // Single key mode (for FORCE Magic/Strength choice)
+        this.singleKeyMode = false;
+        
         // Login state
         this.loginState = 'name'; // 'name' or 'password'
         this.currentInput = '';
@@ -112,6 +115,11 @@ class CaveGame {
         
         // Command input - hidden field captures keystrokes
         this.commandInput.addEventListener('input', (e) => {
+            // Don't update display in single key mode
+            if (this.singleKeyMode) {
+                return;
+            }
+            
             // Apply drunk typing effects if player is drunk
             if (this.playerData && this.playerData.vodka_level > 1) {
                 const vodkaLevel = this.playerData.vodka_level;
@@ -141,6 +149,25 @@ class CaveGame {
         });
         
         this.commandInput.addEventListener('keydown', (e) => {
+            // Handle single key mode (for FORCE Magic/Strength choice)
+            if (this.singleKeyMode && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                e.preventDefault();
+                console.log('Single key mode: sending key', e.key);
+                // Send single character immediately
+                this.ws.send(JSON.stringify({
+                    type: 'command',
+                    command: e.key.toUpperCase()
+                }));
+                // Clear single key mode
+                this.singleKeyMode = false;
+                // Show prompt again
+                this.promptElement.style.display = 'inline';
+                this.commandDisplay.style.display = 'inline';
+                const cursor = this.messageLog.querySelector('.cursor');
+                if (cursor) cursor.style.display = 'inline';
+                return;
+            }
+            
             if (e.key === 'Enter') {
                 e.preventDefault();
                 this.sendCommand();
@@ -443,6 +470,25 @@ class CaveGame {
                     // Other messages go to main scrolling log
                     this.addMessage(text, style);
                 }
+                
+                // Handle inline prompt (for FORCE command)
+                if (data.inline_prompt) {
+                    // Add inline prompt on same line (no newline)
+                    this.addInlinePrompt(data.inline_prompt);
+                }
+                
+                // Handle single key mode (for FORCE Magic/Strength choice)
+                if (data.single_key) {
+                    // Hide prompt and wait for single keypress
+                    this.singleKeyMode = true;
+                    this.promptElement.style.display = 'none';
+                    this.commandDisplay.style.display = 'none';
+                    const cursor = this.messageLog.querySelector('.cursor');
+                    if (cursor) cursor.style.display = 'none';
+                    // Clear any existing input and keep focus
+                    this.commandInput.value = '';
+                    this.commandInput.focus();
+                }
                 break;
                 
             case 'inventory':
@@ -463,6 +509,25 @@ class CaveGame {
                     this.commandDisplay.style.display = 'none';
                     const cursor = this.messageLog.querySelector('.cursor');
                     if (cursor) cursor.style.display = 'none';
+                }
+                break;
+            
+            case 'view_room':
+                // VIEW command - display graphics of remote room
+                console.log('🔮 Viewing remote room:', data.room_id);
+                if (data.has_graphic && data.graphic_url) {
+                    // Display graphic using same overlay as normal room display
+                    const graphicsOverlay = document.getElementById('graphics-overlay');
+                    const roomGraphic = document.getElementById('room-graphic');
+                    
+                    // Hide overlay first to prevent old image from flashing
+                    graphicsOverlay.style.display = 'none';
+                    
+                    // Load new image and show when ready
+                    roomGraphic.onload = () => {
+                        graphicsOverlay.style.display = 'block';
+                    };
+                    roomGraphic.src = data.graphic_url;
                 }
                 break;
         }
@@ -656,6 +721,24 @@ class CaveGame {
                 spacer.remove();
             }
         }
+        
+        // Auto-scroll to bottom
+        this.messageLog.scrollTop = this.messageLog.scrollHeight;
+    }
+    
+    addInlinePrompt(promptText) {
+        // Add inline prompt on same line (no newline) - for FORCE command
+        // Get the prompt elements
+        const promptSpan = document.getElementById('prompt');
+        const commandDisplay = document.getElementById('command-display');
+        
+        // Create a span for the inline prompt
+        const inlineSpan = document.createElement('span');
+        inlineSpan.className = 'inline-prompt';
+        inlineSpan.textContent = promptText;
+        
+        // Insert before the normal prompt
+        this.messageLog.insertBefore(inlineSpan, promptSpan);
         
         // Auto-scroll to bottom
         this.messageLog.scrollTop = this.messageLog.scrollHeight;

@@ -145,7 +145,7 @@ async def game_loop():
                 # Announce to room
                 await broadcast_to_room(player.room_id, {
                     "type": "message",
-                    "text": f"{player.name} has been removed from the cave (timeout).",
+                    "text": f"{player.display_name} has been removed from the cave (timeout).",
                     "style": "action"
                 })
                 
@@ -228,7 +228,7 @@ async def game_loop():
                             # Broadcast death to room before player is removed
                             await broadcast_to_room(room_id, {
                                 "type": "message",
-                                "text": f"{target_player.name} has died!",
+                                "text": f"{target_player.display_name} has died!",
                                 "style": "combat"
                             }, exclude=target_player.name)
                             
@@ -290,7 +290,7 @@ async def game_loop():
                         # Broadcast death to room
                         await broadcast_to_room(player.room_id, {
                             "type": "message",
-                            "text": f"{player.name} has succumbed to poison!",
+                            "text": f"{player.display_name} has succumbed to poison!",
                             "style": "combat"
                         }, exclude=player.name)
                         
@@ -384,7 +384,7 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
         # Announce to room
         await broadcast_to_room(player.room_id, {
             "type": "message",
-            "text": f"{player_name} has reconnected.",
+            "text": f"{player.display_name} has reconnected.",
             "style": "action"
         }, exclude=player_name)
         
@@ -498,20 +498,20 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
             is_wizard = (player.rank == "Wizard")
             
             for p in other_players:
-                # Print player name
-                player_list_msg += p.name
+                # Print player display name
+                player_list_msg += p.display_name
                 
                 # Wizards see extra info (stamina and station number)
                 if is_wizard:
                     # TAB(8) = column 8, TAB(22) = column 22
                     # Pad to column 8, show stamina, pad to column 22, show station
-                    padding1 = max(1, 8 - len(p.name))
+                    padding1 = max(1, 8 - len(p.display_name))
                     player_list_msg += " " * padding1
                     stamina_text = f"stamina {int(p.stamina)}"
                     player_list_msg += stamina_text
                     
                     # Calculate padding to reach column 22
-                    current_pos = len(p.name) + padding1 + len(stamina_text)
+                    current_pos = len(p.display_name) + padding1 + len(stamina_text)
                     padding2 = max(1, 22 - current_pos)
                     player_list_msg += " " * padding2
                     player_list_msg += f"stn {p.room_id}"
@@ -526,13 +526,21 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
             "new_player": is_new_player
         })
         
+        # Line 890: PRINT"Your stamina is ";INTD
+        # Show player's stamina after the player list
+        await send_to_player(player, {
+            "type": "message",
+            "text": f"Your stamina is {int(player.stamina)}",
+            "style": "normal"
+        })
+        
         # Send initial room state
         await send_room_update(player)
         
         # Announce to other players in room
         await broadcast_to_room(player.room_id, {
             "type": "message",
-            "text": f"{player_name} has entered the cave.",
+            "text": f"{player.display_name} has entered the cave.",
             "style": "action"  # Changed to action so it goes to status area
         }, exclude=player_name)
     
@@ -576,7 +584,7 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
         # Announce to other players (they're still in the game, just disconnected)
         await broadcast_to_room(player.room_id, {
             "type": "message",
-            "text": f"{player_name} has lost connection (still in cave).",
+            "text": f"{player.display_name} has lost connection (still in cave).",
             "style": "action"
         })
         
@@ -607,6 +615,78 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
         if player_name in game_state.players:
             game_state.players[player_name].mark_disconnected()
 
+async def execute_force(player: Player, method: str) -> dict:
+    """
+    Execute a FORCE attempt
+    BBC Micro lines 4200-4250
+    
+    Line 4200: IFFNJ I$="Magic":T=T9:GOTO4240 - Magic skips room check
+    Line 4210: IFFNA(T)ENDPROC - Room check (Strength only)
+    Line 4220: Strength - IF(J-10)<!(T+12)ORRND(3)=1 - Failure
+    Line 4240: Magic - IFRND(20/z)>1-3*(!&A28=A*&100) - uses Ruby like TELEPORT
+    """
+    import random
+    
+    target_player = game_state.get_player(player.force_target)
+    if not target_player:
+        return {"message": "Target not found"}
+    
+    success = False
+    
+    if method == "Magic!" or method == "Magic":
+        # Magic method (line 4240) - NO room check, can force from anywhere
+        # Line 4170: IFG I$="Magic!":GOTO4250 - Wizards skip check and always succeed
+        if player.rank == "Wizard":
+            success = True
+        else:
+            # IFRND(20/z)>1-3*(!&A28=A*&100)PRINT"Nothing Happens":ENDPROC
+            # z is player level: 1 for most ranks, 2 for Master Caver only
+            # Line 870: IFH>=500ANDNOTG z=2 (Master Caver gets z=2, Wizards stay at z=1)
+            # BBC BASIC TRUE = -1, so: 1-3*TRUE = 1-3*(-1) = 1+3 = 4
+            if player.rank == "Master Caver":
+                player_level = 2
+            else:
+                player_level = 1
+            
+            has_ruby = any("ruby" in item.lower() for item in player.inventory)
+            
+            # Formula checks for FAILURE: if roll > threshold, print "Nothing Happens"
+            # So SUCCESS when: roll <= threshold
+            roll = random.randint(1, 20 // player_level)
+            threshold = 4 if has_ruby else 1  # 1-3*(-1)=4 with Ruby, 1-3*0=1 without
+            
+            # If roll > threshold, it FAILS
+            if roll > threshold:
+                return {"message": "Nothing Happens"}
+            
+            # Otherwise SUCCESS (roll <= threshold)
+            success = True
+    else:
+        # Strength method (line 4210-4220) - REQUIRES same room
+        # Line 4210: IFFNA(T)ENDPROC - Check target present
+        if target_player.room_id != player.room_id:
+            return {"message": f"But {target_player.name} isn't here", "beeps": 1}
+        
+        # Line 4220: IF(J-10)<!(T+12)ORRND(3)=1
+        # Fails if: (player_max_stamina - 10) < target_stamina OR random(1-3)==1
+        if (player.max_stamina - 10) < target_player.stamina or random.randint(1, 3) == 1:
+            # Line 4220: PROCC(7,?(T+8),E$):PRINT"Failure"
+            # Event 7 updates target's data
+            return {"message": "Failure"}
+        success = True
+    
+    # Line 4250: Check if command is valid (FNI)
+    # For now, assume all non-blocked commands are valid
+    # The actual command will be executed by the target
+    
+    if success:
+        return {
+            "message": "",  # No message on success
+            "force_success": True
+        }
+    
+    return {"message": "Nothing Happens"}
+
 async def handle_command(player: Player, data: dict):
     """Handle a command from a player"""
     command = data.get("command", "").strip()
@@ -614,8 +694,202 @@ async def handle_command(player: Player, data: dict):
     if not command:
         return
     
-    # Parse and execute command
+    # Handle FORCE command interactive states
+    if player.force_state == 'awaiting_command':
+        # Player is entering the command to force
+        # Line 4190: Block certain commands
+        blocked_commands = ['quit', 'force', 'tell', 'say', 'activity', 'collapse']
+        cmd_word = command.split()[0].lower() if command else ""
+        
+        if cmd_word in blocked_commands:
+            player.force_state = None
+            player.force_target = None
+            await send_to_player(player, {
+                "type": "message",
+                "text": "NOT THAT ONE!",
+                "beeps": 1
+            })
+            return
+        
+        # Store the command
+        player.force_command = command
+        
+        # Line 4170: IFG I$="Magic!":GOTO4250 - Wizards use magic automatically
+        if player.rank == "Wizard":
+            print(f"🧙 Wizard {player.name} using FORCE with automatic Magic")
+            # Wizard uses magic automatically
+            result = await execute_force(player, "Magic!")
+            print(f"   Result: {result}")
+            
+            # Send result message if any
+            if result.get("message"):
+                await send_to_player(player, {
+                    "type": "message",
+                    "text": result["message"],
+                    "style": result.get("style", "normal"),
+                    "beeps": result.get("beeps", 0)
+                })
+            
+            # Handle forced command execution on target
+            if result.get("force_success"):
+                target_player = game_state.get_player(player.force_target)
+                if target_player:
+                    print(f"🎯 FORCE success! {player.name} forcing {target_player.name} to: {player.force_command}")
+                    print(f"   Target connected: {target_player.name in active_connections}")
+                    print(f"   Target disconnected: {target_player.is_disconnected}")
+                    
+                    # Get target's prompt (Wizards have "____*", others have "*")
+                    target_prompt = "____*" if target_player.rank == "Wizard" else "*"
+                    
+                    # Notify target they're being forced (with 2 beeps)
+                    await send_to_player(target_player, {
+                        "type": "message",
+                        "text": f"\n\nYou are being FORCEd by {player.display_name}",
+                        "style": "system",
+                        "beeps": 2
+                    })
+                    
+                    # Show the forced command with prompt (like user typed it)
+                    await send_to_player(target_player, {
+                        "type": "message",
+                        "text": f"{target_prompt}{player.force_command}",
+                        "style": "normal"
+                    })
+                    
+                    # Execute the forced command on target
+                    forced_result = await command_parser.parse(target_player, player.force_command)
+                    
+                    # Send forced command result to target
+                    if forced_result.get("message"):
+                        await send_to_player(target_player, {
+                            "type": "message",
+                            "text": forced_result["message"],
+                            "style": forced_result.get("style", "normal"),
+                            "beeps": forced_result.get("beeps", 0)
+                        })
+                    
+                    # If target moved or room changed, send room update (with disk sounds, graphics, etc.)
+                    if forced_result.get("moved") or forced_result.get("room_changed"):
+                        await send_room_update(target_player)
+                    
+                    # Notify target they regained control (with prompt on same line)
+                    await send_to_player(target_player, {
+                        "type": "message",
+                        "text": f"\nYou regain control...\n\n{target_prompt}",
+                        "style": "system"
+                    })
+            
+            # Clear FORCE state after everything is done
+            player.force_state = None
+            player.force_target = None
+            player.force_command = None
+            return
+        else:
+            # Non-wizard: ask for method (single keypress, no prompt)
+            # Line 4270: PRINT"Use Magic or Strength (M/S)?"
+            # Line 4270: =((ASCFNGAND&DF)=77) - waits for single key, checks if 'M'
+            player.force_state = 'awaiting_method'
+            await send_to_player(player, {
+                "type": "message",
+                "text": "Use Magic or Strength (M/S)?",
+                "single_key": True,  # Wait for single keypress, no prompt
+                "force_prompt": True
+            })
+            return
+    
+    elif player.force_state == 'awaiting_method':
+        # Player is choosing Magic or Strength (single keypress)
+        choice = command.strip().upper()
+        
+        if not choice or choice[0] not in ['M', 'S']:
+            # Invalid key, ask again
+            await send_to_player(player, {
+                "type": "message",
+                "text": "Use Magic or Strength (M/S)?",
+                "single_key": True,
+                "beeps": 1
+            })
+            return
+        
+        # Use first character only
+        method = "Magic" if choice[0] == 'M' else "Strength"
+        result = await execute_force(player, method)
+        
+        # Send result message if any
+        if result.get("message"):
+            await send_to_player(player, {
+                "type": "message",
+                "text": result["message"],
+                "style": result.get("style", "normal"),
+                "beeps": result.get("beeps", 0)
+            })
+        
+        # Handle forced command execution on target
+        if result.get("force_success"):
+            target_player = game_state.get_player(player.force_target)
+            if target_player:
+                print(f"🎯 FORCE success! {player.name} forcing {target_player.name} to: {player.force_command}")
+                print(f"   Target connected: {target_player.name in active_connections}")
+                print(f"   Target disconnected: {target_player.is_disconnected}")
+                
+                # Line 1680: Event 9 - Forced command
+                # PRINT''"You are being FORCEd by "+$&7702:VDU7,7
+                # PROCk($&7740,$&7780):PROCT($&7740,$&7780)
+                # PRINT"You regain control..."''J$;C$;:C$=U$
+                
+                # Get target's prompt (Wizards have "____*", others have "*")
+                target_prompt = "____*" if target_player.rank == "Wizard" else "*"
+                
+                # Notify target they're being forced (with 2 beeps)
+                await send_to_player(target_player, {
+                    "type": "message",
+                    "text": f"\n\nYou are being FORCEd by {player.display_name}",
+                    "style": "system",
+                    "beeps": 2
+                })
+                
+                # Show the forced command with prompt (like user typed it)
+                await send_to_player(target_player, {
+                    "type": "message",
+                    "text": f"{target_prompt}{player.force_command}",
+                    "style": "normal"
+                })
+                
+                # Execute the forced command on target
+                forced_result = await command_parser.parse(target_player, player.force_command)
+                
+                # Send forced command result to target
+                if forced_result.get("message"):
+                    await send_to_player(target_player, {
+                        "type": "message",
+                        "text": forced_result["message"],
+                        "style": forced_result.get("style", "normal"),
+                        "beeps": forced_result.get("beeps", 0)
+                    })
+                
+                # If target moved or room changed, send room update (with disk sounds, graphics, etc.)
+                if forced_result.get("moved") or forced_result.get("room_changed"):
+                    await send_room_update(target_player)
+                
+                # Notify target they regained control (with prompt on same line)
+                await send_to_player(target_player, {
+                    "type": "message",
+                    "text": f"\nYou regain control...\n\n{target_prompt}",
+                    "style": "system"
+                })
+        
+        # Clear FORCE state after everything is done
+        player.force_state = None
+        player.force_target = None
+        player.force_command = None
+        return
+    
+    # Parse and execute command normally
     result = await command_parser.parse(player, command)
+    
+    # Apply stamina regeneration (BBC Micro line 2050)
+    # D=D-0.2:D=D+(TIME-i)/(2000+G*1000):i=TIME:IFD>J D=J
+    player.regenerate_stamina()
     
     # Handle QUIT sequence with delays (matching BBC Micro timing)
     if result.get("quit_sequence"):
@@ -711,7 +985,7 @@ async def handle_command(player: Player, data: dict):
             # Announce to room
             await broadcast_to_room(player.room_id, {
                 "type": "message",
-                "text": f"{player.name} has left the cave.",
+                "text": f"{player.display_name} has left the cave.",
                 "style": "action"
             })
             
@@ -763,14 +1037,23 @@ async def handle_command(player: Player, data: dict):
         # Get beep count (VDU7 simulation)
         beeps = result.get("beeps", 0)
         
-        print(f"DEBUG: Sending message: '{result['message']}' with style: {style}")
-        
-        await send_to_player(player, {
-            "type": "message",
-            "text": result["message"],
-            "style": style,
-            "beeps": beeps
-        })
+        # Skip sending message immediately if this is a VIEW command
+        # (message will be sent after disc sound and graphics in view_room handler)
+        if not result.get("view_room"):
+            print(f"DEBUG: Sending message: '{result['message']}' with style: {style}")
+            
+            message_data = {
+                "type": "message",
+                "text": result["message"],
+                "style": style,
+                "beeps": beeps
+            }
+            
+            # Add inline prompt if present (for FORCE command)
+            if result.get("inline_prompt"):
+                message_data["inline_prompt"] = result["inline_prompt"]
+            
+            await send_to_player(player, message_data)
     
     # Send status_message separately (for commands like ZAP that have both main and status messages)
     if result.get("status_message"):
@@ -797,7 +1080,7 @@ async def handle_command(player: Player, data: dict):
         if result.get("old_room") and result["old_room"] != player.room_id:
             await broadcast_to_room(result["old_room"], {
                 "type": "message",
-                "text": f"{player.name} left {result.get('direction', '')}.",
+                "text": f"{player.display_name} left {result.get('direction', '')}.",
                 "style": "action"
             })
         
@@ -805,7 +1088,7 @@ async def handle_command(player: Player, data: dict):
         if result.get("old_room") != player.room_id:
             await broadcast_to_room(player.room_id, {
                 "type": "message",
-                "text": f"{player.name} arrived.",
+                "text": f"{player.display_name} arrived.",
                 "style": "action"
             }, exclude=player.name)
     
@@ -817,7 +1100,7 @@ async def handle_command(player: Player, data: dict):
         if result.get("teleport") and result.get("old_room") and result["old_room"] != player.room_id:
             await broadcast_to_room(result["old_room"], {
                 "type": "message",
-                "text": f"{player.name} vanishes!",
+                "text": f"{player.display_name} vanishes!",
                 "style": "action"
             })
         
@@ -825,7 +1108,7 @@ async def handle_command(player: Player, data: dict):
         if result.get("teleport") and result.get("old_room") != player.room_id:
             await broadcast_to_room(player.room_id, {
                 "type": "message",
-                "text": f"{player.name} appears!",
+                "text": f"{player.display_name} appears!",
                 "style": "action"
             }, exclude=player.name)
     
@@ -843,9 +1126,9 @@ async def handle_command(player: Player, data: dict):
     if result.get("broadcast"):
         # Check if this is a raw broadcast (like HELLO command)
         if result.get("broadcast_raw"):
-            broadcast_text = f"{player.name} {result['broadcast']}"
+            broadcast_text = f"{player.display_name} {result['broadcast']}"
         else:
-            broadcast_text = f"{player.name} says: {result['broadcast']}"
+            broadcast_text = f"{player.display_name} says: {result['broadcast']}"
         
         await broadcast_to_room(player.room_id, {
             "type": "message",
@@ -898,6 +1181,49 @@ async def handle_command(player: Player, data: dict):
         # Refresh room display for all players (lighting changed)
         for p in game_state.players.values():
             await send_room_update(p)
+    
+    # Handle VIEW command - display remote room (BBC Micro line 6501: OSCLI"LO.R."+STR$(N))
+    if result.get("view_room"):
+        view_room_id = result.get("view_room")
+        view_room = game_state.get_room(view_room_id)
+        
+        if view_room:
+            # Send disk activity notification (BBC Micro: OSCLI"LO.R." loads from disk)
+            if result.get("disc_sound"):
+                await send_to_player(player, {
+                    "type": "disk_activity",
+                    "operation": "read"
+                })
+                
+                # Simulate disk read delay
+                await asyncio.sleep(0.15)
+            
+            # Check if room has graphics
+            has_graphic = view_room_id in game_state.rooms_with_graphics
+            graphic_url = f"/graphics/room_{view_room_id}.png" if has_graphic else None
+            
+            # Send the viewed room's graphics
+            await send_to_player(player, {
+                "type": "view_room",
+                "room_id": view_room_id,
+                "has_graphic": has_graphic,
+                "graphic_url": graphic_url
+            })
+            
+            # Add delay before showing text (like LOOK command)
+            await asyncio.sleep(0.2)
+            
+            # Now send the delayed message (after disc sound and graphics)
+            if result.get("view_message"):
+                style = result.get("style", "normal")
+                beeps = result.get("beeps", 0)
+                
+                await send_to_player(player, {
+                    "type": "message",
+                    "text": result["view_message"],
+                    "style": style,
+                    "beeps": beeps
+                })
     
     # Handle PULL rope (portcullis) - line 3730: raise portcullis temporarily
     if result.get("portcullis_raised"):
@@ -979,19 +1305,23 @@ async def handle_command(player: Player, data: dict):
         target_player = game_state.get_player(target_name)
         if target_player:
             summon_room = result.get("summon_to_room")
-            old_room = target_player.room_id
+            old_room = result.get("summon_old_room")  # Get old room from result, not from player
+            
+            print(f"🔮 SUMMON: {player.name} (room {player.room_id}) summoning {target_player.name} (room {old_room}) to room {summon_room}")
             
             # Notify summoned player (line 1670: PROCY(?&7702):PRINTJ$;C$;)
             await send_to_player(target_player, {
                 "type": "message",
-                "text": f"You have been summoned by {player.name}!",
+                "text": f"You have been summoned by {player.display_name}!",
                 "style": "combat"
             })
             
-            # Announce to old room
+            # Announce "vanishes" to old room ONLY (exclude the target)
+            # The summoner should NOT see this message (they're in a different room)
+            print(f"   Broadcasting 'vanishes' to room {old_room}, excluding {target_player.name}")
             await broadcast_to_room(old_room, {
                 "type": "message",
-                "text": f"{target_player.name} vanishes!",
+                "text": f"{target_player.display_name} vanishes!",
                 "style": "action"
             }, exclude=target_player.name)
             
@@ -999,10 +1329,13 @@ async def handle_command(player: Player, data: dict):
             target_player.room_id = summon_room
             await send_room_update(target_player)
             
-            # Announce to new room
+            # Announce "appears" to new room (summoner's room)
+            # Everyone in the summoner's room sees this, INCLUDING the summoner
+            # Only exclude the target player
+            print(f"   Broadcasting 'appears' to room {summon_room}, excluding {target_player.name}")
             await broadcast_to_room(summon_room, {
                 "type": "message",
-                "text": f"{target_player.name} appears!",
+                "text": f"{target_player.display_name} appears!",
                 "style": "action"
             }, exclude=target_player.name)
     
@@ -1041,7 +1374,7 @@ async def handle_command(player: Player, data: dict):
                     # Message for victim: Status bar message
                     await send_to_player(target_player, {
                         "type": "message",
-                        "text": f"{hit_message} by {player.name}",
+                        "text": f"{hit_message} by {player.display_name}",
                         "style": "combat",
                         "beeps": 2  # Being hit = 2 beeps (VDU7,7)
                     })
@@ -1050,7 +1383,7 @@ async def handle_command(player: Player, data: dict):
                     # Line 1580: PROCB(?&7702) - received PROCC message displayed via PROCB
                     await send_to_player(player, {
                         "type": "message",
-                        "text": f"{target_player.name} IS HIT! stamina down to {target_player.stamina}",
+                        "text": f"{target_player.display_name} IS HIT! stamina down to {target_player.stamina}",
                         "style": "combat",
                         "beeps": 1  # Notification beep for attacker
                     })
@@ -1066,7 +1399,7 @@ async def handle_command(player: Player, data: dict):
                     # Broadcast death to room
                     await broadcast_to_room(target_player.room_id, {
                         "type": "message",
-                        "text": f"{target_player.name} has been slain by {player.name}!",
+                        "text": f"{target_player.display_name} has been slain by {player.display_name}!",
                         "style": "combat"
                     }, exclude=target_player.name)
                     

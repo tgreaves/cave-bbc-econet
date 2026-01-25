@@ -5,7 +5,8 @@ import random
 
 class Player:
     def __init__(self, name: str, websocket, saved_data: dict = None):
-        self.name = name
+        self.name = name  # Login name (never changes)
+        self.display_name = name  # Display name (can be changed by ALIAS for Wizards)
         self.websocket = websocket
         self.player_id = id(self)  # Unique ID for this session
         
@@ -30,6 +31,7 @@ class Player:
             self.vodka_level = 0
             self.poisoned = False
             self.fast_mode = False  # BBC Micro: j=FALSE (line 200)
+            self.has_magic_item = False  # BBC Micro: h=FALSE (line 200)
             self.max_inventory = self._calculate_max_inventory()
         else:
             # New player
@@ -43,12 +45,22 @@ class Player:
             self.vodka_level = 0
             self.poisoned = False
             self.fast_mode = False  # BBC Micro: j=FALSE (line 200)
+            self.has_magic_item = False  # BBC Micro: h=FALSE (line 200)
             self.max_inventory = 3
         
         # Calculate stamina based on score (always fresh on login)
         self.calculate_stamina()
         # Respawn with random stamina (50-100% of max)
         self.respawn()
+        
+        # Stamina regeneration tracking (BBC Micro line 2050: i=TIME)
+        import time
+        self.last_command_time = time.time()
+        
+        # FORCE command state tracking
+        self.force_state = None  # None, 'awaiting_command', 'awaiting_method'
+        self.force_target = None
+        self.force_command = None
     
     def to_save_dict(self):
         """
@@ -149,18 +161,43 @@ class Player:
         return len(self.inventory) < self.max_inventory
     
     def add_item(self, item: str):
-        """Add item to inventory"""
+        """
+        Add item to inventory
+        BBC Micro line 5856: IFINSTR(Hh$,D$)<>0 h=TRUE
+        Sets magic item flag if picking up a magic item
+        """
         if self.can_carry_more():
             self.inventory.append(item)
+            # Check if this is a magic item (BBC Micro line 5856)
+            if self.is_magic_item(item):
+                self.has_magic_item = True
             return True
         return False
     
     def remove_item(self, item: str):
-        """Remove item from inventory"""
+        """
+        Remove item from inventory
+        BBC Micro line 6025: IFINSTR(Hh$,D$)<>0 h=FALSE
+        Clears magic item flag if dropping a magic item
+        """
         if item in self.inventory:
             self.inventory.remove(item)
+            # Check if this was a magic item (BBC Micro line 6025)
+            if self.is_magic_item(item):
+                self.has_magic_item = False
             return True
         return False
+    
+    @staticmethod
+    def is_magic_item(item: str) -> bool:
+        """
+        Check if an item is a magic item
+        BBC Micro line 40: Hh$="CrystalAmuletStaffShieldGuardian"
+        Magic items: Crystal Ball, Amulet, Staff of Merlin, Shield, Guardian
+        """
+        item_lower = item.lower()
+        magic_items = ["crystal", "amulet", "staff", "shield", "guardian"]
+        return any(magic in item_lower for magic in magic_items)
     
     def has_item(self, item: str):
         """Check if player has an item"""
@@ -306,3 +343,48 @@ class Player:
         """Check if player is drunk (vodka level > 1)"""
         return self.vodka_level > 1
 
+
+    def regenerate_stamina(self):
+        """
+        Regenerate stamina based on time elapsed since last command
+        BBC Micro line 2050:
+        - D=D-0.2                        : REM Stamina cost for command
+        - D=D+(TIME-i)/(2000+G*1000):i=TIME  : REM Regeneration
+        - IFD>J D=J                      : REM Cap at maximum
+        
+        TIME is in centiseconds (1/100 second)
+        G is wizard flag: 0 for non-wizards, -1 for wizards
+        So: (2000+G*1000) = 2000 for non-wizards, 1000 for wizards
+        Wizards regenerate slower!
+        """
+        import time
+        
+        # Calculate time elapsed in seconds
+        current_time = time.time()
+        time_elapsed = current_time - self.last_command_time
+        
+        # Convert to centiseconds (BBC Micro TIME unit)
+        centiseconds_elapsed = time_elapsed * 100
+        
+        # Apply command cost (0.2 stamina per command)
+        self.stamina -= 0.2
+        
+        # Calculate regeneration
+        # Wizards: divisor = 1000 (slower regen)
+        # Non-wizards: divisor = 2000 (faster regen)
+        wizard_penalty = -1 if self.rank == "Wizard" else 0
+        divisor = 2000 + wizard_penalty * 1000
+        
+        regeneration = centiseconds_elapsed / divisor
+        self.stamina += regeneration
+        
+        # Cap at maximum
+        if self.stamina > self.max_stamina:
+            self.stamina = self.max_stamina
+        
+        # Prevent stamina from going below 0
+        if self.stamina < 0:
+            self.stamina = 0
+        
+        # Update last command time
+        self.last_command_time = current_time

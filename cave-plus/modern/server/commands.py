@@ -1,7 +1,7 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (41 total):
+IMPLEMENTED COMMANDS (43 total):
 =================================
 Movement (9):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
@@ -34,11 +34,12 @@ Combat (7):
   BITE            - Bite target (3-6 damage, transfers poison if you're poisoned)
   POISON          - Poison a player (requires poison item, creatures thrive on it)
 
-Magic/Special (4):
-  TELEPORT/TELE   - Teleport to an object or creature (success based on rank, score, Shield)
+Magic/Special (5):
+  TELEPORT/TELE   - Teleport to an object or creature (success based on rank, score, Ruby)
   CHARGE          - Charge Staff of Merlin at altar (room 1)
   DRINK           - Drink vodka, poison, or medicine
   LIGHTS/POWER/SWITCH - Toggle lights on/off (room 12 only)
+  VIEW            - Use Crystal Ball to view remote location (player, creature, or object)
   
 Information (3):
   SCORE/STATS/STATUS - Show score and stamina
@@ -50,7 +51,7 @@ System (3):
   FAST            - Enable fast mode - skip delays and graphics (Wizard-only)
   SLOW            - Disable fast mode - restore normal delays and graphics
 
-Wizard-Only Commands (8):
+Wizard-Only Commands (7):
   WIZ             - Teleport to room 16 (Wizard's domain)
   ROOM <number>   - Teleport to specific room number (e.g., ROOM 21)
   SUMMON <target> - Summon object or creature to your location
@@ -59,16 +60,15 @@ Wizard-Only Commands (8):
   ACTIVITY <0-9>  - Set CCM activity level (0=passive, 9=maximum aggression)
   COLLAPSE        - Trigger cave collapse - kills all players in the cave
   PACIFY <target> - Make creature passive (opposite of ANNOY)
+  FORCE <target>  - Force another player to execute a command (interactive)
 
-NOT YET IMPLEMENTED (8 commands):
+NOT YET IMPLEMENTED (6 commands):
 ===================================
 Basic Commands:
-  VIEW            - Use crystal ball to view remote location
   END             - End game (alternative to quit) - NOT IMPLEMENTING (negative UX)
 
 Wizard-Only Commands (Not Implemented):
   ALIAS           - Change player name
-  FORCE           - Force another player to execute a command
 
 COMMAND ALIASES:
 ================
@@ -89,8 +89,14 @@ COMMAND ALIASES:
 IMPLEMENTATION NOTES:
 =====================
 - GET command now prevents picking up creatures (shows "The [creature] is getting annoyed")
-- TELEPORT success depends on: Wizard rank (always succeeds), player level (score >= 500), 
-  and Shield possession (guarantees success)
+- TELEPORT success depends on: Wizard rank (always succeeds), player level (score >= 500),
+  and Ruby possession (guarantees success)
+- TELEPORT restrictions: Magic items blocked (except for Wizards), Treasure blocked, carried objects blocked,
+  Wizard's domain blocked (rooms 16-20, except for Wizards)
+- VIEW: Use Crystal Ball to view remote location (player or creature)
+  - Shows room description, objects, creatures, and players at target's location
+  - Cannot view objects directly (crystal ball fades)
+  - Requires Crystal Ball in inventory
 - Staff of Merlin requires: Wizard rank + Staff in inventory + Charges (0-7)
 - Staff charging happens at altar (room 1) via CHARGE command
 - Creature movement has two types: walk (10x more likely) and teleport (rare)
@@ -162,6 +168,14 @@ IMPLEMENTATION NOTES:
   - Line 3680: IFT<&A00PRINT"SORRY- You'll have to talk/TELL ";D$;" out of it" (error if player)
   - Line 3690: PROCJ(T,"B") (set creature to passive behavior "B")
   - No confirmation message shown
+- FORCE: Force another player to execute a command (BBC Micro lines 4130-4250)
+  - Interactive command with multiple prompts
+  - Wizards use Magic automatically, others choose Magic or Strength
+  - Blocked commands: QUIT, FORCE, TELL, SAY, ACTIVITY, COLLAPSE
+  - Magic method: Uses Ruby formula (RND(20/z)>1-3*has_ruby)
+    Success rates: 5% base (z=1), 10% Master Caver (z=2), 20%/40% with Ruby, 100% Wizard
+  - Strength method: Fails if target stamina > (player max stamina - 10) OR random fail
+  - Force on creatures shows "NYI"
 """
 
 import random
@@ -395,6 +409,18 @@ class CommandParser:
         # Slow command (disable fast mode)
         if cmd in ['slow']:
             return await self.slow(player)
+        
+        # View command (Crystal Ball)
+        if cmd in ['view']:
+            return await self.view(player, args)
+        
+        # Force command (interactive)
+        if cmd in ['force']:
+            return await self.force(player, args)
+        
+        # Alias command (Wizard-only - change display name)
+        if cmd in ['alias']:
+            return await self.alias(player, args)
             
         # Quit command (save and exit)
         if cmd in ['quit', 'exit']:
@@ -473,7 +499,7 @@ class CommandParser:
         if other_players:
             desc += "\n"
             for other_player in other_players:
-                line = f"\n{other_player.name} is here"
+                line = f"\n{other_player.display_name} is here"
                 # Wizards can see other players' stamina
                 if player.rank == "Wizard":
                     line += f" (stamina {other_player.stamina})"
@@ -495,6 +521,7 @@ class CommandParser:
         """
         Pick up an item
         Based on PROC_ from original game (line 5770)
+        BBC Micro line 5855: IFh AND(INSTR(Hh$,D$)<>0)PRINT"One magic item only !":VDU7:ENDPROC
         """
         if not item_name:
             return {"message": "Get what?"}
@@ -523,6 +550,11 @@ class CommandParser:
         
         if not found_item:
             return {"message": f"I don't see a {item_name} here.", "beeps": 1}
+        
+        # Check magic item restriction (BBC Micro line 5855)
+        # IFh AND(INSTR(Hh$,D$)<>0)PRINT"One magic item only !":VDU7:ENDPROC
+        if player.has_magic_item and player.is_magic_item(found_item):
+            return {"message": "One magic item only !", "beeps": 1}
         
         # Pick up item
         self.game_state.remove_object_from_room(player.room_id, found_item)
@@ -586,20 +618,20 @@ class CommandParser:
         is_wizard = (player.rank == "Wizard")
         
         for p in players:
-            # Print player name
-            message += p.name
+            # Print player display name
+            message += p.display_name
             
             # Wizards see extra info (stamina and station number)
             if is_wizard:
                 # TAB(8) = column 8, TAB(22) = column 22
                 # Pad to column 8, show stamina, pad to column 22, show station
-                padding1 = max(1, 8 - len(p.name))
+                padding1 = max(1, 8 - len(p.display_name))
                 message += " " * padding1
                 stamina_text = f"stamina {int(p.stamina)}"
                 message += stamina_text
                 
                 # Calculate padding to reach column 22
-                current_pos = len(p.name) + padding1 + len(stamina_text)
+                current_pos = len(p.display_name) + padding1 + len(stamina_text)
                 padding2 = max(1, 22 - current_pos)
                 message += " " * padding2
                 message += f"stn {p.room_id}"
@@ -627,7 +659,7 @@ Stamina limit is {player.max_stamina}"""
         """
         return {
             "message": "HELP!!",
-            "broadcast_all": f"{player.name} is calling for help!",
+            "broadcast_all": f"{player.display_name} is calling for help!",
             "beeps": 1
         }
     
@@ -1099,9 +1131,9 @@ Stamina limit is {player.max_stamina}"""
         if random.randint(1, 3) != 1:
             # Target dodges - send message to target
             return {
-                "message": f"{target_player.name} dodges away",
+                "message": f"{target_player.display_name} dodges away",
                 "tell_target": target_player.name,
-                "tell_message": f"{player.name} tries to BITE you!"
+                "tell_message": f"{player.display_name} tries to BITE you!"
             }
         
         # Line 5520: PROCB(E$+" is BITEn")
@@ -1125,10 +1157,10 @@ Stamina limit is {player.max_stamina}"""
             player.add_score(10)  # Points for kill
         
         # Message for attacker
-        message = f"{target_player.name} is BITEn"
+        message = f"{target_player.display_name} is BITEn"
         
         # Message for victim (event 10: "You are BITEn by <attacker>")
-        victim_message = f"You are BITEn by {player.name}"
+        victim_message = f"You are BITEn by {player.display_name}"
         if poison_transferred:
             victim_message += " - You are poisoned!"
         
@@ -1188,17 +1220,23 @@ Stamina limit is {player.max_stamina}"""
         target_player.poisoned = True
         
         return {
-            "message": f"POISONing {target_player.name}",
+            "message": f"POISONing {target_player.display_name}",
             "tell_target": target_player.name,
-            "tell_message": f"{player.name} has poisoned you!",
+            "tell_message": f"{player.display_name} has poisoned you!",
             "beeps": 1
         }
 
     async def teleport(self, player: Player, target_name: str) -> Dict:
         """
         Teleport to an object or creature
-        Based on original game logic (PROCw/PROCp)
-        Success depends on player rank, level, and whether they have the Shield
+        Based on original game logic (PROCw/PROCp - lines 3110-3170)
+        Success depends on player rank, level (score), and Ruby possession
+        
+        Restrictions (in order):
+        3135: IFINSTR(Hh$,D$)<>0PRINT"A magical force prevents this." (MODIFIED: Wizards can teleport to magic items)
+        3136: IFD$="Treasure"PRINT"Not allowed !!"
+        3140: IF?T=0PRINT"That object is being carried by a CAVER"
+        3150: IFG=FALSEAND?T>15AND?T<21PRINT"That is in the WIZARD's domain"
         """
         if not target_name:
             return {"message": "Teleport to what?"}
@@ -1231,35 +1269,60 @@ Stamina limit is {player.max_stamina}"""
         if not target_room:
             return {"message": "Known OBJECTS & CREATURES only!"}
         
-        # Check if object is being carried by another player
+        # Line 3135: Check if trying to teleport to a magic item
+        # IFINSTR(Hh$,D$)<>0PRINT"A magical force prevents this.":VDU7:ENDPROC
+        # MODIFICATION: Wizards can teleport to magical objects
+        if target_object and Player.is_magic_item(target_object) and player.rank != "Wizard":
+            return {"message": "A magical force prevents this.", "beeps": 1}
+        
+        # Line 3136: Check if trying to teleport to Treasure
+        # IFD$="Treasure"PRINT"Not allowed !!":VDU7:ENDPROC
+        if target_object and "treasure" in target_object.lower():
+            return {"message": "Not allowed !!", "beeps": 1}
+        
+        # Line 3140: Check if object is being carried by another player
+        # IF?T=0PRINT"That object is being carried by a CAVER":ENDPROC
         for other_player in self.game_state.players.values():
             if other_player.name != player.name:
                 for item in other_player.inventory:
                     if target_name_lower in item.lower():
                         return {"message": "That object is being carried by a CAVER"}
         
-        # Check if in Wizard's domain (rooms 16-20) and player is not a wizard
+        # Line 3150: Check if in Wizard's domain (rooms 16-20) and player is not a wizard
+        # IFG=FALSEAND?T>15AND?T<21PRINT"That is in the WIZARD's domain":ENDPROC
         if player.rank != "Wizard" and 16 <= target_room <= 20:
             return {"message": "That is in the WIZARD's domain"}
         
-        # Calculate success chance
+        # Calculate success chance (Line 3160)
+        # IFG=FALSEANDRND(50/z)>1-4*((A*&100)=!&A28)PRINT"Nothing happens":ENDPROC
+        # &A28 = &A00 + 10*4 = Object 10 (Ruby)
+        # BBC BASIC TRUE = -1, so: 1-4*TRUE = 1-4*(-1) = 1+4 = 5
         # Wizards always succeed
         if player.rank == "Wizard":
             success = True
         else:
             # Determine player level (1 or 2 based on score)
-            player_level = 2 if player.score >= 500 else 1
+            # Line 870: IFH>=500ANDNOTG z=2 (Master Caver only)
+            if player.rank == "Master Caver":
+                player_level = 2
+            else:
+                player_level = 1
             
-            # Check if player has Ruby (increases magical power)
+            # Check if player has Ruby (improves TELEPORT success)
+            # Line 3160: (A*&100)=!&A28 checks if Ruby (object 10 at &A28) is carried
             has_ruby = any("ruby" in item.lower() for item in player.inventory)
             
-            # Original formula: RND(50/z) > 1 - 4*has_ruby
-            # With ruby: RND(50/z) > 1-4 = -3 (always succeeds for level 2)
-            # Without ruby: RND(50/z) > 1 (50% chance for level 2, 2% for level 1)
+            # Formula checks for FAILURE: if roll > threshold, print "Nothing happens"
+            # So SUCCESS when: roll <= threshold
             import random
             roll = random.randint(1, 50 // player_level)
-            threshold = 1 - (4 if has_ruby else 0)
-            success = roll > threshold
+            threshold = 5 if has_ruby else 1  # 1-4*(-1)=5 with Ruby, 1-4*0=1 without
+            
+            # If roll > threshold, it FAILS
+            if roll > threshold:
+                success = False
+            else:
+                success = True
         
         if not success:
             return {"message": "Nothing happens"}
@@ -1373,11 +1436,12 @@ Stamina limit is {player.max_stamina}"""
         # Summon player (line 2170: PROCC(8,?(T+8),CHR$B) - event 8 = teleport)
         if target_player:
             old_room = target_player.room_id
-            target_player.room_id = player.room_id
+            # DON'T change room here - let main.py handle it after broadcasting messages
             
             return {
-                "message": f"{target_player.name} has been summoned!",
+                "message": f"{target_player.display_name} has been summoned!",
                 "summon_player": target_player.name,
+                "summon_old_room": old_room,
                 "summon_to_room": player.room_id,
                 "summoned": True
             }
@@ -1796,7 +1860,7 @@ Stamina limit is {player.max_stamina}"""
             return {
                 "message": "Done.",
                 "tell_all": True,
-                "tell_message": f"{player.name}:{message}"
+                "tell_message": f"{player.display_name}:{message}"
             }
         
         # Find target player
@@ -1813,9 +1877,9 @@ Stamina limit is {player.max_stamina}"""
         
         # Send message to specific player
         return {
-            "message": f"Message sent to {target_player.name}",
+            "message": f"Message sent to {target_player.display_name}",
             "tell_target": target_player.name,
-            "tell_message": f"{player.name}:{message}"
+            "tell_message": f"{player.display_name}:{message}"
         }
     
     async def annoy(self, player: Player, target_name: str) -> Dict:
@@ -1863,9 +1927,9 @@ Stamina limit is {player.max_stamina}"""
             # Line 3640: PROCC(1,?(T+8),E$+" is ANNOYing you!")
             # Send message to player (appears in status area)
             return {
-                "message": f"You annoy {target_player.name}",
+                "message": f"You annoy {target_player.display_name}",
                 "annoy_player": target_player.name,
-                "annoy_message": f"{player.name} is ANNOYing you!"
+                "annoy_message": f"{player.display_name} is ANNOYing you!"
             }
         
         # Not found
@@ -2106,6 +2170,223 @@ Stamina limit is {player.max_stamina}"""
         """
         player.fast_mode = False
         return {"message": ""}  # No message in original
+
+    async def view(self, player: Player, target_name: str) -> Dict:
+        """
+        Use Crystal Ball to view remote location
+        BBC Micro lines 6450-6570 (PROCv)
+        
+        Line 6450: IF!(&A00+4*12)<>A*&100PRINT"You stare into your hands.":ENDPROC
+        Line 6470: PRINT"You concentrate, and the crystal ball glows, ";
+        Line 6470: VDU21:N=FND(D$):VDU6
+        Line 6470: IFN>=&A00ANDN<(&A04+Z*4)PRINT"then fades.":ENDPROC
+        Line 6500: IFN<&A00 N=?(N+9)ELSEIFN>=Z*4+&A00 N=?NELSEPRINT"then fades.":ENDPROC
+        Line 6501: Display room description, exits, objects, creatures
+        """
+        # Check if player has Crystal Ball (object 12 at &A30)
+        has_crystal_ball = any("crystal" in item.lower() and "ball" in item.lower() for item in player.inventory)
+        
+        if not has_crystal_ball:
+            return {"message": "You stare into your hands."}
+        
+        if not target_name:
+            return {"message": "View what?"}
+        
+        target_name_lower = target_name.lower()
+        target_room = None
+        target_type = None
+        
+        # Search for target: player, creature, or object
+        # Line 6470: N=FND(D$) - find target
+        
+        # Check for player first
+        target_player = self.game_state.get_player(target_name)
+        if target_player and target_player.name != player.name:
+            target_room = target_player.room_id
+            target_type = "player"
+        
+        # Check for creature
+        if not target_room:
+            for creature in self.game_state.creatures.values():
+                if target_name_lower in creature.name.lower() and not creature.is_dead:
+                    target_room = creature.room_id
+                    target_type = "creature"
+                    break
+        
+        # Check for object (but can't view objects - line 6470)
+        if not target_room:
+            for room_id, objects in self.game_state.objects.items():
+                for obj in objects:
+                    if target_name_lower in obj.lower():
+                        # Line 6470: IFN>=&A00ANDN<(&A04+Z*4)PRINT"then fades.":ENDPROC
+                        return {"message": "You concentrate, and the crystal ball glows, then fades."}
+        
+        # Target not found
+        if not target_room:
+            return {"message": "You concentrate, and the crystal ball glows, then fades."}
+        
+        # Line 6501: Display the remote room
+        room = self.game_state.get_room(target_room)
+        if not room:
+            return {"message": "You concentrate, and the crystal ball glows, then fades."}
+        
+        # Build the immediate message (BBC Micro line 6470: PRINT"You concentrate, and the crystal ball glows, ";)
+        immediate_message = "You concentrate, and the crystal ball glows, "
+        
+        # Build the delayed message (shown after disc sound and graphics)
+        delayed_message = "and you see the following :-\n\n"
+        
+        # Room description
+        delayed_message += room["description"]
+        
+        # Add objects (one per line with A/An)
+        objects = self.game_state.get_objects_in_room(target_room)
+        if objects:
+            delayed_message += "\n"
+            for obj in objects:
+                delayed_message += f"\n{self.add_article(obj)} is here."
+        
+        # Add creatures (one per line with A/An)
+        creatures = self.game_state.get_creatures_in_room(target_room)
+        if creatures:
+            delayed_message += "\n"
+            for creature in creatures:
+                delayed_message += f"\n{self.add_article(creature.name)} is here."
+        
+        # Add players (one per line)
+        other_players = [
+            p for p in self.game_state.get_players_in_room(target_room)
+            if p.name != player.name
+        ]
+        if other_players:
+            delayed_message += "\n"
+            for other_player in other_players:
+                delayed_message += f"\n{other_player.display_name} is here"
+        
+        # Return with immediate message, delayed message, disc sound and graphics
+        # BBC Micro line 6501: OSCLI"LO.R."+STR$(N) - loads room (disc sound)
+        return {
+            "message": immediate_message,  # Sent immediately
+            "view_room": target_room,  # Trigger graphics display for target room
+            "view_message": delayed_message,  # Sent after disc sound and delays
+            "disc_sound": True  # Play disc loading sound
+        }
+
+    async def force(self, player: Player, target_name: str) -> Dict:
+        """
+        Force another player to execute a command
+        BBC Micro lines 4130-4250 (PROCl)
+        
+        Interactive command with multiple prompts:
+        1. Get target player
+        2. Ask for command to force
+        3. Ask for method (Magic or Strength) - wizards skip this
+        4. Execute force attempt
+        
+        Blocked commands: QUIT, FORCE, TELL, SAY, ACTIVITY, COLLAPSE
+        """
+        # Check if target is specified
+        if not target_name:
+            return {"message": "Force who?"}
+        
+        target_name_lower = target_name.lower()
+        
+        # Find target (player or creature)
+        target_player = self.game_state.get_player(target_name)
+        target_creature = None
+        
+        # Prevent forcing yourself
+        if target_player and target_player.name == player.name:
+            return {"message": "You can't force yourself!"}
+        
+        # Check for creature
+        if not target_player:
+            creatures = self.game_state.get_creatures_in_room(player.room_id)
+            for creature in creatures:
+                if target_name_lower in creature.name.lower() and not creature.is_dead:
+                    target_creature = creature
+                    break
+        
+        # Line 4160: IFT>&A00PROCg - Force creature (NYI)
+        if target_creature:
+            return {"message": "NYI"}
+        
+        # Target not found
+        if not target_player:
+            return {"message": f"I don't know who that is", "beeps": 1}
+        
+        # Store target and initiate interactive prompting
+        player.force_target = target_player.name
+        player.force_state = 'awaiting_command'
+        
+        # Line 4170: PRINT"Enter command to FORCE"'"!!";
+        # ' = newline, '" = empty string + newline, "!!" = print !!, ; = no newline
+        return {
+            "message": "Enter command to FORCE\n",
+            "inline_prompt": "!!",  # User types on same line as this
+            "force_prompt": True
+        }
+
+    async def alias(self, player: Player, new_name: str) -> Dict:
+        """
+        Change wizard's display name (alias/nickname)
+        BBC Micro lines 3880-3940 (PROCx)
+        
+        Line 2470: IFC$="ALIAS"ANDGPROCX - Wizard-only command
+        Line 3880: IFC$=D$PRINT"What new name?" - Prompt if no name given
+        Line 3900: Check if name already in use by objects
+        Line 3902: Check if name already in use by players
+        Line 3920: Check name length (1-7 characters)
+        Line 3940: $A=D$ - Change display name
+        Line 3940: E$=D$ - Update E$ variable
+        
+        NOTE: This does NOT change the login name or save file name!
+        It only changes how the wizard appears to other players.
+        """
+        # Line 2470: Wizard-only check
+        if player.rank != "Wizard":
+            return {"message": "You are not powerful enough"}
+        
+        # Line 3880: Check if name provided
+        if not new_name:
+            return {"message": "What new name?", "beeps": 1}
+        
+        # Line 3902: Process name (FNB - uppercase, letters only)
+        new_name = ''.join(c.upper() for c in new_name if c.isalpha())
+        
+        # Line 3920: Check length (1-7 characters)
+        if len(new_name) == 0 or len(new_name) > 7:
+            return {"message": "Incorrect length", "beeps": 1}
+        
+        # Line 3900: Check if name is already in use by objects (F=42 objects)
+        # A$(T) is the object name array
+        object_names = [
+            "VODKA", "POISON", "MEDICINE", "STICK", "SWORD", "FLAMETHROWER",
+            "LAMP", "ROPE", "TREASURE", "CRYSTAL", "RUBY", "SHIELD",
+            "AMULET", "STAFF", "GUARDIAN"  # Plus more objects...
+        ]
+        if new_name.upper() in [obj.upper() for obj in object_names]:
+            return {"message": "Already known", "beeps": 1}
+        
+        # Line 3902: Check if name already in use by another player (FND function)
+        # Check all players in game
+        for other_player in self.game_state.players.values():
+            if other_player.name != player.name:  # Don't check against self
+                if other_player.display_name.upper() == new_name.upper():
+                    return {"message": "Already known", "beeps": 1}
+        
+        # Line 3940: Change display name
+        old_name = player.display_name
+        player.display_name = new_name
+        
+        # Line 3940: Broadcast change to network
+        # !(A+8)=B*&100+?I:!(A+12)=D:PROCA(A,A+15)
+        # This updates the player record on the network
+        
+        # Line 3940: Confirm change (no broadcast message in original)
+        return {
+            "message": f"Hello {new_name}"
+        }
 
     async def quit_game(self, player: Player) -> Dict:
         """

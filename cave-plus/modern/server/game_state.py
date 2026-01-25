@@ -287,10 +287,16 @@ class GameState:
             del self.players[player.name]
     
     def get_player(self, name: str) -> Optional[Player]:
-        """Get a player by name (case-insensitive, uppercase match)"""
+        """Get a player by display name (case-insensitive, uppercase match)"""
         # Apply BBC Micro FNB function: uppercase, letters only
         normalized_name = ''.join(c.upper() for c in name if c.isalpha())
-        return self.players.get(normalized_name)
+        
+        # Search by display_name (not login name)
+        for player in self.players.values():
+            if player.display_name.upper() == normalized_name:
+                return player
+        
+        return None
     
     def get_room(self, room_id: int) -> Optional[dict]:
         """

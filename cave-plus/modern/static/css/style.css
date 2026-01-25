@@ -74,17 +74,26 @@ body {
     justify-content: center;
 }
 
-/* Sound button positioning (left button) - positioned on monitor bezel */
+/* Sound button positioning (right side, top button) */
 #sound-toggle {
-    bottom: 8%;
-    left: 12%;
+    bottom: 26%;
+    right: 8%;
     font-size: 24px;
 }
 
-/* CRT button positioning (right button) - positioned on monitor bezel */
+/* CRT button positioning (right side, middle button) */
 #crt-toggle {
+    bottom: 17%;
+    right: 8%;
+}
+
+/* GitHub button positioning (right side, bottom button) */
+#github-link {
+    position: fixed;
     bottom: 8%;
     right: 8%;
+    font-size: 9px;
+    text-decoration: none;
 }
 
 .bezel-button:hover {
