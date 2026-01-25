@@ -7,6 +7,9 @@ class CaveGame {
         this.commandHistory = [];
         this.historyIndex = -1;
         
+        // Rope holding state (for portcullis)
+        this.holdingRope = false;
+        
         // Login state
         this.loginState = 'name'; // 'name' or 'password'
         this.currentInput = '';
@@ -448,6 +451,20 @@ class CaveGame {
                     this.playerData.inventory = data.items || [];
                 }
                 break;
+            
+            case 'holding_rope':
+                // Player is holding rope - disable normal input and wait for RETURN
+                console.log('🪢 Holding rope - waiting for RETURN');
+                this.holdingRope = true;
+                
+                // Hide the prompt while holding rope (only if in game screen)
+                if (this.gameScreen.classList.contains('active')) {
+                    this.promptElement.style.display = 'none';
+                    this.commandDisplay.style.display = 'none';
+                    const cursor = this.messageLog.querySelector('.cursor');
+                    if (cursor) cursor.style.display = 'none';
+                }
+                break;
         }
     }
     
@@ -646,6 +663,30 @@ class CaveGame {
     
     sendCommand() {
         let command = this.commandInput.value.trim();
+        
+        // Special case: if holding rope and user presses RETURN (empty command)
+        if (this.holdingRope && !command) {
+            console.log('🪢 Releasing rope (RETURN pressed)');
+            this.holdingRope = false;
+            
+            // Show the prompt again
+            this.promptElement.style.display = 'inline';
+            this.commandDisplay.style.display = 'inline';
+            const cursor = this.messageLog.querySelector('.cursor');
+            if (cursor) cursor.style.display = 'inline';
+            
+            // Send RELEASE command to server
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    command: 'RELEASE'
+                }));
+            }
+            
+            // Clear input
+            this.commandInput.value = '';
+            this.commandDisplay.textContent = '';
+            return;
+        }
         
         if (!command) {
             return;
@@ -955,6 +996,9 @@ class CaveGame {
         this.commandInput.disabled = false;
         this.commandInput.style.opacity = '1';
         this.commandDisplay.textContent = '';
+        
+        // Reset rope holding state
+        this.holdingRope = false;
         
         // Show the prompt elements (in case they were hidden)
         this.promptElement.style.display = 'inline';

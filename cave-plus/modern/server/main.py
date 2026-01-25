@@ -552,6 +552,24 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
         # Player disconnected unexpectedly - keep them in game for 5 minutes
         print(f"🔌 {player_name} disconnected - keeping in game for {player.disconnect_timeout}s")
         
+        # If portcullis is up, lower it (player let go of rope)
+        if game_state.portcullis_up:
+            print(f"🪢 {player_name} disconnected while holding rope - lowering portcullis")
+            game_state.portcullis_up = False
+            
+            # Broadcast to rooms 29 and 30
+            await broadcast_to_room(29, {
+                "type": "message",
+                "text": "The portcullis FALLS",
+                "style": "action"
+            })
+            await broadcast_to_room(30, {
+                "type": "message",
+                "text": "The portcullis FALLS",
+                "style": "action"
+            })
+            # No need to refresh room display - the message is enough
+        
         player.mark_disconnected()
         del active_connections[player_name]
         
@@ -566,6 +584,25 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
         print(f"WebSocket error for {player_name}: {e}")
         if player_name in active_connections:
             del active_connections[player_name]
+        
+        # If portcullis is up, lower it (player let go of rope)
+        if game_state.portcullis_up:
+            print(f"🪢 {player_name} error while holding rope - lowering portcullis")
+            game_state.portcullis_up = False
+            
+            # Broadcast to rooms 29 and 30
+            await broadcast_to_room(29, {
+                "type": "message",
+                "text": "The portcullis FALLS",
+                "style": "action"
+            })
+            await broadcast_to_room(30, {
+                "type": "message",
+                "text": "The portcullis FALLS",
+                "style": "action"
+            })
+            # No need to refresh room display - the message is enough
+        
         # Mark as disconnected but don't remove from game
         if player_name in game_state.players:
             game_state.players[player_name].mark_disconnected()
@@ -709,6 +746,12 @@ async def handle_command(player: Player, data: dict):
             await player.websocket.close()
         return
     
+    # Handle holding rope - tell client to wait for RETURN (BEFORE sending the message)
+    if result.get("holding_rope"):
+        await send_to_player(player, {
+            "type": "holding_rope"
+        })
+    
     # Send result to player
     if result.get("message"):
         # Determine style - check for combat flag or explicit style
@@ -845,6 +888,36 @@ async def handle_command(player: Player, data: dict):
         # Refresh room display for all players (lighting changed)
         for p in game_state.players.values():
             await send_room_update(p)
+    
+    # Handle PULL rope (portcullis) - line 3730: raise portcullis temporarily
+    if result.get("portcullis_raised"):
+        # Broadcast to rooms 29 and 30
+        await broadcast_to_room(29, {
+            "type": "message",
+            "text": "The portcullis goes UP",
+            "style": "action"
+        })
+        await broadcast_to_room(30, {
+            "type": "message",
+            "text": "The portcullis goes UP",
+            "style": "action"
+        })
+        # No need to refresh room display - the message is enough
+    
+    # Handle RELEASE rope (portcullis lowered) - line 3770
+    if result.get("portcullis_lowered"):
+        # Broadcast to rooms 29 and 30
+        await broadcast_to_room(29, {
+            "type": "message",
+            "text": "The portcullis FALLS",
+            "style": "action"
+        })
+        await broadcast_to_room(30, {
+            "type": "message",
+            "text": "The portcullis FALLS",
+            "style": "action"
+        })
+        # No need to refresh room display - the message is enough
     
     # Handle COLLAPSE command (line 2620: Wizard triggers cave collapse for all players)
     if result.get("collapse"):
@@ -1054,12 +1127,19 @@ async def send_room_update(player: Player):
     creatures = game_state.get_creatures_in_room(player.room_id)
     creature_data = [c.to_dict() for c in creatures]
     
+    # Add portcullis status for rooms 29 and 30 (BBC Micro line 1300)
+    # Status appears AFTER the room description
+    description = room["description"]
+    if player.room_id in [29, 30]:
+        portcullis_status = "UP" if game_state.portcullis_up else "DOWN"
+        description = f"{description}\n\nThe Portcullis is {portcullis_status}"
+    
     await send_to_player(player, {
         "type": "room",
         "room": {
             "id": room["id"],
             "name": room.get("name", f"Room {room['id']}"),
-            "description": room["description"],
+            "description": description,
             "exits": room["exits"],
             "has_graphic": room["id"] in game_state.rooms_with_graphics,
             "graphic_url": f"/graphics/room_{room['id']}.png" if room["id"] in game_state.rooms_with_graphics else None

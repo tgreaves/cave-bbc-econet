@@ -83,6 +83,10 @@ class GameState:
         # Default is ON (False = lights are on)
         self.lights_on = True
         
+        # Portcullis state (BBC Micro: ?&A03: 0=DOWN, 1=UP)
+        # Default is DOWN (False = portcullis is down)
+        self.portcullis_up = False
+        
     async def initialize(self):
         """Load game data"""
         await self.load_rooms()
@@ -289,8 +293,31 @@ class GameState:
         return self.players.get(normalized_name)
     
     def get_room(self, room_id: int) -> Optional[dict]:
-        """Get room data"""
-        return self.rooms.get(room_id)
+        """
+        Get room data with dynamic exits based on portcullis state
+        BBC Micro line 1315: F$=$(&7803-3*?&A03)
+        When portcullis is DOWN (?&A03=0): blocks East exit from room 29 and West exit from room 30
+        When portcullis is UP (?&A03=1): allows passage through
+        """
+        room = self.rooms.get(room_id)
+        if not room:
+            return None
+        
+        # Make a copy to avoid modifying the original
+        room_copy = room.copy()
+        room_copy['exits'] = room['exits'].copy()
+        
+        # Modify exits based on portcullis state (rooms 29 and 30)
+        if room_id == 29 and not self.portcullis_up:
+            # Portcullis is DOWN - block East exit
+            if 'east' in room_copy['exits']:
+                del room_copy['exits']['east']
+        elif room_id == 30 and not self.portcullis_up:
+            # Portcullis is DOWN - block West exit
+            if 'west' in room_copy['exits']:
+                del room_copy['exits']['west']
+        
+        return room_copy
     
     def get_players_in_room(self, room_id: int) -> List[Player]:
         """Get all players in a specific room"""

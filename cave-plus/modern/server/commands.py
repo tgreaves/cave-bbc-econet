@@ -1,12 +1,12 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (32 total):
+IMPLEMENTED COMMANDS (33 total):
 =================================
 Movement (6):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
 
-Interaction (11):
+Interaction (12):
   LOOK/L          - Look at current room
   GET/TAKE/PICKUP - Pick up an object (prevents picking up creatures)
   DROP/LEAVE      - Drop an object
@@ -18,6 +18,7 @@ Interaction (11):
   DEPOSIT         - Deposit treasure at bank (room 56) for 20-40 points
   TELL            - Send message to specific player or all (Wizard only for all)
   ANNOY           - Make creature aggressive or annoy a player
+  PULL            - Pull rope to raise portcullis (rooms 29/30, auto-lowers after 10 seconds)
   
 Combat (7):
   HIT/ATTACK/FIGHT - Attack with bare hands or stick
@@ -51,12 +52,11 @@ Wizard-Only Commands (7):
   ACTIVITY <0-9>  - Set CCM activity level (0=passive, 9=maximum aggression)
   COLLAPSE        - Trigger cave collapse - kills all players in the cave
 
-NOT YET IMPLEMENTED (17 commands):
+NOT YET IMPLEMENTED (16 commands):
 ===================================
 Basic Commands:
   EXORCISE        - Exorcise an object to the armoury (room 20)
   VIEW            - Use crystal ball to view remote location
-  PULL            - Pull rope (portcullis in rooms 29/30)
   GO/WALK/RUN     - Alternative movement command
   DEBUG           - Debug command (shows error message)
   END             - End game (alternative to quit)
@@ -120,6 +120,13 @@ IMPLEMENTATION NOTES:
   - Poison causes 0.05 stamina damage per tick
   - "I am poisoned" message when stamina crosses whole number boundary
   - "You are almost dead" message (1/20 chance per tick when stamina < 5)
+- PULL: Pull rope to raise portcullis in rooms 29/30
+  - Only works in rooms 29 or 30
+  - Raises portcullis to allow passage (East from 29, West from 30)
+  - Portcullis automatically lowers after 10 seconds
+  - Broadcasts "The portcullis goes UP" / "The portcullis FALLS" to both rooms
+  - Room descriptions show "The Portcullis is UP" or "The Portcullis is DOWN"
+  - Exits are dynamically blocked/unblocked based on portcullis state
 """
 
 import random
@@ -268,6 +275,14 @@ class CommandParser:
         # Examine command
         if cmd in ['examine']:
             return await self.examine(player, args)
+        
+        # Pull command (rope/portcullis)
+        if cmd in ['pull']:
+            return await self.pull(player, args)
+        
+        # Release command (internal - triggered by pressing RETURN while holding rope)
+        if cmd in ['release', '']:
+            return await self.release(player)
         
         # Abbreviated examine/look (shows "Idiot!")
         if cmd in ['exa', 'loo']:
@@ -1524,6 +1539,68 @@ Examples:
         """
         return {"message": "You see nothing special"}
     
+    async def pull(self, player: Player, item_name: str) -> Dict:
+        """
+        Pull rope to raise portcullis (rooms 29-30)
+        BBC Micro lines 3700-3770 (PROCu):
+        - Line 3700: IFB<>29 AND B<>30PRINT"What Rope?":ENDPROC
+        - Line 3720: IF?&A03=1PRINT"But the Rope is already pulled":ENDPROC
+        - Line 3730: ?&A03=1 (raise portcullis)
+        - Line 3730: PRINT"You pull the rope and the Portcullis goes up!!"
+        - Line 3730: PRINT'"Press <RETURN> to let go"
+        - Line 3730: PROCD(1,29,"The portcullis goes UP")
+        - Line 3730: PROCD(1,30,"The portcullis goes UP")
+        - Line 3730: REPEATUNTILFNG=CHR$13 (wait for RETURN)
+        - Line 3730: ?&A03=0 (lower portcullis)
+        - Line 3770: PRINT"The portcullis falls as you let go of the rope"
+        - Line 3770: PROCD(1,29,"The portcullis FALLS")
+        - Line 3770: PROCD(1,30,"The portcullis FALLS")
+        
+        Note: In web version, we'll auto-release after a short time instead of waiting for RETURN
+        """
+        # Check if in rooms 29 or 30
+        if player.room_id not in [29, 30]:
+            return {"message": "What Rope?"}
+        
+        # Check if target is "Rope"
+        if not item_name or "rope" not in item_name.lower():
+            return {"message": "Pull what?"}
+        
+        # Check if already pulled
+        if self.game_state.portcullis_up:
+            return {"message": "But the Rope is already pulled"}
+        
+        # Raise portcullis
+        self.game_state.portcullis_up = True
+        
+        return {
+            "message": "You pull the rope and the Portcullis goes up!!\n\nPress <RETURN> to let go",
+            "portcullis_raised": True,
+            "holding_rope": True,  # Special flag to tell client to wait for RETURN
+            "beeps": 1
+        }
+    
+    async def release(self, player: Player) -> Dict:
+        """
+        Release rope (lower portcullis)
+        BBC Micro line 3770: Player releases RETURN key
+        - ?&A03=0 (lower portcullis)
+        - PRINT"The portcullis falls as you let go of the rope"
+        - PROCD(1,29,"The portcullis FALLS")
+        - PROCD(1,30,"The portcullis FALLS")
+        """
+        # Only works if portcullis is currently up
+        if not self.game_state.portcullis_up:
+            return {"message": ""}  # Silent - no error
+        
+        # Lower portcullis
+        self.game_state.portcullis_up = False
+        
+        return {
+            "message": "The portcullis falls as you let go of the rope",
+            "portcullis_lowered": True
+        }
+
     async def activity(self, player: Player, level_str: str) -> Dict:
         """
         Set CCM activity level (Wizard-only)
