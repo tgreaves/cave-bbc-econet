@@ -7,6 +7,7 @@ FastAPI + WebSocket server for real-time multiplayer
 import asyncio
 import json
 import time
+from pathlib import Path
 from typing import Dict, Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
@@ -25,6 +26,24 @@ command_parser = CommandParser(game_state)
 
 # Active WebSocket connections
 active_connections: Dict[str, WebSocket] = {}
+admin_connections: Dict[str, WebSocket] = {}
+
+# Load configuration
+CONFIG_FILE = Path(__file__).parent.parent / "config.json"
+
+def load_config():
+    """Load configuration from config.json"""
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"⚠️  Config file not found: {CONFIG_FILE}")
+        return {"admins": [], "version": "1.1.0"}
+    except json.JSONDecodeError as e:
+        print(f"⚠️  Error parsing config file: {e}")
+        return {"admins": [], "version": "1.1.0"}
+
+config = load_config()
 
 @app.on_event("startup")
 async def startup_event():
@@ -124,6 +143,11 @@ async def game_loop():
     """Main game loop - runs every second"""
     while True:
         try:
+            # Broadcast game state to admins every tick
+            from admin import broadcast_game_state_to_admins
+            if admin_connections:
+                await broadcast_game_state_to_admins(admin_connections, game_state, active_connections)
+            
             # Check for timed-out disconnected players
             timed_out_players = []
             for player_name, player in list(game_state.players.items()):
@@ -318,6 +342,88 @@ async def game_loop():
                 
         except Exception as e:
             print(f"Game loop error: {e}")
+
+@app.websocket("/ws/admin/{admin_name}")
+async def admin_websocket_endpoint(websocket: WebSocket, admin_name: str):
+    """WebSocket endpoint for admin connections"""
+    from admin import broadcast_game_state_to_admins, handle_admin_command
+    
+    await websocket.accept()
+    
+    # Apply BBC Micro name processing
+    admin_name = ''.join(c.upper() for c in admin_name if c.isalpha())
+    
+    # Validate admin name
+    if not admin_name or len(admin_name) < 2:
+        await websocket.send_json({
+            "type": "error",
+            "message": "Invalid admin name"
+        })
+        await websocket.close()
+        return
+    
+    # Wait for password
+    try:
+        auth_data = await websocket.receive_json()
+        password = auth_data.get("password", "").strip()
+    except:
+        await websocket.send_json({
+            "type": "error",
+            "message": "Authentication failed"
+        })
+        await websocket.close()
+        return
+    
+    # Verify admin credentials
+    from player_data import load_player
+    result = load_player(admin_name, password)
+    if result is None:
+        await websocket.send_json({
+            "type": "error",
+            "message": f"Invalid credentials for {admin_name}"
+        })
+        await websocket.close()
+        return
+    
+    # Check if user is in admin list
+    if admin_name not in config.get("admins", []):
+        await websocket.send_json({
+            "type": "error",
+            "message": f"{admin_name} is not authorized as an administrator"
+        })
+        await websocket.close()
+        return
+    
+    print(f"👑 Admin {admin_name} connected")
+    
+    # Add to admin connections
+    admin_connections[admin_name] = websocket
+    
+    # Send auth success
+    await websocket.send_json({
+        "type": "auth_success"
+    })
+    
+    # Send initial game state
+    await broadcast_game_state_to_admins(admin_connections, game_state, active_connections)
+    
+    try:
+        while True:
+            # Receive commands from admin
+            data = await websocket.receive_json()
+            await handle_admin_command(data, game_state, active_connections, broadcast_to_all)
+            
+            # Broadcast updated state to all admins
+            await broadcast_game_state_to_admins(admin_connections, game_state, active_connections)
+            
+    except WebSocketDisconnect:
+        print(f"👑 Admin {admin_name} disconnected")
+        if admin_name in admin_connections:
+            del admin_connections[admin_name]
+    except Exception as e:
+        print(f"Admin WebSocket error for {admin_name}: {e}")
+        if admin_name in admin_connections:
+            del admin_connections[admin_name]
 
 @app.websocket("/ws/{player_name}")
 async def websocket_endpoint(websocket: WebSocket, player_name: str):
@@ -1533,6 +1639,11 @@ STATIC_DIR = BASE_DIR / "static"
 
 app.mount("/graphics", StaticFiles(directory=str(STATIC_DIR / "graphics")), name="graphics")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+@app.get("/admin")
+async def admin_page():
+    """Serve the admin dashboard page"""
+    return FileResponse(str(STATIC_DIR / "admin.html"))
 
 @app.get("/")
 async def root():

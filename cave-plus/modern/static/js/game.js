@@ -254,7 +254,7 @@ class CaveGame {
             this.loginDisplay.innerHTML = `<span class="double-height" style="color: #ffff00;">CAVE-PLUS</span><span style="color: #ffffff;">(C) XOB 1988 </span><span class="double-height" style="color: #ffffff;">Version 1.00</span>
 
 <span class="double-height" style="color: #ffff00;">From CAVE</span><span style="color: #ffffff;">(C) GJL WOTWECP 1985</span>
-<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026</span>
+<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026 - Version 1.1.0</span>
 
 
 <span style="color: #ffffff;">Please enter your name : ${this.currentInput}<span class="cursor">_</span></span>`;
@@ -263,7 +263,7 @@ class CaveGame {
             this.loginDisplay.innerHTML = `<span class="double-height" style="color: #ffff00;">CAVE-PLUS</span><span style="color: #ffffff;">(C) XOB 1988 </span><span class="double-height" style="color: #ffffff;">Version 1.00</span>
 
 <span class="double-height" style="color: #ffff00;">From CAVE</span><span style="color: #ffffff;">(C) GJL WOTWECP 1985</span>
-<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026</span>
+<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026 - Version 1.1.0</span>
 
 
 <span style="color: #ffffff;">Please enter your name : ${this.playerName}</span>
@@ -276,7 +276,7 @@ class CaveGame {
         this.loginDisplay.innerHTML = `<span class="double-height" style="color: #ffff00;">CAVE-PLUS</span><span style="color: #ffffff;">(C) XOB 1988 </span><span class="double-height" style="color: #ffffff;">Version 1.00</span>
 
 <span class="double-height" style="color: #ffff00;">From CAVE</span><span style="color: #ffffff;">(C) GJL WOTWECP 1985</span>
-<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026</span>
+<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026 - Version 1.1.0</span>
 
 
 <span style="color: #ffffff;">Please enter your name : ${this.playerName}</span>
@@ -402,7 +402,7 @@ class CaveGame {
                     this.loginDisplay.innerHTML = `<span style="color: #ffff00;">CAVE-PLUS</span> <span style="color: #ffffff;">(C) 2026</span>
 
 <span style="color: #ffff00;">From CAVE</span> <span style="color: #ffffff;">(C)</span> <span style="color: #00ffff;">GJL WOTWECP</span> <span style="color: #ffffff;">1985</span>
-<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026</span>
+<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026 - Version 1.1.0</span>
 
 
 <span style="color: #ff0000;">${data.message}</span>

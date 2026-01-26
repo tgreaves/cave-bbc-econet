@@ -79,13 +79,18 @@ class GameState:
         # Controls creature attack/movement frequency
         # Wizards can change this with ACTIVITY command
         self.activity_level = 2
+        
         # Light switch state (BBC Micro: ?&A02 bit 0: 0=ON, 1=OFF)
-        # Default is ON (False = lights are on)
+        # Default is ON (True = lights are on)
         self.lights_on = True
         
         # Portcullis state (BBC Micro: ?&A03: 0=DOWN, 1=UP)
         # Default is DOWN (False = portcullis is down)
         self.portcullis_up = False
+        
+        # Staff of Merlin charges (BBC Micro: ?&A04)
+        # Default is 0 charges
+        self.staff_charges = 0
         
     async def initialize(self):
         """Load game data"""

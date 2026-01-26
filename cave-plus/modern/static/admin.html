@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAVE-Plus Admin</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="active">
+        <div class="login-container">
+            <h1>CAVE-Plus Admin</h1>
+            <div id="login-display">
+                <p>Please enter your name: <span id="name-input"></span><span class="cursor">_</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="admin-screen">
+        <header>
+            <h1>CAVE-Plus Admin Dashboard</h1>
+            <div class="admin-info">
+                <span id="admin-name"></span>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <div class="dashboard">
+            <!-- Players Section -->
+            <section class="panel players-panel">
+                <h2>Connected Players (<span id="player-count">0</span>)</h2>
+                <div class="table-container">
+                    <table id="players-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Rank</th>
+                                <th>Room</th>
+                                <th>Stamina</th>
+                                <th>Score</th>
+                                <th>Inventory</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="players-tbody">
+                            <tr><td colspan="8" class="empty">No players connected</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Environment Controls -->
+            <section class="panel controls-panel">
+                <h2>Environment Controls</h2>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <label>Lights</label>
+                        <button id="lights-toggle" class="toggle-btn">Loading...</button>
+                    </div>
+                    <div class="control-item">
+                        <label>Portcullis</label>
+                        <button id="portcullis-toggle" class="toggle-btn">Loading...</button>
+                    </div>
+                    <div class="control-item">
+                        <label>Activity Level</label>
+                        <input type="number" id="activity-input" min="0" max="9" value="2">
+                        <button id="activity-set">Set</button>
+                    </div>
+                    <div class="control-item">
+                        <label>Staff Charges</label>
+                        <input type="number" id="staff-input" min="0" max="127" value="0">
+                        <button id="staff-set">Set</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Objects Section -->
+            <section class="panel objects-panel">
+                <h2>Objects</h2>
+                <div class="table-container">
+                    <table id="objects-table">
+                        <thead>
+                            <tr>
+                                <th>Object</th>
+                                <th>Location</th>
+                                <th>Held By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="objects-tbody">
+                            <tr><td colspan="3" class="empty">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Creatures Section -->
+            <section class="panel creatures-panel">
+                <h2>Creatures</h2>
+                <div class="table-container">
+                    <table id="creatures-table">
+                        <thead>
+                            <tr>
+                                <th>Creature</th>
+                                <th>Room</th>
+                                <th>Stamina</th>
+                                <th>Behavior</th>
+                            </tr>
+                        </thead>
+                        <tbody id="creatures-tbody">
+                            <tr><td colspan="4" class="empty">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>
