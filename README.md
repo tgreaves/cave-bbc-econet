@@ -18,7 +18,7 @@ http://cave.extricate.org:1985
 
 ```bash
 # Build the image
-docker build -t cave-plus .
+docker build -t cave-bbc-econet:latest .
 
 # Or use docker-compose to build and run
 docker-compose up -d
