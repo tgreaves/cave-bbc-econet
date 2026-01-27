@@ -22,11 +22,6 @@ app = FastAPI(title="Cave-Plus Recreation")
 
 # Game state
 game_state = GameState()
-command_parser = CommandParser(game_state)
-
-# Active WebSocket connections
-active_connections: Dict[str, WebSocket] = {}
-admin_connections: Dict[str, WebSocket] = {}
 
 # Load configuration
 CONFIG_FILE = Path(__file__).parent.parent / "config.json"
@@ -38,12 +33,19 @@ def load_config():
             return json.load(f)
     except FileNotFoundError:
         print(f"⚠️  Config file not found: {CONFIG_FILE}")
-        return {"admins": [], "version": "1.1.0"}
+        return {"admins": [], "version": "1.1.0", "map_available": True}
     except json.JSONDecodeError as e:
         print(f"⚠️  Error parsing config file: {e}")
-        return {"admins": [], "version": "1.1.0"}
+        return {"admins": [], "version": "1.1.0", "map_available": True}
 
 config = load_config()
+
+# Create command parser with config
+command_parser = CommandParser(game_state, config)
+
+# Active WebSocket connections
+active_connections: Dict[str, WebSocket] = {}
+admin_connections: Dict[str, WebSocket] = {}
 
 @app.on_event("startup")
 async def startup_event():
@@ -1644,6 +1646,24 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 async def admin_page():
     """Serve the admin dashboard page"""
     return FileResponse(str(STATIC_DIR / "admin.html"))
+
+@app.get("/map")
+async def map_page():
+    """Serve the dungeon map page"""
+    return FileResponse(str(STATIC_DIR / "map.html"))
+
+@app.get("/rooms-parsed.yml")
+async def rooms_yaml():
+    """Serve the rooms YAML file for the map"""
+    return FileResponse(str(BASE_DIR / "rooms-parsed.yml"))
+
+@app.get("/api/config")
+async def get_config():
+    """API endpoint to get client-facing config values"""
+    return {
+        "map_available": config.get("map_available", True),
+        "version": config.get("version", "1.1.0")
+    }
 
 @app.get("/")
 async def root():

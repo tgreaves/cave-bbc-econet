@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAVE-Plus Map</title>
+    <style>
+        @font-face {
+            font-family: 'Bedstead';
+            src: url('/static/fonts/bedstead.otf') format('opentype');
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #0f0;
+            font-family: 'Bedstead', monospace;
+            overflow: hidden;
+        }
+        
+        #map-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #map-svg {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        
+        #map-svg:active {
+            cursor: grabbing;
+        }
+        
+        .room-node {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .room-node:hover circle {
+            fill: #ff0;
+            stroke-width: 3;
+        }
+        
+        .room-circle {
+            fill: #00ff00;
+            stroke: #00ff00;
+            stroke-width: 2;
+        }
+        
+        .room-circle.wizard {
+            fill: #ff00ff;
+            stroke: #ff00ff;
+        }
+        
+        .room-circle.entrance {
+            fill: #00ffff;
+            stroke: #00ffff;
+            stroke-width: 3;
+        }
+        
+        .room-circle.player-here {
+            fill: #ffff00;
+            stroke: #ff0000;
+            stroke-width: 4;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { stroke-opacity: 1; }
+            50% { stroke-opacity: 0.5; }
+        }
+        
+        .room-text {
+            fill: #000;
+            font-size: 10px;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+            user-select: none;
+            font-weight: bold;
+        }
+        
+        .connection-line {
+            stroke: #00ff00;
+            stroke-width: 2;
+            stroke-opacity: 0.6;
+        }
+        
+        .connection-line.wizard {
+            stroke: #ff00ff;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border: 2px solid #0f0;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        
+        #controls button {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: 'Bedstead', monospace;
+            font-size: 12px;
+        }
+        
+        #controls button:hover {
+            background: #0f0;
+            color: #000;
+        }
+        
+        #info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border: 2px solid #0f0;
+            border-radius: 5px;
+            max-width: 300px;
+            display: none;
+        }
+        
+        #legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border: 2px solid #0f0;
+            border-radius: 5px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid;
+        }
+        
+        .legend-color.main {
+            background: #00ff00;
+            border-color: #00ff00;
+        }
+        
+        .legend-color.wizard {
+            background: #ff00ff;
+            border-color: #ff00ff;
+        }
+        
+        .legend-color.entrance {
+            background: #00ffff;
+            border-color: #00ffff;
+        }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <svg id="map-svg"></svg>
+        
+        <div id="controls">
+            <div><strong>CAVE-Plus Map</strong></div>
+            <button onclick="resetView()">Reset View</button>
+            <button onclick="toggleWizard()">Toggle Wizard Domain</button>
+            <button onclick="window.close()">Close</button>
+        </div>
+        
+        <div id="legend">
+            <div><strong>Legend</strong></div>
+            <div class="legend-item">
+                <div class="legend-color entrance"></div>
+                <span>Entrance (Room 1)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color main"></div>
+                <span>Main Cave</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color wizard"></div>
+                <span>Wizard Domain (16-20)</span>
+            </div>
+        </div>
+        
+        <div id="info">
+            <div id="info-content"></div>
+        </div>
+    </div>
+    
+    <script src="/static/js/map.js"></script>
+</body>
+</html>

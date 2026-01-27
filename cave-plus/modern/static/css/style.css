@@ -87,6 +87,13 @@ body {
     right: 8%;
 }
 
+/* Map button positioning (right side, above GitHub) */
+#map-button {
+    bottom: 35%;
+    right: 8%;
+    font-size: 10px;
+}
+
 /* GitHub button positioning (right side, bottom button) */
 #github-link {
     position: fixed;
