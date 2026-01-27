@@ -84,4 +84,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         decode_objinit(sys.argv[1])
     else:
-        decode_objinit("cave-plus/original/OBJINIT")
+        decode_objinit("original/cave-plus/original/OBJINIT")

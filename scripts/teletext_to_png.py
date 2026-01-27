@@ -266,8 +266,8 @@ def main():
         print("Usage: python3 teletext_to_png_improved.py <input_file_or_dir> <output_file_or_dir> [scale]")
         print()
         print("Examples:")
-        print("  Single file: python3 teletext_to_png_improved.py cave-plus/original/P/2 room_2.png 16")
-        print("  Directory:   python3 teletext_to_png_improved.py cave-plus/original/P output/ 16")
+        print("  Single file: python3 teletext_to_png.py original/cave-plus/original/P/2 room_2.png 16")
+        print("  Directory:   python3 teletext_to_png.py original/cave-plus/original/P static/graphics/ 16")
         sys.exit(1)
     
     input_path = sys.argv[1]

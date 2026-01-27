@@ -139,16 +139,16 @@ def main():
         epilog="""
 Examples:
   # Show player info
-  python player_data_tool.py show cave-plus/modern/player_data/MEWCENARY.json
+  python scripts/player_data_tool.py show player_data/MEWCENARY.json
   
   # Set score (rank calculated automatically)
-  python player_data_tool.py set-score cave-plus/modern/player_data/MEWCENARY.json 1000
+  python scripts/player_data_tool.py set-score player_data/MEWCENARY.json 1000
   
   # Set room
-  python player_data_tool.py set-room cave-plus/modern/player_data/MEWCENARY.json 16
+  python scripts/player_data_tool.py set-room player_data/MEWCENARY.json 16
   
   # Fix checksum and rank
-  python player_data_tool.py fix-checksum cave-plus/modern/player_data/MEWCENARY.json
+  python scripts/player_data_tool.py fix-checksum player_data/MEWCENARY.json
 
 Note: Only name, score, room_id, and password_hash are saved.
       Rank is automatically calculated from score on login.
