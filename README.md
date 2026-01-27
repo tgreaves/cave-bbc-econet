@@ -1,4 +1,4 @@
-# Cave-Plus Web Recreation
+# Cave Plus: An Authentic Recreation
 
 Cave (and later Cave-Plus) were MUDs for the [BBC Micro](https://en.wikipedia.org/wiki/BBC_Micro), initially released back in 1985.
 
