@@ -4,6 +4,8 @@ Cave (and later Cave-Plus) were MUDs for the [BBC Micro](https://en.wikipedia.or
 
 This is a modern-day recreation with authentic BBC Micro behavior, real-time multiplayer, combat, creatures, and original MODE 7 graphics!
 
+![Alt text](/cave-plus-screenshot.png?raw=true "Optional Title")
+
 I previously made a telnet recreation using the Ranvier MUD engine, and that can be found here: https://github.com/tgreaves/ranviermud-cave 
 
 ---
