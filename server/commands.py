@@ -1,7 +1,7 @@
 """
 Command Parser for Cave-Plus
 
-IMPLEMENTED COMMANDS (43 total):
+IMPLEMENTED COMMANDS (44 total):
 =================================
 Movement (9):
   N/NORTH, S/SOUTH, E/EAST, W/WEST, U/UP, D/DOWN - Move in a direction
@@ -61,6 +61,9 @@ Wizard-Only Commands (7):
   COLLAPSE        - Trigger cave collapse - kills all players in the cave
   PACIFY <target> - Make creature passive (opposite of ANNOY)
   FORCE <target>  - Force another player to execute a command (interactive)
+
+Admin-Only Commands (1):
+  SETSCORE <player> <score> - Set a player's score (updates rank, stamina immediately)
 
 NOT YET IMPLEMENTED (6 commands):
 ===================================
@@ -184,8 +187,9 @@ from player import Player
 from game_state import GameState
 
 class CommandParser:
-    def __init__(self, game_state: GameState):
+    def __init__(self, game_state: GameState, config: dict = None):
         self.game_state = game_state
+        self.config = config or {}
         
         # Direction mappings
         self.directions = {
@@ -373,6 +377,10 @@ class CommandParser:
         # Activity command (Wizard-only)
         if cmd in ['activity']:
             return await self.activity(player, args)
+        
+        # SETSCORE command (Admin-only)
+        if cmd in ['setscore']:
+            return await self.setscore(player, args)
         
         # Deposit command
         if cmd in ['deposit']:
@@ -764,7 +772,8 @@ Stamina limit is {player.max_stamina}"""
         }
     
     async def zap(self, player: Player, target_name: str) -> Dict:
-        """Wizard zap attack using Staff of Merlin (requires wizard rank, staff, and charges)"""
+        """Wizard zap attack using Staff of Merlin (requires wizard rank, staff, and charges)
+        Admin wizards can zap without the staff (unlimited charges)"""
         if not target_name:
             return {"message": "Zap what?"}
         
@@ -772,12 +781,16 @@ Stamina limit is {player.max_stamina}"""
         if player.rank != "Wizard":
             return {"message": "Only wizards can zap!"}
         
-        # Check 2: Must have Staff of Merlin
-        if not player.has_staff():
+        # Check if player is an admin
+        admins = self.config.get("admins", [])
+        is_admin = player.name in admins
+        
+        # Check 2: Must have Staff of Merlin (unless admin)
+        if not is_admin and not player.has_staff():
             return {"message": "You do not have the Staff of Merlin.", "beeps": 1}
         
-        # Check 3: Staff must have charges
-        if player.staff_charges <= 0:
+        # Check 3: Staff must have charges (unless admin)
+        if not is_admin and player.staff_charges <= 0:
             return {"message": "Nothing happens.", "beeps": 1}  # Staff is out of charges
         
         # Get creatures in room
@@ -801,8 +814,9 @@ Stamina limit is {player.max_stamina}"""
         if target_creature.is_dead:
             return {"message": f"The {target_creature.name} is already dead."}
         
-        # Use one charge from the staff
-        player.use_staff_charge()
+        # Use one charge from the staff (only if not admin and has staff)
+        if not is_admin and player.has_staff():
+            player.use_staff_charge()
         
         # Zap attack (Wizard zap does 50-75 damage)
         result = await self.game_state.player_attack_creature(player, target_creature, "Staff")
@@ -1269,16 +1283,24 @@ Stamina limit is {player.max_stamina}"""
         if not target_room:
             return {"message": "Known OBJECTS & CREATURES only!"}
         
+        # Check if player is an admin
+        admins = self.config.get("admins", [])
+        is_admin = player.name in admins
+        
         # Line 3135: Check if trying to teleport to a magic item
         # IFINSTR(Hh$,D$)<>0PRINT"A magical force prevents this.":VDU7:ENDPROC
-        # MODIFICATION: Wizards can teleport to magical objects
-        if target_object and Player.is_magic_item(target_object) and player.rank != "Wizard":
-            return {"message": "A magical force prevents this.", "beeps": 1}
+        # MODIFICATION: Non-admin wizards CANNOT teleport to magical objects
+        # Admin wizards CAN teleport to magical objects
+        if target_object and Player.is_magic_item(target_object):
+            if not is_admin:
+                return {"message": "A magical force prevents this.", "beeps": 1}
         
         # Line 3136: Check if trying to teleport to Treasure
         # IFD$="Treasure"PRINT"Not allowed !!":VDU7:ENDPROC
+        # MODIFICATION: Admins CAN teleport to Treasure
         if target_object and "treasure" in target_object.lower():
-            return {"message": "Not allowed !!", "beeps": 1}
+            if not is_admin:
+                return {"message": "Not allowed !!", "beeps": 1}
         
         # Line 3140: Check if object is being carried by another player
         # IF?T=0PRINT"That object is being carried by a CAVER":ENDPROC
@@ -1765,6 +1787,81 @@ Stamina limit is {player.max_stamina}"""
         
         # No message in original - just silently sets the value
         return {"message": ""}
+    
+    async def setscore(self, player: Player, args: str) -> Dict:
+        """
+        Set a player's score (Admin-only)
+        Format: SETSCORE <playername> <score>
+        Example: SETSCORE FOOBAR 1500
+        
+        Updates target player's:
+        - Score
+        - Rank (based on new score)
+        - Max stamina (based on new rank)
+        - Current stamina (set to max)
+        
+        Target player must be in game (connected or disconnected but not timed out)
+        Admin can use on themselves
+        """
+        # Check if player is an admin
+        admins = self.config.get("admins", [])
+        if player.name not in admins:
+            return {"message": "Only administrators can use SETSCORE!", "beeps": 1}
+        
+        # Parse arguments
+        if not args:
+            return {"message": "Format: SETSCORE <playername> <score>", "beeps": 1}
+        
+        parts = args.split(maxsplit=1)
+        if len(parts) < 2:
+            return {"message": "Format: SETSCORE <playername> <score>", "beeps": 1}
+        
+        target_name = parts[0].upper()
+        try:
+            new_score = int(parts[1])
+        except ValueError:
+            return {"message": "Score must be a number!", "beeps": 1}
+        
+        # Validate score (non-negative)
+        if new_score < 0:
+            return {"message": "Score must be non-negative!", "beeps": 1}
+        
+        # Find target player in game
+        target_player = self.game_state.get_player(target_name)
+        if not target_player:
+            return {"message": f"{target_name} is not in the game!", "beeps": 1}
+        
+        # Set new score
+        target_player.score = new_score
+        
+        # Update rank based on new score
+        target_player.update_rank()
+        
+        # Recalculate max stamina based on new rank
+        target_player.calculate_stamina()
+        
+        # Set current stamina to max
+        target_player.stamina = target_player.max_stamina
+        
+        # Send player_update to target if they're connected
+        if not target_player.is_disconnected and target_player.websocket:
+            from main import send_to_player
+            await send_to_player(target_player, {
+                "type": "player_update",
+                "player": target_player.to_dict()
+            })
+            
+            # Notify target player
+            await send_to_player(target_player, {
+                "type": "message",
+                "text": f"Your score has been set to {new_score} by {player.display_name}!",
+                "style": "combat"
+            })
+        
+        # Confirm to admin
+        return {
+            "message": f"Set {target_name}'s score to {new_score} (Rank: {target_player.rank}, Stamina: {target_player.max_stamina})"
+        }
     
     async def deposit(self, player: Player, item_name: str) -> Dict:
         """

@@ -68,6 +68,10 @@ class CaveGame {
         // Sound toggle button
         this.soundToggle = document.getElementById('sound-toggle');
         
+        // Map button
+        this.mapButton = document.getElementById('map-button');
+        this.mapWindow = null; // Reference to map window
+        
         // Player state (tracked internally)
         this.playerData = {
             name: '',
@@ -75,7 +79,8 @@ class CaveGame {
             stamina: 0,
             max_stamina: 0,
             score: 0,
-            inventory: []
+            inventory: [],
+            room_id: 1
         };
         
         // Status messages array
@@ -104,6 +109,17 @@ class CaveGame {
             });
         } else {
             console.error('Sound toggle button not found!');
+        }
+        
+        // Map button
+        if (this.mapButton) {
+            console.log('Map button found, adding listener');
+            this.mapButton.addEventListener('click', () => {
+                console.log('Map button clicked');
+                this.openMap();
+            });
+        } else {
+            console.error('Map button not found!');
         }
         
         // Keyboard input for login
@@ -254,7 +270,7 @@ class CaveGame {
             this.loginDisplay.innerHTML = `<span class="double-height" style="color: #ffff00;">CAVE-PLUS</span><span style="color: #ffffff;">(C) XOB 1988 </span><span class="double-height" style="color: #ffffff;">Version 1.00</span>
 
 <span class="double-height" style="color: #ffff00;">From CAVE</span><span style="color: #ffffff;">(C) GJL WOTWECP 1985</span>
-<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026</span>
+<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026 - Version 1.1.0</span>
 
 
 <span style="color: #ffffff;">Please enter your name : ${this.currentInput}<span class="cursor">_</span></span>`;
@@ -263,7 +279,7 @@ class CaveGame {
             this.loginDisplay.innerHTML = `<span class="double-height" style="color: #ffff00;">CAVE-PLUS</span><span style="color: #ffffff;">(C) XOB 1988 </span><span class="double-height" style="color: #ffffff;">Version 1.00</span>
 
 <span class="double-height" style="color: #ffff00;">From CAVE</span><span style="color: #ffffff;">(C) GJL WOTWECP 1985</span>
-<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026</span>
+<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026 - Version 1.1.0</span>
 
 
 <span style="color: #ffffff;">Please enter your name : ${this.playerName}</span>
@@ -276,7 +292,7 @@ class CaveGame {
         this.loginDisplay.innerHTML = `<span class="double-height" style="color: #ffff00;">CAVE-PLUS</span><span style="color: #ffffff;">(C) XOB 1988 </span><span class="double-height" style="color: #ffffff;">Version 1.00</span>
 
 <span class="double-height" style="color: #ffff00;">From CAVE</span><span style="color: #ffffff;">(C) GJL WOTWECP 1985</span>
-<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026</span>
+<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026 - Version 1.1.0</span>
 
 
 <span style="color: #ffffff;">Please enter your name : ${this.playerName}</span>
@@ -402,7 +418,7 @@ class CaveGame {
                     this.loginDisplay.innerHTML = `<span style="color: #ffff00;">CAVE-PLUS</span> <span style="color: #ffffff;">(C) 2026</span>
 
 <span style="color: #ffff00;">From CAVE</span> <span style="color: #ffffff;">(C)</span> <span style="color: #00ffff;">GJL WOTWECP</span> <span style="color: #ffffff;">1985</span>
-<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026</span>
+<span style="color: #ffffff;">Modern (C) Tristan Greaves 2026 - Version 1.1.0</span>
 
 
 <span style="color: #ff0000;">${data.message}</span>
@@ -604,9 +620,13 @@ class CaveGame {
             score: player.score,
             inventory: player.inventory,
             vodka_level: player.vodka_level || 0,
-            poisoned: player.poisoned || false
+            poisoned: player.poisoned || false,
+            room_id: player.room_id || this.playerData.room_id || 1
         };
         console.log('playerData updated to:', this.playerData);
+        
+        // Update map if open
+        this.updateMapPosition();
         
         // Update prompt based on rank (matching BBC Micro original)
         if (player.rank === 'Wizard') {
@@ -1092,7 +1112,65 @@ class CaveGame {
         // Switch screens
         this.loginScreen.classList.remove('active');
         this.gameScreen.classList.add('active');
+        
+        // Check if map is available from server config
+        this.checkMapAvailability();
+        
         this.commandInput.focus();
+    }
+    
+    async checkMapAvailability() {
+        // Fetch config from server to check if map is available
+        try {
+            const response = await fetch('/api/config');
+            const config = await response.json();
+            
+            // Show/hide map button based on config
+            if (this.mapButton) {
+                if (config.map_available) {
+                    this.mapButton.style.display = 'block';
+                } else {
+                    this.mapButton.style.display = 'none';
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch config:', e);
+            // Default to showing map button if fetch fails
+            if (this.mapButton) {
+                this.mapButton.style.display = 'block';
+            }
+        }
+    }
+    
+    openMap() {
+        // Open map in new tab (not popup window)
+        if (this.mapWindow && !this.mapWindow.closed) {
+            this.mapWindow.focus();
+        } else {
+            this.mapWindow = window.open('/map', '_blank');
+            
+            // Send initial position when map loads
+            if (this.mapWindow) {
+                // Wait a bit for the map to load before sending position
+                setTimeout(() => {
+                    this.updateMapPosition();
+                }, 1000);
+            }
+        }
+    }
+    
+    updateMapPosition() {
+        // Send current room to map window if open
+        if (this.mapWindow && !this.mapWindow.closed && this.playerData.room_id) {
+            try {
+                this.mapWindow.postMessage({
+                    type: 'player_position',
+                    room_id: this.playerData.room_id
+                }, '*');
+            } catch (e) {
+                console.log('Could not update map position:', e);
+            }
+        }
     }
 }
 

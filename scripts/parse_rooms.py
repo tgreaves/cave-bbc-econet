@@ -175,8 +175,8 @@ def parse_all_rooms(room_dir, output_file):
     print(f"Found {colored_rooms} rooms with color codes")
 
 if __name__ == '__main__':
-    room_dir = '../cave-plus/original/R'
-    output_file = '../cave-plus/modern/rooms-parsed.yml'
+    room_dir = '../original/cave-plus/original/R'
+    output_file = '../rooms-parsed.yml'
     
     parse_all_rooms(room_dir, output_file)
     print(f"\nOutput written to: {output_file}")

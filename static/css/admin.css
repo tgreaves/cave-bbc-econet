@@ -1,0 +1,264 @@
+/* CAVE-Plus Admin Dashboard Styles */
+
+@font-face {
+    font-family: 'Bedstead';
+    src: url('/static/fonts/bedstead.otf') format('opentype');
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Bedstead', monospace;
+    background: #0a0a0a;
+    color: #00ff00;
+    line-height: 1.6;
+}
+
+/* Login Screen */
+#login-screen {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #0a0a0a;
+    justify-content: center;
+    align-items: center;
+}
+
+#login-screen.active {
+    display: flex;
+}
+
+.login-container {
+    text-align: center;
+    padding: 2rem;
+}
+
+.login-container h1 {
+    color: #ffff00;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 10px #ffff00;
+}
+
+#login-display {
+    font-size: 1.2rem;
+    color: #00ff00;
+}
+
+.cursor {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+/* Admin Dashboard */
+#admin-screen {
+    display: none;
+}
+
+#admin-screen.active {
+    display: block;
+}
+
+header {
+    background: #1a1a1a;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid #00ff00;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    color: #ffff00;
+    font-size: 1.5rem;
+    text-shadow: 0 0 10px #ffff00;
+}
+
+.admin-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+#admin-name {
+    color: #00ff00;
+}
+
+button {
+    font-family: 'Bedstead', monospace;
+    background: #1a1a1a;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+button:hover {
+    background: #00ff00;
+    color: #0a0a0a;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* Dashboard Layout */
+.dashboard {
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 1.5rem;
+}
+
+.panel {
+    background: #1a1a1a;
+    border: 1px solid #00ff00;
+    border-radius: 4px;
+    padding: 1.5rem;
+}
+
+.panel h2 {
+    color: #ffff00;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #00ff00;
+    padding-bottom: 0.5rem;
+}
+
+/* Tables */
+.table-container {
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th {
+    background: #0a0a0a;
+    color: #ffff00;
+    padding: 0.75rem;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    border-bottom: 1px solid #00ff00;
+}
+
+td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #333;
+}
+
+tr:hover {
+    background: #222;
+}
+
+.empty {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+}
+
+.status-connected {
+    background: #00ff00;
+    color: #0a0a0a;
+}
+
+.status-disconnected {
+    background: #ff0000;
+    color: #fff;
+}
+
+/* Action buttons */
+.action-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    margin: 0 0.25rem;
+}
+
+.kick-btn {
+    border-color: #ff0000;
+    color: #ff0000;
+}
+
+.kick-btn:hover {
+    background: #ff0000;
+    color: #fff;
+}
+
+/* Controls */
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.control-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.control-item label {
+    color: #ffff00;
+    font-size: 0.9rem;
+}
+
+.control-item input {
+    font-family: 'Bedstead', monospace;
+    background: #0a0a0a;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    padding: 0.5rem;
+}
+
+.toggle-btn {
+    width: 100%;
+}
+
+.toggle-btn.on {
+    background: #00ff00;
+    color: #0a0a0a;
+}
+
+.toggle-btn.off {
+    background: #ff0000;
+    color: #fff;
+    border-color: #ff0000;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+    
+    header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}

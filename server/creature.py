@@ -72,7 +72,11 @@ class Creature:
             self.max_stamina = 10
         
         # Current stamina (use initial stamina if provided, otherwise max stamina)
-        self.stamina = initial_stamina if initial_stamina > 0 else self.max_stamina
+        # Cap stamina to max_stamina (some OBJINIT values exceed max)
+        if initial_stamina > 0:
+            self.stamina = min(initial_stamina, self.max_stamina)
+        else:
+            self.stamina = self.max_stamina
         
         # State flags
         self.is_aggressive = (self.behavior == 'A')  # Aggressive by default?

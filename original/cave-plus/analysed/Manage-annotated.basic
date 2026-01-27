@@ -1,0 +1,613 @@
+REM ============================================================================
+REM MANAGE.BASIC - CAVE Game Management/Admin Tool
+REM ============================================================================
+REM This program allows a system administrator to monitor and manage the
+REM networked CAVE game running on an Econet network. It provides:
+REM - Real-time view of all connected players
+REM - Player inventory and status monitoring
+REM - Object and creature location tracking
+REM - Game environment controls (lights, portcullis, staff charges, activity)
+REM - Ability to kick players or shut down stations
+REM ============================================================================
+
+   10 *SHADOW                    REM Enable shadow screen RAM for faster display
+   20 DIM POK%20                 REM Dimension array for poke operations
+   30 Tot=40                     REM Total number of objects + creatures (15 objects + 25 creatures)
+   40 NonLive=15                 REM Number of non-living objects (items)
+   50 MODE128                    REM Teletext mode (Mode 7 with shadow RAM)
+   60 DIM Obj$(Tot),Mag$(Tot)    REM Arrays for object names and magic properties
+   70 DIM p(NonLive)             REM Array to track which objects are held by players
+   80 PROCCODE                   REM Set up machine code routines for Econet operations
+   90 PROCinit                   REM Initialize object and creature data from DATA statements
+  100 REPEAT                     REM Main loop
+  110 CLS                        REM Clear screen
+  120 FOR T=1 TO NonLive:p(T)=0:NEXT  REM Reset object tracking array
+  130 ?Stat=0:CALL Find          REM Find first CAVE station on network
+  140 IF ?Stat=0 PRINT"Nobody is using cave.":END  REM Exit if no CAVE stations found
+  150 CALL Peek                  REM Peek at shared memory from CAVE stations
+
+REM ============================================================================
+REM Display Player Information
+REM ============================================================================
+REM Memory layout for each player (16 bytes at &910-&9F0):
+REM   Offset 0-7:  Player name (8 bytes)
+REM   Offset 8:    Station number
+REM   Offset 9:    Current room number
+REM   Offset 12-15: Stamina (4 bytes, little-endian integer)
+REM ============================================================================
+
+  160 FOR T=&910 TO &9F0 STEP &10:IF ?T=0 GOTO 190  REM Loop through player slots
+  170 COLOUR129:COLOUR0:PRINT$T;:COLOUR1:COLOUR128:PRINTTAB(8);"stamina ";!(T+12);TAB(21);"Stn ";?(T+8);TAB(28);" Room ";?(T+9)
+      REM Print: player name, stamina, station number, room number
+  180 PROCinvent                 REM Show player's inventory
+  190 NEXT
+
+REM ============================================================================
+REM Display Game Environment Status
+REM ============================================================================
+REM Memory locations:
+REM   &A00: Activity level (0-9, controls creature aggression)
+REM   &A02: Bit 0 = lights (0=on, 1=off), Bits 1-7 = staff charges * 2
+REM   &A03: Portcullis state (0=down, 1=up)
+REM   &A04-&A3F: Object locations (4 bytes each, 15 objects)
+REM   &A40-&AFF: Creature data (4 bytes each, 25 creatures)
+REM ============================================================================
+
+  200 PRINT
+  210 PROCobjects:PRINT:PRINT"Lights ";:COLOUR0:COLOUR129:IF ?&A02 AND 1 PRINT"OFF" ELSE PRINT"ON"
+  220 COLOUR1:COLOUR128
+  230 PRINT"Portcullis ";:COLOUR0:COLOUR129:IF ?&A03=0 PRINT"DOWN" ELSE PRINT"UP"
+  240 COLOUR1:COLOUR128
+  250 PRINT"Staff charges ";(?&A02 DIV 2)  REM Staff charges stored as value*2
+  260 PRINT"Activity ";?&A00
+  270 V=0                        REM Vertical position for monster display
+  280 PROCmonsters                REM Display all creatures and their locations
+  290 PRINTTAB(0,29);"TAB to see users","RETURN to alter environment"
+  300 A=INKEY(1000):IF A=9 THEN PROCNextPage  REM TAB key = show user/station list
+  310 IF A=13 THEN PROCpagea    REM RETURN key = alter environment
+  320 UNTIL 0                    REM Loop forever
+  330 END
+
+REM ============================================================================
+REM Machine Code Routines for Econet Operations
+REM ============================================================================
+REM These routines use Econet OSWORD calls to:
+REM - Find CAVE stations on the network (OSWORD &81 - Peek)
+REM - Read shared memory from remote stations (OSWORD &81 - Peek)
+REM - Write to shared memory on remote stations (OSWORD &82 - Poke)
+REM - Send control commands (OSWORD &83 - JSR, &86 - Halt, &87 - Continue)
+REM ============================================================================
+
+  340 DEFPROCCODE
+  350 FOR P = 0 TO 2 STEP 2     REM Two-pass assembly
+  360 P%=&7000                   REM Assemble at &7000
+  370 [OPT P
+
+REM ============================================================================
+REM Poke Routine - Write to remote station memory
+REM ============================================================================
+  380 .Poke
+  390 LDA #1                     REM Start with station 1
+  400 STA Stat                   REM Store in Stat variable
+  410 LDA #&0                    REM Set up pointer to &900
+  420 STA &70
+  430 LDA #&9
+  440 STA &71
+  450 .PokeLP                    REM Loop through player slots
+  460 LDA &70
+  470 CLC
+  480 ADC #&10                   REM Advance to next player slot (16 bytes)
+  490 STA &70
+  500 BCS PokeOut                REM Exit if wrapped past &9FF
+  510 LDX #0
+  520 LDA (&70,X)                REM Check if player name exists
+  530 CMP #0
+  540 BEQ PokeLP                 REM Skip if empty slot
+  550 LDY #8
+  560 LDA (&70),Y                REM Get station number from offset 8
+  570 STA PokeStat
+  580 CMP MyStat                 REM Don't poke our own station
+  590 BEQ PokeLP
+  600 .PokeTryAgain
+  610 LDA #&82                   REM OSWORD &82 = Poke (write remote memory)
+  620 STA PokeBLK
+  630 LDA #&10                   REM Port &10 = file server port
+  640 LDX #PokeBLK MOD 256
+  650 LDY #PokeBLK DIV 256
+  660 JSR &FFF1                  REM OSWORD call
+  670 .PokeF
+  680 LDA #&32                   REM OSBYTE &32 = poll transmit
+  690 JSR &FFF4
+  700 TXA
+  710 AND #&80                   REM Check if still transmitting
+  720 BNE PokeF                  REM Wait until done
+  730 TXA
+  740 AND #&40                   REM Check for error
+  750 BNE PokeTryAgain           REM Retry if error
+  760 JMP PokeLP                 REM Continue to next player
+  770 .PokeOut
+  780 RTS
+  790 .PokeBLK                   REM Poke control block
+  800 EQUB &82                   REM Function code
+  810 EQUB 0                     REM Reply port
+  820 .PokeStat
+  830 EQUW 0                     REM Station number (filled in)
+  840 EQUD 0                     REM Source address (filled in)
+  850 EQUD 0                     REM Destination address (filled in)
+  860 EQUD 0                     REM Count (filled in)
+
+REM ============================================================================
+REM PokeS Routine - Poke with specific parameters
+REM ============================================================================
+  870 .PokeS
+  880 LDA PS+2                   REM Get station from parameter block
+  890 CMP MyStat                 REM Don't poke our own station
+  900 BEQ OUT
+  910 LDA #&82                   REM OSWORD &82 = Poke
+  920 STA PS
+  930 LDA #&10                   REM Port &10
+  940 LDX #PS MOD 256
+  950 LDY #PS DIV 256
+  960 JSR &FFF1
+  970 .PokeSLP
+  980 LDA #&32                   REM Poll transmit
+  990 JSR &FFF4
+ 1000 TXA
+ 1010 AND #&80
+ 1020 BNE PokeSLP
+ 1030 TXA
+ 1040 AND #&40
+ 1050 BNE PokeS                  REM Retry on error
+ 1060 RTS
+ 1070 .PS                        REM Parameter block for PokeS
+ 1080 EQUB &82
+ 1090 EQUB 0
+ 1100 EQUW 0                     REM Station (filled in)
+ 1110 EQUD SBLK                  REM Source address
+ 1120 EQUD SBLK+&F0              REM Destination address
+ 1130 EQUD &7700                 REM Count
+
+REM ============================================================================
+REM Find Routine - Search for CAVE stations on network
+REM ============================================================================
+REM Scans all station numbers looking for stations running CAVE
+REM Identifies CAVE by checking for "CAV" signature in memory
+REM ============================================================================
+ 1140 .Find
+ 1150 INC Stat                   REM Try next station number
+ 1160 LDA Stat
+ 1170 CMP MyStat                 REM Skip our own station
+ 1180 BEQ Find
+ 1190 CMP #&FE                   REM Station 254 is max
+ 1200 BNE FindOK
+ 1210 LDA #0                     REM Wrap to 0 (no more stations)
+ 1220 STA Stat
+ 1230 .OUT
+ 1240 RTS
+ 1250 .FindOK
+ 1260 LDA #&81                   REM OSWORD &81 = Peek (read remote memory)
+ 1270 STA FindBLK
+ 1280 STA FindC
+ 1290 LDA #&10                   REM Port &10
+ 1300 LDX #FindBLK MOD 256
+ 1310 LDY #FindBLK DIV 256
+ 1320 JSR &FFF1
+ 1330 .FindF
+ 1340 LDA #&32                   REM Poll transmit
+ 1350 JSR &FFF4
+ 1360 TXA
+ 1370 AND #&80
+ 1380 CMP #0
+ 1390 BNE FindF                  REM Wait for completion
+ 1400 TXA
+ 1410 AND #&40
+ 1420 CMP #0
+ 1430 BNE Find                   REM Try next station on error
+ 1440 LDA FindC                  REM Check for "CAV" signature
+ 1450 CMP #&43                   REM 'C'
+ 1460 BNE Find
+ 1470 LDA FindC+1
+ 1480 CMP #&41                   REM 'A'
+ 1490 BNE Find
+ 1500 LDA FindC+2
+ 1510 CMP #ASC"V"                REM 'V'
+ 1520 BNE Find
+ 1530 RTS                        REM Found a CAVE station!
+ 1540 .FindBLK                   REM Find control block
+ 1550 EQUB &81                   REM Peek function
+ 1560 EQUB 0
+ 1570 .Stat
+ 1580 EQUW 0                     REM Station number (incremented)
+ 1590 EQUD FindC                 REM Destination for data
+ 1600 EQUD FindC+4
+ 1610 EQUD &900                  REM Source address (where "CAV" signature is)
+ 1620 .FindC
+ 1630 EQUD 0                     REM Buffer for received data
+ 1640 EQUD 0
+
+REM ============================================================================
+REM Peek Routine - Read shared memory from all CAVE stations
+REM ============================================================================
+REM Reads memory range &908-&AFF from each CAVE station
+REM This contains player data, object locations, and creature data
+REM ============================================================================
+ 1650 .Peek
+ 1660 LDA #0
+ 1670 STA &D63                   REM Clear some flag
+ 1680 LDA #1
+ 1690 STA Stat                   REM Start at station 1
+ 1700 JSR Find                   REM Find first CAVE station
+ 1710 CMP #1
+ 1720 BEQ PeekOut                REM Exit if none found
+ 1730 LDA Stat
+ 1740 STA PeekStat               REM Store station number
+ 1750 LDA #&81                   REM OSWORD &81 = Peek
+ 1760 STA PeekBLK
+ 1770 LDA #&10                   REM Port &10
+ 1780 LDX #PeekBLK MOD 256
+ 1790 LDY #PeekBLK DIV 256
+ 1800 JSR &FFF1
+ 1810 .PeekF
+ 1820 LDA #&32                   REM Poll transmit
+ 1830 JSR &FFF4
+ 1840 TXA
+ 1850 AND #&80
+ 1860 BNE PeekF                  REM Wait for completion
+ 1870 .PeekOut
+ 1880 RTS
+ 1890 .PeekBLK                   REM Peek control block
+ 1900 EQUB &81
+ 1910 EQUB 0
+ 1920 .PeekStat
+ 1930 EQUW 0                     REM Station number
+ 1940 EQUD &908                  REM Destination in our memory
+ 1950 EQUD &AFF                  REM End address
+ 1960 EQUD &908                  REM Source address on remote station
+ 1970 .MyStat
+ 1980 EQUB ?&D22                 REM Our station number (from OS)
+
+REM ============================================================================
+REM Control Blocks for Remote Commands
+REM ============================================================================
+ 1990 .SBLK
+ 2000 .CAVE%:EQUB &82:EQUB 0:EQUW 0:EQUD gone:EQUD CO%:EQUD gone
+      REM Poke block for sending commands
+ 2010 .jsr:EQUB &83:EQUB 0:EQUW 0:EQUD 0:EQUD 5:EQUD gone
+      REM JSR block (OSWORD &83 = execute code on remote station)
+ 2020 .HALT:EQUB &86:EQUB 0:EQUW 0
+      REM Halt block (OSWORD &86 = halt remote station)
+ 2030 .gone                      REM Code to execute on remote station
+ 2040 CLI:LDA#&12:LDX#0:LDY#9:JSR&FFF1:LDX#bye MOD 256:LDY#bye DIV 256:JSR&FFF7:LDX#bas MOD 256:LDY#bas DIV 256:JSR&FFF7:RTS
+      REM Execute *BYE then *BASIC on remote station (logs out user)
+ 2050 .bas:EQUS "BASIC":EQUB 13
+ 2060 .bye:EQUS "BYE":EQUB 13
+ 2070 .CO%:EQUB &87:EQUB 0:EQUW 0
+      REM Continue block (OSWORD &87 = resume remote station)
+ 2080 .pokestat                  REM Poke block for updating all stations
+ 2090 EQUB &82:EQUB 0:EQUW 0:EQUD &908:EQUD &AFF:EQUD &908
+ 2100 ]
+ 2110 NEXT                       REM End of assembly loop
+ 2120 ENDPROC
+
+REM ============================================================================
+REM Data Initialization
+REM ============================================================================
+ 2130 DEFPROCinit
+ 2140 FOR T=1 TO Tot:READ Obj$(T),Mag$(T):NEXT  REM Read object/creature names and properties
+ 2150 ENDPROC
+
+REM ============================================================================
+REM Display Player Inventory
+REM ============================================================================
+REM Object locations stored at &A04-&A3F (4 bytes each)
+REM Format: byte 0 = room number, byte 1 = station number (if held by player)
+REM If byte 1 matches player's station number, they're holding it
+REM ============================================================================
+ 2160 DEFPROCinvent
+ 2170 L=FALSE                    REM Flag for "has items"
+ 2180 FOR x=&A04 TO (NonLive*4+&A00) STEP 4:IF !x=T*&100 PRINT"-";Obj$((x-&A00)/4);:p((x-&A00)/4)=1:L=TRUE
+      REM Check if object's station byte matches current player's station
+ 2190 NEXT
+ 2200 IF L PRINT                 REM Print newline if player has items
+ 2210 ENDPROC
+
+REM ============================================================================
+REM Display Objects Not Held By Players
+REM ============================================================================
+ 2220 DEFPROCobjects
+ 2230 V=VPOS                     REM Save vertical position
+ 2240 FOR x=&A04 TO (NonLive*4+&A00) STEP 4:IF p((x-&A00)/4)=0 PRINT Obj$((x-&A00)/4);TAB(15);" Room ";?x
+      REM Show objects that aren't held by any player (p() array = 0)
+ 2250 NEXT
+ 2260 ENDPROC
+
+REM ============================================================================
+REM Display All Creatures (Monsters)
+REM ============================================================================
+REM Creature data stored at &A40-&AFF (4 bytes each, 25 creatures)
+REM Format: byte 0 = room number, bytes 1-3 = stamina (24-bit value)
+REM ============================================================================
+ 2270 DEFPROCmonsters PRINTTAB(40,V);
+ 2280 FOR x=(NonLive*4+&A04) TO (Tot*4+&A00) STEP 4:PRINTTAB(40,V);Obj$((x-&A00)/4);TAB(55,V);"Room ";?x;TAB(65,V);"Stamina ";(!x DIV &100):V=V+1:NEXT
+      REM Display creature name, room, and stamina (stamina stored in bytes 1-3)
+ 2290 ENDPROC
+
+REM ============================================================================
+REM Object and Creature Data
+REM ============================================================================
+REM Format: Name, Properties
+REM Properties for creatures (Mag$) encode behavior:
+REM   B = Behavior (A=aggressive, B=passive, etc.)
+REM   Numbers encode: attack strength, defense, movement, etc.
+REM   H = Health/stamina value
+REM ============================================================================
+ 2300 DATA Vodka,
+ 2310 DATA Stick,
+ 2320 DATA Poison,
+ 2330 DATA Dagger,
+ 2340 DATA Bow,
+ 2350 DATA Arrow,
+ 2360 DATA Medicine,
+ 2370 DATA Knife,
+ 2380 DATA Flamethrower,
+ 2390 DATA Ruby,
+ 2400 DATA Shield,
+ 2410 DATA Crystal,
+ 2420 DATA Staff,
+ 2430 DATA Amulet,
+ 2440 DATA Treasure,
+ 2450 DATA Dragon,B00015000000011160H600
+ 2460 DATA  Troll,B30005030060002004H080
+ 2470 DATA    Rat,B50010020040010006H040
+ 2480 DATA Maggot,B20020005085010006H060
+ 2490 DATA    Bug,B10000505005002002H030
+ 2500 DATA Author,B00000210099912120H500
+ 2510 DATA Spider,B10010005010010002H040
+ 2520 DATA Coward,B50000002000002003H050
+ 2530 DATA Killer,B00004080095006008H100
+ 2540 DATA  Viper,B20004060050010006H035
+ 2550 DATA  Cobra,B20004060050010006H035
+ 2560 DATA Python,B20004060050010006H035
+ 2570 DATA  Adder,B20004060050010006H035
+ 2580 DATA   Worm,B95000030000002002H005
+ 2590 DATA  Drunk,B30010070020002002H040
+ 2600 DATA    Rat,B50010020040010006H040
+ 2610 DATA   Toad,B50010020040010006H040
+ 2620 DATA    Bat,B20020005085010006h060
+ 2630 DATAGuardian,B10015000000012050H999
+ 2640 DATA Goblin,B10010005010006006H050
+ 2650 DATA    Elf,B50050001001002002H020
+ 2660 DATA  Dwarf,B20010020040010008H060
+ 2670 DATA Necromancer,B20020005010012030H500
+ 2680 DATA Centipede,B10010020040010008H080
+ 2690 DATA   Orc,B20010005005002001H100
+ 2700 DATASkeleton,B20010005005002001H100
+ 2710 DATACaveman,B20010005005002001H150
+
+REM ============================================================================
+REM BANISH Spell - Remove Player from Game
+REM ============================================================================
+REM This procedure kicks a player out of CAVE by:
+REM 1. Halting all CAVE stations
+REM 2. Clearing the player's entry from the user table
+REM 3. Sending the cleared data to all stations
+REM 4. Resuming all CAVE stations
+REM ============================================================================
+ 2720 DEF PROCSTRING
+ 2730 INPUT"NAME";ST$            REM Get player name to kick
+ 2740 PRINT"You cast the BANISH spell and CAVE is stopped"
+ 2750 PROCStartStop(&86)         REM Halt all CAVE stations
+ 2760 PROCMOVE                   REM Remove player from user table
+ 2770 IF A%=0 THEN 2790          REM Skip poke if player not found
+ 2780 PROCPOKR                   REM Send updated data to all stations
+ 2790 PROCStartStop(&87)         REM Resume all CAVE stations
+ 2800 ENDPROC
+
+REM ============================================================================
+REM Start/Stop All CAVE Stations
+REM ============================================================================
+REM Sends HALT (&86) or CONTINUE (&87) command to all CAVE stations
+REM Used to freeze the game while making changes
+REM ============================================================================
+ 2810 DEF PROCStartStop(Byte)
+ 2820 ?Stat=0:CALL Find          REM Find first CAVE station
+ 2830 REPEAT
+ 2840 ?HALT=Byte                 REM Set command byte (HALT or CONTINUE)
+ 2850 HALT?2=?Stat               REM Set station number
+ 2860 A%=&10:X%=HALT MOD 256:Y%=HALT DIV 256:CALL &FFF1
+ 2870 A%=&32:CALL &FFF4          REM Send command
+ 2880 CALL Find                  REM Find next CAVE station
+ 2890 UNTIL ?Stat=0              REM Until no more stations
+ 2900 ENDPROC
+
+REM ============================================================================
+REM Remove Player from User Table
+REM ============================================================================
+REM Searches for player by name and clears their entry
+REM Also removes them from the remote station
+REM ============================================================================
+ 2910 DEF PROCMOVE
+ 2920 A%=0                       REM Flag for "player found"
+ 2930 FOR F=&910 TO &9F0 STEP &10  REM Loop through player slots
+ 2940 TEMP$=$F                   REM Get player name from slot
+ 2950 IF ?(F+8)=0 THEN F=&1000   REM Skip empty slots
+ 2960 IF TEMP$=ST$ THEN A%=F:?F=0:F=&1000  REM Found! Clear name and exit loop
+ 2970 NEXT
+ 2980 IF A%=0 THEN PRINT"BUT ";ST$;" IS NOT IN CAVE!!":ENDPROC
+ 2990 IF A% THEN MNG=?(A%+8):PROCREMOVE  REM Get station number and remove
+ 3000 PRINT ST$;" HAS LEFT CAVE"
+ 3010 ENDPROC
+
+REM ============================================================================
+REM Remove Player from Remote Station
+REM ============================================================================
+REM Sends commands to the player's station to log them out
+REM Uses OSWORD &82 (Poke), &83 (JSR), and &87 (Continue)
+REM ============================================================================
+ 3020 DEF PROCREMOVE
+ 3030 CAVE%?2=MNG:jsr?2=MNG      REM Set station number in control blocks
+ 3040 A%=&10:X%=CAVE% MOD 256:Y%=CAVE% DIV 256:CALL &FFF1
+ 3050 A%=&32:CALL &FFF4          REM Send poke command
+ 3060 PROCCONT(MNG)              REM Send continue command
+ 3070 A%=&10:X%=jsr MOD 256:Y%=jsr DIV 256:CALL &FFF1  REM Execute JSR (runs *BYE/*BASIC)
+ 3080 ENDPROC
+
+REM ============================================================================
+REM Send Continue Command to Station
+REM ============================================================================
+ 3090 DEF PROCCONT(MN)
+ 3100 ?CO%=&87                   REM OSWORD &87 = Continue
+ 3110 CO%?2=MN                   REM Set station number
+ 3120 A%=&10:X%=CO% MOD 256:Y%=CO% DIV 256:CALL &FFF1
+ 3130 A%=&32:CALL &FFF4
+ 3140 ENDPROC
+
+REM ============================================================================
+REM Poke All Stations with Updated Data
+REM ============================================================================
+REM After making changes to shared memory, this sends the updated
+REM data (&908-&AFF) to all CAVE stations to keep them synchronized
+REM ============================================================================
+ 3150 DEF PROCPOKR
+ 3160 ?Stat=0
+ 3170 CALL Find                  REM Find first CAVE station
+ 3180 REPEAT
+ 3190 ?pokestat=&82              REM OSWORD &82 = Poke
+ 3200 pokestat?2=?Stat           REM Set station number
+ 3210 A%=&10:X%=pokestat MOD 256:Y%=pokestat DIV 256:CALL &FFF1
+ 3220 A%=&32:CALL &FFF4          REM Send poke
+ 3230 PROCCONT(?Stat)            REM Send continue
+ 3240 CALL Find:UNTIL ?Stat=0    REM Continue until all stations updated
+ 3250 PRINT"ALL IS NORMAL":ENDPROC
+
+REM ============================================================================
+REM Alternate Display Page - User and Station List
+REM ============================================================================
+REM Shows two columns:
+REM   Left: All players in CAVE (name, station, room)
+REM   Right: All station numbers running CAVE
+REM ============================================================================
+ 3260 DEF PROCNextPage
+ 3270 CLS
+ 3280 PRINT"CAVE USER TABLE ";TAB(40);"MACHINES ON CAVE"
+ 3290 Table%=&910
+ 3300 PRINT
+ 3310 FOR Table%=&910 TO &9F0 STEP &10
+ 3320 IF ?Table%=0 THEN 3340     REM Skip empty slots
+ 3330 PRINT$Table%;" Stn ";?(Table%+8);" Room ";?(Table%+9)
+ 3340 NEXT
+ 3350 ?Stat=0
+ 3360 CALL Find                  REM Find all CAVE stations
+ 3370 Fe%=2                      REM Start at row 2
+ 3380 REPEAT
+ 3390 PRINTTAB(40,Fe%);?Stat:Fe%=Fe%+1  REM Print station number
+ 3400 CALL Find
+ 3410 UNTIL ?Stat=0
+ 3420 PRINTTAB(0,25);"RETURN TO LOG OFF USER"'"SPACE  TO LOG OFF MACHINE"'"TAB    TO FLIP TO OTHER PAGE"
+ 3430 A=GET
+ 3440 IF A=13 PROCSTRING         REM RETURN = kick user
+ 3450 IF A=32 PROCMachOff        REM SPACE = shut down station
+ 3460 ENDPROC
+
+REM ============================================================================
+REM Shut Down a Station
+REM ============================================================================
+ 3470 DEF PROCMachOff
+ 3480 INPUT"WHICH MACHINE",MNG   REM Get station number
+ 3490 PROCREMOVE                 REM Send shutdown commands
+ 3500 ENDPROC
+
+REM ============================================================================
+REM Direct Memory Poke (Debug Feature)
+REM ============================================================================
+REM Allows admin to directly modify any memory address
+REM Changes are then sent to all CAVE stations
+REM ============================================================================
+ 3510 DEF PROCPageA
+ 3520 INPUT"Address";AD%         REM Get memory address
+ 3530 INPUT"Value";Val%          REM Get value to write
+ 3540 ?AD%=Val%                  REM Write to local memory
+ 3550 PROCPOKR                   REM Send to all stations
+ 3560 ENDPROC
+
+REM ============================================================================
+REM Environment Control Menu
+REM ============================================================================
+REM Allows admin to modify game environment:
+REM   S = Staff charges (0-127)
+REM   L = Lights (on/off)
+REM   P = Portcullis (up/down)
+REM   A = Activity level (0-255, controls creature aggression)
+REM   TAB = Return to main display
+REM ============================================================================
+ 3570 DEF PROCpagea
+ 3580 PRINT"(S)taff,(L)ights,(P)ortcullis,(A)ctivity,TAB"
+ 3590 REPEAT
+ 3600 A$=GET$
+ 3610 IF A$="S" THEN PROCstaff
+ 3620 IF A$="L" THEN PROCli
+ 3630 IF A$="P" THEN PROCPort
+ 3640 IF A$="A" THEN PROCact
+ 3650 UNTIL A$=CHR$(9)           REM TAB key exits
+ 3660 PROCPOKR                   REM Send changes to all stations
+ 3670 ENDPROC
+
+REM ============================================================================
+REM Set Staff Charges
+REM ============================================================================
+REM Staff charges stored at &A02 (bits 1-7)
+REM Bit 0 is lights flag, so we preserve it
+REM Charges stored as value*2 (max 127 charges = 254 in memory)
+REM ============================================================================
+ 3680 DEF PROCstaff
+ 3690 INPUT"New number of staff charges",CA%
+ 3700 IF CA%>127 THEN PRINT"THAT'S FAR TOO MANY!!!":GOTO 3690
+ 3710 CA%=CA%*2:?&A02=?&A02 AND 1:?&A02=?&A02+CA%
+      REM Multiply by 2, preserve bit 0 (lights), add charges
+ 3720 ENDPROC
+
+REM ============================================================================
+REM Toggle Lights
+REM ============================================================================
+REM Lights controlled by bit 0 of &A02
+REM 0 = lights on, 1 = lights off
+REM ============================================================================
+ 3730 DEF PROCli
+ 3740 IF (?&A02 AND 1)=1 THEN PRINT"THE LIGHTS go ON":?&A02=?&A02 AND &FE:ENDPROC
+      REM If bit 0 is 1 (off), clear it to turn on
+ 3750 PRINT"THE Lights go OFF":?&A02=(?&A02 OR 1):ENDPROC
+      REM If bit 0 is 0 (on), set it to turn off
+
+REM ============================================================================
+REM Set Activity Level
+REM ============================================================================
+REM Activity level at &A00 controls creature aggression
+REM Higher values = more aggressive creatures
+REM Range: 0-255 (typically 0-9 in normal gameplay)
+REM ============================================================================
+ 3760 DEF PROCact
+ 3770 INPUT"New activity",CA%
+ 3780 IF CA%>255 THEN PRINT"Don't be silly!!":GOTO 3770
+ 3790 ?&A00=CA%:ENDPROC
+
+REM ============================================================================
+REM Toggle Portcullis
+REM ============================================================================
+REM Portcullis state at &A03
+REM 0 = down (closed), 1 = up (open)
+REM ============================================================================
+ 3800 DEF PROCPort
+ 3810 IF ?&A03=0 THEN PRINT"The Portcullis goes UP":?&A03=1:ENDPROC
+ 3820 PRINT"The Portcullis goes DOWN":?&A03=0:ENDPROC
+
+REM ============================================================================
+REM END OF MANAGE.BASIC
+REM ============================================================================
+REM Summary of Key Features:
+REM - Real-time monitoring of all players and their status
+REM - View object and creature locations
+REM - Control game environment (lights, portcullis, staff, activity)
+REM - Kick players or shut down stations
+REM - Direct memory manipulation for debugging
+REM - Uses Econet OSWORD calls for network communication
+REM ============================================================================
